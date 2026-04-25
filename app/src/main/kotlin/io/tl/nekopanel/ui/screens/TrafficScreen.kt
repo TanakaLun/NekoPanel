@@ -56,7 +56,7 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
     Column(Modifier.fillMaxSize()) {
         LogLevelSelector(currentLogLevel, onLevelChange)
         LazyColumn(state = state, modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-            itemsIndexed(logs) { index, log ->
+            itemsIndexed(logs) { index: Int, log: LogItem ->
                 Column {
                     Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
                         Text(
@@ -66,13 +66,25 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
                             modifier = Modifier.width(60.dp),
                             color = when (log.type.lowercase()) {
                                 "info" -> MaterialTheme.colorScheme.primary
+                                "warning" -> Color(0xFFF57C00)
                                 "error" -> MaterialTheme.colorScheme.error
+                                "debug" -> MaterialTheme.colorScheme.tertiary
                                 else -> MaterialTheme.colorScheme.secondary
                             }
                         )
-                        Text(text = log.payload, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = log.payload,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    if (index < logs.size - 1) HorizontalDivider(thickness = 0.5.dp)
+                    if (index < logs.size - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         }

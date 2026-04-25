@@ -42,7 +42,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var trafficTab by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     
-    // 修正：明确指定泛型类型
     val logs = remember { mutableStateListOf<LogItem>() }
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
     
@@ -54,6 +53,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
+
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var currentMode by remember { mutableStateOf("rule") }
