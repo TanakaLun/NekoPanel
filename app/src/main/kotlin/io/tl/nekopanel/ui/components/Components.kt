@@ -1,7 +1,7 @@
 package io.tl.nekopanel.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateFloatAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*

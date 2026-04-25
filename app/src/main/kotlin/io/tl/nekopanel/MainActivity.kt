@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
+import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
 
