@@ -74,31 +74,44 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("api_secret", "") ?: ""
         set(value) = prefs.edit().putString("api_secret", value).apply()
 
+    fun getCumulativeTraffic(): Pair<Long, Long> {
+        return prefs.getLong("cumulative_down", 0L) to prefs.getLong("cumulative_up", 0L)
+    }
 
     fun getLastTraffic(): Pair<Long, Long> {
         return prefs.getLong("last_total_down", 0L) to prefs.getLong("last_total_up", 0L)
     }
-    
+
     fun saveLastTraffic(down: Long, up: Long) {
         prefs.edit().putLong("last_total_down", down).putLong("last_total_up", up).apply()
     }
-    
+
     fun accumulateTraffic(totalDown: Long, totalUp: Long, maxDelta: Long = 10_000_000_000_000L) {
         val (lastDown, lastUp) = getLastTraffic()
         val deltaDown = totalDown - lastDown
         val deltaUp = totalUp - lastUp
         val validDown = deltaDown in 0..maxDelta
         val validUp = deltaUp in 0..maxDelta
-    
+
         val (cumDown, cumUp) = getCumulativeTraffic()
         val newCumDown = if (validDown) cumDown + deltaDown else cumDown
         val newCumUp = if (validUp) cumUp + deltaUp else cumUp
-    
+
         prefs.edit()
             .putLong("cumulative_down", newCumDown)
             .putLong("cumulative_up", newCumUp)
             .apply()
-    
+
         saveLastTraffic(totalDown, totalUp)
+    }
+
+    /** 重置累计流量计数器 */
+    fun resetCumulativeTraffic() {
+        prefs.edit()
+            .putLong("cumulative_down", 0L)
+            .putLong("cumulative_up", 0L)
+            .putLong("last_total_down", 0L)
+            .putLong("last_total_up", 0L)
+            .apply()
     }
 }
