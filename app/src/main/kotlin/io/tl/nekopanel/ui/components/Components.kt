@@ -35,9 +35,10 @@ import org.json.JSONObject
 
 // 工具函数
 fun formatSize(b: Long): String = when {
-    b < 1024 -> "${b}B"
-    b < 1048576 -> "${String.format("%.1f", b / 1024f)}K"
-    else -> "${String.format("%.1f", b / 1048576f)}M"
+    b >= 1024L * 1024 * 1024 -> "%.2f GB".format(b / (1024.0 * 1024 * 1024))
+    b >= 1024L * 1024 -> "%.2f MB".format(b / (1024.0 * 1024))
+    b >= 1024 -> "%.2f KB".format(b / 1024.0)
+    else -> "$b B"
 }
 
 // ================== 图表组件 ==================
@@ -275,7 +276,7 @@ fun SettingsDropdownMenuInline(
 
 // ================== Badge ==================
 @Composable
-fun TypeBadge(text: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
+fun TypeBadge(type: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
     val color = MaterialTheme.colorScheme.primary
     Surface(
         color = if (style == "填充") color else Color.Transparent,
@@ -586,6 +587,7 @@ fun ProxyGroupCard(
 }
 
 // ================== ConnectionCard ==================
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConnectionCard(
     conn: ConnectionItem,
@@ -661,6 +663,7 @@ fun ConnectionCard(
         }
     }
 }
+
 
 // ================== DurationBadge ==================
 @Composable

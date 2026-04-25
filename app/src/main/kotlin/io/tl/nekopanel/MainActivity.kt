@@ -23,7 +23,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val settings = SettingsManager(this)
-
         setContent {
             var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
             ComposeEmptyActivityTheme(pureBlackMode = pureBlackMode) {
@@ -41,44 +40,47 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var selectedTab by remember { mutableIntStateOf(0) }
     var trafficTab by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
-    
     val logs = remember { mutableStateListOf<LogItem>() }
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
-    
     var currentLogLevel by remember { mutableStateOf(settings.logLevel) }
     var globalInUse by remember { mutableLongStateOf(0L) }
     var globalDown by remember { mutableLongStateOf(0L) }
     var totalDown by remember { mutableLongStateOf(0L) }
     var totalUp by remember { mutableLongStateOf(0L) }
-    
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
-
-    var configUpdateTrigger by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
-    var currentMode by remember { mutableStateOf("rule") }
 
     LaunchedEffect(currentLogLevel) {
-        val logWs = ApiClient.buildWebSocket("/logs?level=$currentLogLevel") { text ->
+        val logWs = ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
             val obj = JSONObject(text)
             logs.add(0, LogItem(obj.optString("type"), obj.optString("payload")))
             if (logs.size > 500) logs.removeAt(logs.size - 1)
-        }
-        val trafficWs = ApiClient.buildWebSocket("/traffic") { text ->
+        })
+        val trafficWs = ApiClient.buildWebSocket("/traffic", onText = { text ->
             val obj = JSONObject(text)
             globalDown = obj.optLong("down")
             totalDown = obj.optLong("downTotal")
             totalUp = obj.optLong("upTotal")
-        }
-        val connWs = ApiClient.buildWebSocket("/connections") { text ->
+        })
+        val connWs = ApiClient.buildWebSocket("/connections", onText = { text ->
             val obj = JSONObject(text)
             globalInUse = obj.optLong("memory")
             val arr = obj.optJSONArray("connections") ?: return@buildWebSocket
             val list = mutableListOf<ConnectionItem>()
             for (i in 0 until arr.length()) {
                 val c = arr.getJSONObject(i)
+                val metadata = c.optJSONObject("metadata") ?: JSONObject()
+                val host = metadata.optString("host").let { if(it.isEmpty()) metadata.optString("destinationIP") else it }
+                
                 list.add(ConnectionItem(
                     id = c.optString("id"),
+                    host = host,
+                    network = metadata.optString("network"),
+                    proxy = c.optString("chains").let { 
+                        val jsonArr = JSONObject(text).optJSONArray("connections")?.getJSONObject(i)?.optJSONArray("chains")
+                        jsonArr?.optString(0) ?: "DIRECT"
+                    },
                     upload = c.optLong("upload"),
                     download = c.optLong("download"),
                     start = c.optString("start"),
@@ -88,11 +90,11 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     },
                     rule = c.optString("rule"),
                     rulePayload = c.optString("rulePayload"),
-                    rawJson = c
+                    rawJson = c.toString()
                 ))
             }
             connections = list
-        }
+        })
         try { awaitCancellation() } finally {
             logWs.close(1000, null); trafficWs.close(1000, null); connWs.close(1000, null)
         }
@@ -115,7 +117,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (selectedTab) {
-                0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { configUpdateTrigger++ })
+                0 -> ProxiesScreen(settings, globalRefreshTick, "rule", onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = {})
                 1 -> RulesScreen(globalRefreshTick, settings)
                 2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it })
                 3 -> FullSettingsScreen(settings, onPureBlackToggle)

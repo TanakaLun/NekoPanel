@@ -15,10 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.ConnectionItem
 import io.tl.nekopanel.LogItem
 import io.tl.nekopanel.SettingsManager
 import io.tl.nekopanel.ui.components.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun TrafficScreen(
@@ -35,6 +37,8 @@ fun TrafficScreen(
     downHistory: List<Long>,
     onLevelChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    
     when (trafficTab) {
         0 -> Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
             TrafficOverviewCard(trafficDown, totalDown, totalUp, downHistory, settings)
@@ -44,7 +48,12 @@ fun TrafficScreen(
             ConnectionStatusCard(connections.size)
         }
         1 -> LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(connections, key = { it.id }) { conn -> ConnectionCard(conn) }
+            items(connections, key = { it.id }) { conn -> 
+                ConnectionCard(
+                    conn = conn, 
+                    onClose = { scope.launch { try { ApiClient.deleteConnection(conn.id) } catch(_:Exception){} } }
+                ) 
+            }
         }
         2 -> LogsView(logs, currentLogLevel, onLevelChange)
     }
@@ -66,25 +75,13 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
                             modifier = Modifier.width(60.dp),
                             color = when (log.type.lowercase()) {
                                 "info" -> MaterialTheme.colorScheme.primary
-                                "warning" -> Color(0xFFF57C00)
                                 "error" -> MaterialTheme.colorScheme.error
-                                "debug" -> MaterialTheme.colorScheme.tertiary
                                 else -> MaterialTheme.colorScheme.secondary
                             }
                         )
-                        Text(
-                            text = log.payload,
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = log.payload, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp))
                     }
-                    if (index < logs.size - 1) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                    }
+                    if (index < logs.size - 1) HorizontalDivider(thickness = 0.5.dp)
                 }
             }
         }
