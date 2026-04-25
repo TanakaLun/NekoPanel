@@ -1,7 +1,7 @@
 package io.tl.nekopanel.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateFloatAsState
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -10,55 +10,37 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import kotlinx.coroutines.*
-import org.json.JSONObject
 import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.SettingsManager
+import kotlinx.coroutines.*
+import org.json.JSONObject
 
-// ================== 数据模型 ==================
-data class ConnectionItem(
-    val id: String,
-    val host: String,
-    val network: String,
-    val proxy: String,
-    val upload: Long,
-    val download: Long,
-    val rawJson: String
-)
-
-data class LogItem(
-    val type: String,
-    val payload: String,
-    val time: Long = System.currentTimeMillis()
-)
-
-// ================== 工具函数 ==================
+// 工具函数
 fun formatSize(b: Long): String = when {
     b < 1024 -> "${b}B"
     b < 1048576 -> "${String.format("%.1f", b / 1024f)}K"
     else -> "${String.format("%.1f", b / 1048576f)}M"
 }
 
-// ================== 图表 ==================
+// ================== 图表组件 ==================
 @Composable
 fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
@@ -126,7 +108,7 @@ fun rememberChartHistory(currentValue: Long): List<Long> {
     return history
 }
 
-// ================== 顶部导航 ==================
+// ================== CapsuleTabRow ==================
 @Composable
 fun CapsuleTabRow(
     selectedTab: Int,
@@ -181,7 +163,7 @@ fun CapsuleTabRow(
     }
 }
 
-// ================== 下拉选择器 ==================
+// ================== ModeSpinner/LevelSpinner ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
@@ -221,7 +203,9 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
         FilterChip(
             selected = true,
             onClick = { expanded = true },
-            label = { Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+            label = {
+                Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            },
             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
             shape = RoundedCornerShape(12.dp)
         )
@@ -236,6 +220,7 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
     }
 }
 
+// ================== SettingsDropdownMenuInline ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDropdownMenuInline(
@@ -262,7 +247,9 @@ fun SettingsDropdownMenuInline(
                     onValueChange = {},
                     readOnly = true,
                     textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
                     modifier = Modifier.menuAnchor(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -286,7 +273,7 @@ fun SettingsDropdownMenuInline(
     }
 }
 
-// ================== Badge 组件 ==================
+// ================== Badge ==================
 @Composable
 fun TypeBadge(text: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
     val color = MaterialTheme.colorScheme.primary
@@ -359,7 +346,7 @@ fun DelayBadge(
     }
 }
 
-// ================== 代理图标 ==================
+// ================== ProxyIconContainer ==================
 @Composable
 fun ProxyIconContainer(url: String?, fallbackText: String) {
     Box(
@@ -387,7 +374,7 @@ fun ProxyIconContainer(url: String?, fallbackText: String) {
     }
 }
 
-// ================== 开关 ==================
+// ================== ConfigToggle ==================
 @Composable
 fun ConfigToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
@@ -405,7 +392,7 @@ fun ConfigToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> 
     }
 }
 
-// ================== 代理节点卡片 ==================
+// ================== NodeCard ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NodeCard(
@@ -449,7 +436,7 @@ fun NodeCard(
     }
 }
 
-// ================== 代理组展开网格 ==================
+// ================== NodeGridSection ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NodeGridSection(
@@ -467,11 +454,10 @@ fun NodeGridSection(
     ) {
         itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
-            // 这里节点延迟数据可以从全局缓存中获取，简化起见直接测试
             NodeCard(
                 name = nodeName,
                 type = "Proxy",
-                lastDelay = 0, // 可扩展为实时延迟
+                lastDelay = 0,
                 isSelected = false,
                 isTesting = isNodeTesting,
                 settings = settings,
@@ -497,7 +483,7 @@ fun NodeGridSection(
     }
 }
 
-// ================== 代理组卡片 ==================
+// ================== ProxyGroupCard ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProxyGroupCard(
@@ -542,8 +528,11 @@ fun ProxyGroupCard(
                         DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false) {
                             scope.launch {
                                 isTesting = true
-                                try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() }
-                                catch (_: Exception) {}
+                                try {
+                                    ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
+                                    delay(300)
+                                    onUpdated()
+                                } catch (_: Exception) {}
                                 finally { isTesting = false }
                             }
                         }
@@ -557,8 +546,11 @@ fun ProxyGroupCard(
                     DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, true) {
                         scope.launch {
                             isTesting = true
-                            try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() }
-                            catch (_: Exception) {}
+                            try {
+                                ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
+                                delay(300)
+                                onUpdated()
+                            } catch (_: Exception) {}
                             finally { isTesting = false }
                         }
                     }
@@ -572,7 +564,6 @@ fun ProxyGroupCard(
         }
     }
 
-    // 弹出模式
     if (usePopup && isExpanded) {
         if (settings.useSheetMode) {
             ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
@@ -594,7 +585,7 @@ fun ProxyGroupCard(
     }
 }
 
-// ================== 连接卡片 ==================
+// ================== ConnectionCard ==================
 @Composable
 fun ConnectionCard(
     conn: ConnectionItem,
@@ -671,7 +662,7 @@ fun ConnectionCard(
     }
 }
 
-// ================== 连接时长组件 ==================
+// ================== DurationBadge ==================
 @Composable
 fun DurationBadge(startTimeMillis: Long) {
     val durationText by produceState(initialValue = "...", startTimeMillis) {

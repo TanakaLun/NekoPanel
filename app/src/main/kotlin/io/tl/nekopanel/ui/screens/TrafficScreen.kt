@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -69,11 +70,13 @@ fun OverviewView(
                 val filtered = mutableListOf<JSONObject>()
                 for (i in 0 until rules.length()) {
                     val r = rules.getJSONObject(i)
-                    if (r.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0 > 0)
+                    if ((r.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0) > 0)
                         filtered.add(r)
                 }
                 topRules.clear()
-                topRules.addAll(filtered.sortedByDescending { it.optJSONObject("extra")?.optInt("hitCount", 0) }.take(5))
+                topRules.addAll(filtered.sortedByDescending {
+                    it.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0
+                }.take(5))
             } catch (_: Exception) {}
             delay(5000)
         }
@@ -88,7 +91,9 @@ fun OverviewView(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f)
+                )
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("系统概览", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall)
@@ -136,7 +141,9 @@ fun OverviewView(
                     Card(
                         Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                        )
                     ) {
                         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
@@ -159,7 +166,9 @@ fun OverviewView(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                )
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f).padding(end = 8.dp)) {
@@ -220,7 +229,6 @@ fun ConnectionsView(connections: List<ConnectionItem>) {
         }
     }
 
-    // 元数据弹窗
     if (selectedJson != null) {
         Dialog(onDismissRequest = { selectedJson = null }) {
             Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.7f)) {
@@ -245,7 +253,9 @@ fun LogsView(
     onLevelChange: (String) -> Unit
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(logs.size) { if (logs.isNotEmpty()) listState.animateScrollToItem(logs.size - 1) }
+    LaunchedEffect(logs.size) {
+        if (logs.isNotEmpty()) listState.animateScrollToItem(logs.size - 1)
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -254,7 +264,9 @@ fun LogsView(
         ) {
             LevelSpinner(currentLogLevel) { onLevelChange(it) }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { logs.clear() }) { Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = { logs.clear() }) {
+                Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error)
+            }
         }
 
         Surface(
@@ -263,7 +275,11 @@ fun LogsView(
             shape = RoundedCornerShape(16.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
                 itemsIndexed(logs) { index, log ->
                     Column {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {

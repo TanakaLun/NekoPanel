@@ -3,11 +3,12 @@ package io.tl.nekopanel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 
 object ApiClient {
-    // 由外部注入 baseUrl 和 secret，从 SettingsManager 读取
     var baseUrl: String = ""
     var secret: String = ""
 
@@ -15,7 +16,7 @@ object ApiClient {
         .readTimeout(0, java.util.concurrent.TimeUnit.MILLISECONDS)
         .build()
 
-    private fun buildAuthHeader(): Headers {
+    private fun buildAuthHeaders(): Headers {
         return if (secret.isNotBlank()) {
             Headers.Builder().add("Authorization", "Bearer $secret").build()
         } else {
@@ -23,75 +24,110 @@ object ApiClient {
         }
     }
 
-    // 通用 GET 请求并返回 JSONObject
-    private suspend fun getJson(path: String): JSONObject = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url("$baseUrl$path").headers(buildAuthHeader()).build()
+    private fun authorizedRequestBuilder(): Request.Builder {
+        val builder = Request.Builder()
+        if (secret.isNotBlank()) {
+            builder.addHeader("Authorization", "Bearer $secret")
+        }
+        return builder
+    }
+
+    // 通用 GET 请求
+    private suspend fun get(path: String): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl$path")
+            .apply { if (secret.isNotBlank()) addHeader("Authorization", "Bearer $secret") }
+            .build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("${response.code}: ${response.message}")
-            val body = response.body?.string() ?: "{}"
-            JSONObject(body)
+            response.body?.string() ?: "{}"
         }
     }
 
-    // 通用 PUT/PATCH 请求
+    // 通用 PUT/PATCH/POST 请求
     private suspend fun request(
         method: String,
         path: String,
         bodyJson: String? = null
-    ): Unit = withContext(Dispatchers.IO) {
-        val builder = Request.Builder().url("$baseUrl$path").headers(buildAuthHeader())
+    ): String = withContext(Dispatchers.IO) {
+        val builder = Request.Builder()
+            .url("$baseUrl$path")
+            .apply { if (secret.isNotBlank()) addHeader("Authorization", "Bearer $secret") }
+
+        val body = bodyJson?.toRequestBody("application/json".toMediaType())
         when (method.uppercase()) {
-            "PUT" -> builder.put(bodyJson?.toRequestBody("application/json".toMediaType()) ?: RequestBody.create(null, ""))
-            "PATCH" -> builder.patch(bodyJson?.toRequestBody("application/json".toMediaType()) ?: RequestBody.create(null, ""))
+            "PUT" -> builder.put(body ?: RequestBody.create(null, ""))
+            "PATCH" -> builder.patch(body ?: RequestBody.create(null, ""))
+            "POST" -> builder.post(body ?: RequestBody.create(null, ""))
             "DELETE" -> builder.delete()
             else -> throw IllegalArgumentException("Unsupported method: $method")
         }
         client.newCall(builder.build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("${response.code}: ${response.message}")
+            response.body?.string() ?: ""
         }
     }
 
-    // --------------- 接口方法 ---------------
-    suspend fun getProxies(): JSONObject = getJson("/proxies")
-    suspend fun updateProxy(name: String, body: Map<String, String>): Unit {
-        val json = JSONObject(body)
-        request("PUT", "/proxies/$name", json.toString())
+    // --------------- API 方法 ---------------
+    suspend fun getProxies(): JSONObject = JSONObject(get("/proxies"))
+    
+    suspend fun updateProxy(name: String, body: Map<String, String>) {
+        request("PUT", "/proxies/$name", JSONObject(body).toString())
     }
-    suspend fun getProxyDelay(name: String, url: String, timeout: Int): JSONObject =
-        getJson("/proxies/$name/delay?url=${java.net.URLEncoder.encode(url, "utf-8")}&timeout=$timeout")
-
-    suspend fun getGroupDelay(name: String, url: String, timeout: Int): JSONObject =
-        getJson("/group/$name/delay?url=${java.net.URLEncoder.encode(url, "utf-8")}&timeout=$timeout")
-
-    suspend fun getConfigs(): JSONObject = getJson("/configs")
-    suspend fun updateConfigs(body: Map<String, Any>): Unit {
-        val json = JSONObject(body)
-        request("PATCH", "/configs", json.toString())
-    }
-    suspend fun reloadConfigs(path: String = ""): Unit {
-        val json = JSONObject(mapOf("path" to path))
-        request("PUT", "/configs", json.toString())
+    
+    suspend fun getProxyDelay(name: String, url: String, timeout: Int): JSONObject {
+        val encodedUrl = java.net.URLEncoder.encode(url, "utf-8")
+        return JSONObject(get("/proxies/$name/delay?url=$encodedUrl&timeout=$timeout"))
     }
 
-    suspend fun getRules(): JSONObject = getJson("/rules")
-    suspend fun updateRulesDisable(body: Map<String, Boolean>): Unit {
-        val json = JSONObject(body)
-        request("PATCH", "/rules/disable", json.toString())
+    suspend fun getGroupDelay(name: String, url: String, timeout: Int): JSONObject {
+        val encodedUrl = java.net.URLEncoder.encode(url, "utf-8")
+        return JSONObject(get("/group/$name/delay?url=$encodedUrl&timeout=$timeout"))
     }
-    suspend fun restartCore(): Unit = request("POST", "/restart")
-    suspend fun getVersion(): JSONObject = getJson("/version")
-    suspend fun deleteAllConnections(): Unit = request("DELETE", "/connections")
-    suspend fun deleteConnection(id: String): Unit = request("DELETE", "/connections/$id")
 
-    // --------------- WebSocket 创建 ---------------
+    suspend fun getConfigs(): JSONObject = JSONObject(get("/configs"))
+    
+    suspend fun updateConfigs(body: Map<String, Any>) {
+        request("PATCH", "/configs", JSONObject(body).toString())
+    }
+    
+    suspend fun reloadConfigs(path: String = "") {
+        request("PUT", "/configs", JSONObject(mapOf("path" to path)).toString())
+    }
+
+    suspend fun getRules(): JSONObject = JSONObject(get("/rules"))
+    
+    suspend fun updateRulesDisable(body: Map<String, Boolean>) {
+        request("PATCH", "/rules/disable", JSONObject(body).toString())
+    }
+    
+    suspend fun restartCore() {
+        request("POST", "/restart")
+    }
+    
+    suspend fun getVersion(): JSONObject = JSONObject(get("/version"))
+    
+    suspend fun deleteAllConnections() {
+        request("DELETE", "/connections")
+    }
+    
+    suspend fun deleteConnection(id: String) {
+        request("DELETE", "/connections/$id")
+    }
+
+    suspend fun getTraffic(): JSONObject = JSONObject(get("/traffic"))
+
+    // --------------- WebSocket ---------------
     fun buildWebSocket(
         path: String,
         onText: (String) -> Unit,
         onError: (Throwable) -> Unit = {}
     ): WebSocket {
-        val url = "$baseUrl$path"
-        val request = Request.Builder().url(url).headers(buildAuthHeader()).build()
-        return client.newWebSocket(request, object : WebSocketListener() {
+        val builder = Request.Builder().url("$baseUrl$path")
+        if (secret.isNotBlank()) {
+            builder.addHeader("Authorization", "Bearer $secret")
+        }
+        return client.newWebSocket(builder.build(), object : WebSocketListener() {
             override fun onMessage(webSocket: WebSocket, text: String) {
                 onText(text)
             }

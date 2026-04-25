@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
@@ -16,9 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import io.tl.nekopanel.ui.components.CapsuleTabRow
+import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
 import kotlinx.coroutines.*
 import org.json.JSONObject
@@ -29,11 +29,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val settings = SettingsManager(this)
 
-        // 如果未配置 API 地址，显示初始对话框（延迟到 setContent 后）
         setContent {
             var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
             ComposeEmptyActivityTheme(pureBlackMode = pureBlackMode) {
-                // 初始化 ApiClient
                 ApiClient.baseUrl = settings.apiBaseUrl
                 ApiClient.secret = settings.apiSecret
 
@@ -50,6 +48,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// 把这个对话框放在 MainActivity 同级文件或 components 都不合适，就放这里
 @Composable
 fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     var url by remember { mutableStateOf("http://127.0.0.1:9090") }
@@ -57,7 +56,7 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     val context = LocalContext.current
 
     Dialog(onDismissRequest = {}) {
-        Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
                 Text("请输入 Mihomo 核心连接信息", style = MaterialTheme.typography.bodyMedium)
@@ -102,7 +101,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     // 累计流量逻辑
     val lastRaw = remember { mutableStateOf(settings.getLastRawTraffic()) }
     LaunchedEffect(totalDown, totalUp) {
-        // 当原始流量回调时更新累计值
         settings.updateCumulativeTraffic(totalDown, totalUp, lastRaw.value.first, lastRaw.value.second)
         settings.saveLastRawTraffic(totalDown, totalUp)
         lastRaw.value = settings.getLastRawTraffic()
@@ -111,39 +109,63 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     // 全局 WebSocket
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
         if (settings.backgroundWebSocket && settings.apiBaseUrl.isNotBlank()) {
-            val logWs = ApiClient.buildWebSocket("/logs?level=$currentLogLevel") { text ->
-                try {
-                    val obj = JSONObject(text)
-                    logs.add(LogItem(obj.optString("type"), obj.optString("payload")))
-                    if (logs.size > 1000) logs.removeAt(0)
-                } catch (_: Exception) {}
-            }
-            val connWs = ApiClient.buildWebSocket("/connections?interval=1000") { text ->
-                try {
-                    val arr = JSONObject(text).getJSONArray("connections")
-                    val list = mutableListOf<ConnectionItem>()
-                    for (i in 0 until arr.length()) {
-                        val obj = arr.getJSONObject(i)
-                        val meta = obj.getJSONObject("metadata")
-                        list.add(ConnectionItem(
-                            obj.getString("id"),
-                            meta.optString("host").ifBlank { meta.optString("destinationIP") },
-                            meta.optString("network"),
-                            obj.getJSONArray("chains").let { if (it.length() > 0) it.getString(it.length() - 1) else "Direct" },
-                            obj.optLong("upload"), obj.optLong("download"), obj.toString()
-                        ))
-                    }
-                    connections = list
-                } catch (_: Exception) {}
-            }
-            val memWs = ApiClient.buildWebSocket("/memory") { text ->
-                globalInUse = JSONObject(text).optLong("inuse")
-            }
-            val trafficWs = ApiClient.buildWebSocket("/traffic") { text ->
-                val obj = JSONObject(text)
-                globalDown = obj.optLong("down"); globalUp = obj.optLong("up")
-                totalDown = obj.optLong("downTotal"); totalUp = obj.optLong("upTotal")
-            }
+            val logWs = ApiClient.buildWebSocket(
+                "/logs?level=$currentLogLevel",
+                onText = { text ->
+                    try {
+                        val obj = JSONObject(text)
+                        logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
+                        if (logs.size > 1000) logs.removeAt(0)
+                    } catch (_: Exception) {}
+                }
+            )
+            val connWs = ApiClient.buildWebSocket(
+                "/connections?interval=1000",
+                onText = { text ->
+                    try {
+                        val arr = JSONObject(text).getJSONArray("connections")
+                        val list = mutableListOf<ConnectionItem>()
+                        for (i in 0 until arr.length()) {
+                            val obj = arr.getJSONObject(i)
+                            val meta = obj.getJSONObject("metadata")
+                            val chains = obj.getJSONArray("chains")
+                            val proxy = if (chains.length() > 0) chains.getString(chains.length() - 1) else "Direct"
+                            list.add(
+                                ConnectionItem(
+                                    id = obj.getString("id"),
+                                    host = meta.optString("host").ifBlank { meta.optString("destinationIP") },
+                                    network = meta.optString("network"),
+                                    proxy = proxy,
+                                    upload = obj.optLong("upload", 0L),
+                                    download = obj.optLong("download", 0L),
+                                    rawJson = obj.toString()
+                                )
+                            )
+                        }
+                        connections = list
+                    } catch (_: Exception) {}
+                }
+            )
+            val memWs = ApiClient.buildWebSocket(
+                "/memory",
+                onText = { text ->
+                    try {
+                        globalInUse = JSONObject(text).optLong("inuse", 0L)
+                    } catch (_: Exception) {}
+                }
+            )
+            val trafficWs = ApiClient.buildWebSocket(
+                "/traffic",
+                onText = { text ->
+                    try {
+                        val obj = JSONObject(text)
+                        globalDown = obj.optLong("down", 0L)
+                        globalUp = obj.optLong("up", 0L)
+                        totalDown = obj.optLong("downTotal", 0L)
+                        totalUp = obj.optLong("upTotal", 0L)
+                    } catch (_: Exception) {}
+                }
+            )
             try { delay(Long.MAX_VALUE) } finally {
                 logWs.cancel(); connWs.cancel(); memWs.cancel(); trafficWs.cancel()
             }
@@ -175,7 +197,3 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         }
     }
 }
-
-// 数据类
-data class ConnectionItem(val id: String, val host: String, val network: String, val proxy: String, val upload: Long, val download: Long, val rawJson: String)
-data class LogItem(val type: String, val payload: String)
