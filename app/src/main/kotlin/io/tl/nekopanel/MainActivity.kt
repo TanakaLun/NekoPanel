@@ -98,12 +98,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
 
-    val lastRaw = remember { mutableStateOf(settings.getLastRawTraffic()) }
-    LaunchedEffect(totalDown, totalUp) {
-        settings.updateCumulativeTraffic(totalDown, totalUp, lastRaw.value.first, lastRaw.value.second)
-        settings.saveLastRawTraffic(totalDown, totalUp)
-        lastRaw.value = settings.getLastRawTraffic()
-    }
+    // 删除原来的 lastRaw 和 LaunchedEffect(totalDown, totalUp) 块
 
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
         if (settings.backgroundWebSocket && settings.apiBaseUrl.isNotBlank()) {
@@ -157,6 +152,8 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         globalUp = obj.optLong("up", 0L)
                         totalDown = obj.optLong("downTotal", 0L)
                         totalUp = obj.optLong("upTotal", 0L)
+                        // 累加流量（内部处理 delta 判断和持久化）
+                        settings.accumulateTraffic(totalDown, totalUp)
                     } catch (_: Exception) {}
                 }
             )

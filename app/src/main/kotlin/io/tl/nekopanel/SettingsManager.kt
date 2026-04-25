@@ -74,52 +74,31 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("api_secret", "") ?: ""
         set(value) = prefs.edit().putString("api_secret", value).apply()
 
-    // 累计流量（持久化，用于跨核心生命周期统计）
-    private fun saveCumulativeTraffic(down: Long, up: Long) {
-        prefs.edit()
-            .putLong("cumulative_down", down)
-            .putLong("cumulative_up", up)
-            .apply()
-    }
 
-    /** 获取上次保存的累计流量值 */
-    fun getCumulativeTraffic(): Pair<Long, Long> {
-        return prefs.getLong("cumulative_down", 0L) to prefs.getLong("cumulative_up", 0L)
+    fun getLastTraffic(): Pair<Long, Long> {
+        return prefs.getLong("last_total_down", 0L) to prefs.getLong("last_total_up", 0L)
     }
-
-    /**
-     * 更新累计流量。自动处理核心重启导致的数据回退：
-     * 如果新的原始总流量小于上次记录的原始值，说明核心已经重启，此时将差值累加到累计值。
-     * rawDown/rawUp：直接从 /traffic 获取的 downTotal/upTotal
-     * lastRawDown/lastRawUp：上次记录的原始总流量（用于判断回退）
-     */
-    fun updateCumulativeTraffic(
-        rawDown: Long, rawUp: Long,
-        lastRawDown: Long, lastRawUp: Long
-    ) {
+    
+    fun saveLastTraffic(down: Long, up: Long) {
+        prefs.edit().putLong("last_total_down", down).putLong("last_total_up", up).apply()
+    }
+    
+    fun accumulateTraffic(totalDown: Long, totalUp: Long, maxDelta: Long = 10_000_000_000_000L) {
+        val (lastDown, lastUp) = getLastTraffic()
+        val deltaDown = totalDown - lastDown
+        val deltaUp = totalUp - lastUp
+        val validDown = deltaDown in 0..maxDelta
+        val validUp = deltaUp in 0..maxDelta
+    
         val (cumDown, cumUp) = getCumulativeTraffic()
-        val newCumDown = if (rawDown >= lastRawDown) {
-            cumDown + (rawDown - lastRawDown)
-        } else {
-            cumDown + rawDown // 重启后直接累加当前原始值
-        }
-        val newCumUp = if (rawUp >= lastRawUp) {
-            cumUp + (rawUp - lastRawUp)
-        } else {
-            cumUp + rawUp
-        }
-        saveCumulativeTraffic(newCumDown, newCumUp)
-    }
-
-    /** 保存最后一次原始流量值（用于下次比较） */
-    fun saveLastRawTraffic(down: Long, up: Long) {
+        val newCumDown = if (validDown) cumDown + deltaDown else cumDown
+        val newCumUp = if (validUp) cumUp + deltaUp else cumUp
+    
         prefs.edit()
-            .putLong("last_raw_down", down)
-            .putLong("last_raw_up", up)
+            .putLong("cumulative_down", newCumDown)
+            .putLong("cumulative_up", newCumUp)
             .apply()
-    }
-
-    fun getLastRawTraffic(): Pair<Long, Long> {
-        return prefs.getLong("last_raw_down", 0L) to prefs.getLong("last_raw_up", 0L)
+    
+        saveLastTraffic(totalDown, totalUp)
     }
 }
