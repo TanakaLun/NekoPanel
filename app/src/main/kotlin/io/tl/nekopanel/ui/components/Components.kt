@@ -23,12 +23,19 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.SettingsManager
+import kotlin.math.log10
+import kotlin.math.pow
 import kotlinx.coroutines.*
 import org.json.JSONObject
 
@@ -49,12 +56,20 @@ data class LogItem(
     val time: Long = System.currentTimeMillis()
 )
 
-// ---------- 工具 ----------
-fun formatSize(b: Long): String = when {
-    b < 1024 -> "${b}B"
-    b < 1048576 -> "${String.format("%.1f", b / 1024f)}K"
-    else -> "${String.format("%.1f", b / 1048576f)}M"
+fun Long.formatSize(): String {
+    if (this <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB", "PB")
+    val digitGroups = (log10(this.toDouble()) / log10(1024.0)).toInt().coerceAtMost(units.size - 1)
+    return String.format(
+        java.util.Locale.getDefault(),
+        "%.2f %s",
+        this / 1024.0.pow(digitGroups),
+        units[digitGroups]
+    )
 }
+
+// 为了向后兼容，保留一个顶层函数调用扩展
+fun formatSize(b: Long): String = b.formatSize()
 
 // ---------- 图表 ----------
 @Composable
@@ -258,22 +273,74 @@ fun NodeCard(name: String, type: String, lastDelay: Int, isSelected: Boolean, is
 // ---------- 节点网格 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NodeGridSection(groupName: String, nodes: List<String>, settings: SettingsManager, onUpdated: () -> Unit) {
+fun NodeGridSection(
+    groupName: String,
+    nodes: List<String>,
+    currentNode: String,                     // 新增：当前选中的节点名
+    initialDelays: Map<String, Int> = emptyMap(), // 新增：初始延迟（来自全局代理数据）
+    settings: SettingsManager,
+    onUpdated: () -> Unit
+) {
     val scope = rememberCoroutineScope()
-    LazyVerticalGrid(columns = GridCells.Fixed(settings.columnCount), modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // 维护本地测速延迟，确保节点测速后立即显示
+    val localDelays = remember { mutableStateMapOf<String, Int>() }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(settings.columnCount),
+        modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
-            NodeCard(name = nodeName, type = "Proxy", lastDelay = 0, isSelected = false, isTesting = isNodeTesting, settings = settings,
-                onClick = { scope.launch { ApiClient.updateProxy(groupName, mapOf("name" to nodeName)); onUpdated() } },
-                onRefreshDelay = { scope.launch { isNodeTesting = true; try { ApiClient.getProxyDelay(nodeName, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isNodeTesting = false } } })
+
+            // 计算显示延迟：优先本地测速值，其次初始值，最后 0
+            val displayDelay = localDelays[nodeName] ?: initialDelays[nodeName] ?: 0
+
+            NodeCard(
+                name = nodeName,
+                type = "Proxy",
+                lastDelay = displayDelay,
+                isSelected = nodeName == currentNode,   // 修复选中高亮
+                isTesting = isNodeTesting,
+                settings = settings,
+                onClick = {
+                    scope.launch {
+                        ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
+                        onUpdated()
+                    }
+                },
+                onRefreshDelay = {
+                    scope.launch {
+                        isNodeTesting = true
+                        try {
+                            val result = ApiClient.getProxyDelay(
+                                nodeName, settings.testUrl, settings.testTimeout
+                            )
+                            val delay = result.optInt("delay", 0)
+                            localDelays[nodeName] = delay     // 更新本地状态
+                            delay(300)                        // 短暂延迟确保 UI 刷新
+                            onUpdated()                      // 触发组数据刷新
+                        } catch (_: Exception) {
+                        } finally {
+                            isNodeTesting = false
+                        }
+                    }
+                }
+            )
         }
     }
 }
 
-// ---------- 代理组卡片 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProxyGroupCard(name: String, group: JSONObject, settings: SettingsManager, onUpdated: () -> Unit) {
+fun ProxyGroupCard(
+    name: String,
+    group: JSONObject,
+    allProxies: JSONObject? = null,
+    settings: SettingsManager,
+    onUpdated: () -> Unit
+) {
     var isExpanded by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -286,10 +353,30 @@ fun ProxyGroupCard(name: String, group: JSONObject, settings: SettingsManager, o
     val allArray = group.optJSONArray("all")
     if (allArray != null) for (i in 0 until allArray.length()) allNodes.add(allArray.getString(i))
 
+    // 构建节点初始延迟映射（从全局代理数据获取历史）
+    val initialDelays = remember(allProxies, name) {
+        mutableMapOf<String, Int>().apply {
+            allProxies?.let { ap ->
+                val proxiesObj = ap.optJSONObject("proxies")
+                allNodes.forEach { node ->
+                    proxiesObj?.optJSONObject(node)?.optJSONArray("history")
+                        ?.let { hist ->
+                            if (hist.length() > 0) {
+                                val d = hist.getJSONObject(0).optInt("delay", 0)
+                                put(node, d)
+                            }
+                        }
+                }
+            }
+        }
+    }
+
     val usePopup = settings.groupColumnCount == 2 || settings.useSheetMode
 
-    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)), onClick = { if (usePopup) isExpanded = true else isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(containerColor = if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f) else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))) {
+    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+        onClick = { if (usePopup) isExpanded = true else isExpanded = !isExpanded },
+        colors = CardDefaults.cardColors(containerColor = if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f) else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+    ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ProxyIconContainer(url = icon, fallbackText = name)
@@ -316,13 +403,20 @@ fun ProxyGroupCard(name: String, group: JSONObject, settings: SettingsManager, o
                     }
                 }
             }
-            if (!usePopup) AnimatedVisibility(visible = isExpanded) { NodeGridSection(name, allNodes, settings, onUpdated) }
+            if (!usePopup) AnimatedVisibility(visible = isExpanded) {
+                NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated)
+            }
         }
     }
 
     if (usePopup && isExpanded) {
-        if (settings.useSheetMode) ModalBottomSheet(onDismissRequest = { isExpanded = false }) { Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) { NodeGridSection(name, allNodes, settings, onUpdated) } }
-        else Dialog(onDismissRequest = { isExpanded = false }) { Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) { Column(Modifier.padding(16.dp)) { Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Spacer(Modifier.height(12.dp)); NodeGridSection(name, allNodes, settings, onUpdated) } } }
+        if (settings.useSheetMode) ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
+            Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) { NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated) }
+        } else Dialog(onDismissRequest = { isExpanded = false }) {
+            Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
+                Column(Modifier.padding(16.dp)) { Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Spacer(Modifier.height(12.dp)); NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated) }
+            }
+        }
     }
 }
 
@@ -382,5 +476,57 @@ fun DurationBadge(startTimeMillis: Long) {
     }
     Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
         Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+    }
+}
+
+fun highlightJson(jsonStr: String): AnnotatedString = buildAnnotatedString {
+    val keyColor = Color(0xFF9CDCFE)        // 淡蓝色
+    val stringColor = Color(0xFFCE9178)     // 橙色
+    val numberColor = Color(0xFFB5CEA8)     // 绿色
+    val booleanColor = Color(0xFF569CD6)    // 蓝色
+    val nullColor = Color(0xFF569CD6)
+    val punctuationColor = Color.White
+
+    var i = 0
+    while (i < jsonStr.length) {
+        when {
+            jsonStr[i] == '"' -> {
+                // 读取整个字符串，包括转义
+                val start = i
+                i++ // 跳过开始引号
+                while (i < jsonStr.length && jsonStr[i] != '"') {
+                    if (jsonStr[i] == '\\') i++ // 跳过转义字符
+                    i++
+                }
+                if (i < jsonStr.length) i++ // 结束引号
+                val str = jsonStr.substring(start, i)
+                // 判断是键还是值：如果后面紧跟冒号，则认为是键
+                val isKey = i < jsonStr.length && jsonStr.trimStart().startsWith(":")
+                withStyle(SpanStyle(color = if (isKey) keyColor else stringColor)) {
+                    append(str)
+                }
+            }
+            jsonStr[i].isDigit() || jsonStr[i] == '-' -> {
+                val start = i
+                while (i < jsonStr.length && (jsonStr[i].isDigit() || jsonStr[i] == '.' || jsonStr[i] == 'e' || jsonStr[i] == 'E' || jsonStr[i] == '-')) {
+                    i++
+                }
+                val num = jsonStr.substring(start, i)
+                withStyle(SpanStyle(color = numberColor)) { append(num) }
+            }
+            jsonStr.startsWith("true", i) || jsonStr.startsWith("false", i) -> {
+                val bool = if (jsonStr.startsWith("true", i)) "true" else "false"
+                withStyle(SpanStyle(color = booleanColor)) { append(bool) }
+                i += bool.length
+            }
+            jsonStr.startsWith("null", i) -> {
+                withStyle(SpanStyle(color = nullColor)) { append("null") }
+                i += 4
+            }
+            else -> {
+                withStyle(SpanStyle(color = punctuationColor)) { append(jsonStr[i]) }
+                i++
+            }
+        }
     }
 }
