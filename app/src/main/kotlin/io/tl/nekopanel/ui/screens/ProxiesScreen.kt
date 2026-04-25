@@ -50,29 +50,61 @@ fun ProxiesScreen(
     }.sorted()
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .height(40.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             ModeSpinner(currentMode) { newMode ->
-                scope.launch { ApiClient.updateConfigs(mapOf("mode" to newMode)); onModeChange(); onRefresh() }
+                scope.launch {
+                    ApiClient.updateConfigs(mapOf("mode" to newMode))
+                    onModeChange()
+                    onRefresh()
+                }
             }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onRefresh) { Icon(Icons.Default.Speed, "全面测速", tint = MaterialTheme.colorScheme.primary) }
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Default.Speed, "全面测速", tint = MaterialTheme.colorScheme.primary)
+            }
         }
 
         val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
         if (columns == 1) {
-            LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(displayKeys.size, key = { displayKeys[it] }) { idx ->
                     val key = displayKeys[idx]
                     val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                    ProxyGroupCard(key, group, settings, onRefresh)
+                    ProxyGroupCard(
+                        name = key,
+                        group = group,
+                        allProxies = proxiesJson,  // 传入全局数据
+                        settings = settings,
+                        onUpdated = onRefresh
+                    )
                 }
             }
         } else {
-            LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items(displayKeys.size, key = { displayKeys[it] }) { idx ->
                     val key = displayKeys[idx]
                     val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                    ProxyGroupCard(key, group, settings, onRefresh)
+                    ProxyGroupCard(
+                        name = key,
+                        group = group,
+                        allProxies = proxiesJson,  // 传入全局数据
+                        settings = settings,
+                        onUpdated = onRefresh
+                    )
                 }
             }
         }
