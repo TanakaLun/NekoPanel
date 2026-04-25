@@ -16,7 +16,6 @@ import io.tl.nekopanel.SettingsManager
 import io.tl.nekopanel.ui.components.TypeBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 @Composable

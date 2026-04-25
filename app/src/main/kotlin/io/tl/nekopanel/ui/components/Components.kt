@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -33,15 +32,31 @@ import io.tl.nekopanel.SettingsManager
 import kotlinx.coroutines.*
 import org.json.JSONObject
 
-// 工具函数
+// ---------- 数据模型 ----------
+data class ConnectionItem(
+    val id: String,
+    val host: String,
+    val network: String,
+    val proxy: String,
+    val upload: Long,
+    val download: Long,
+    val rawJson: String
+)
+
+data class LogItem(
+    val type: String,
+    val payload: String,
+    val time: Long = System.currentTimeMillis()
+)
+
+// ---------- 工具 ----------
 fun formatSize(b: Long): String = when {
-    b >= 1024L * 1024 * 1024 -> "%.2f GB".format(b / (1024.0 * 1024 * 1024))
-    b >= 1024L * 1024 -> "%.2f MB".format(b / (1024.0 * 1024))
-    b >= 1024 -> "%.2f KB".format(b / 1024.0)
-    else -> "$b B"
+    b < 1024 -> "${b}B"
+    b < 1048576 -> "${String.format("%.1f", b / 1024f)}K"
+    else -> "${String.format("%.1f", b / 1048576f)}M"
 }
 
-// ================== 图表组件 ==================
+// ---------- 图表 ----------
 @Composable
 fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
@@ -59,43 +74,19 @@ fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier)
         val strokePath = Path().apply {
             moveTo(getX(0), getY(data[0]))
             for (i in 0 until data.size - 1) {
-                val x1 = getX(i)
-                val y1 = getY(data[i])
-                val x2 = getX(i + 1)
-                val y2 = getY(data[i + 1])
-                cubicTo(
-                    x1 + (x2 - x1) / 2f, y1,
-                    x1 + (x2 - x1) / 2f, y2,
-                    x2, y2
-                )
+                val x1 = getX(i); val y1 = getY(data[i])
+                val x2 = getX(i + 1); val y2 = getY(data[i + 1])
+                cubicTo(x1 + (x2 - x1) / 2f, y1, x1 + (x2 - x1) / 2f, y2, x2, y2)
             }
         }
-
         val fillPath = Path().apply {
             addPath(strokePath)
             lineTo(getX(data.size - 1), height)
             lineTo(getX(0), height)
             close()
         }
-
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.3f), Color.Transparent),
-                startY = 0f,
-                endY = height
-            )
-        )
-
-        drawPath(
-            path = strokePath,
-            color = color,
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
+        drawPath(fillPath, Brush.verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
+        drawPath(strokePath, color = color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
 
@@ -109,53 +100,26 @@ fun rememberChartHistory(currentValue: Long): List<Long> {
     return history
 }
 
-// ================== CapsuleTabRow ==================
+// ---------- 顶部导航 ----------
 @Composable
-fun CapsuleTabRow(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    tabs: List<String>
-) {
-    Surface(
-        modifier = Modifier
-            .wrapContentWidth()
-            .height(40.dp),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    ) {
+fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
+    Surface(modifier = Modifier.wrapContentWidth().height(40.dp), shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
             Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
-                    val textScale by animateFloatAsState(
-                        if (isSelected) 1.05f else 1f,
-                        label = "tabScale"
-                    )
+                    val textScale by animateFloatAsState(if (isSelected) 1.05f else 1f, label = "scale")
                     Box(
-                        modifier = Modifier
-                            .height(32.dp)
-                            .wrapContentWidth()
-                            .clip(CircleShape)
+                        modifier = Modifier.height(32.dp).wrapContentWidth().clip(CircleShape)
                             .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { onTabSelected(index) }
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
+                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
+                            .padding(horizontal = 16.dp), contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = title,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            ),
-                            maxLines = 1,
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = textScale
-                                scaleY = textScale
-                            }
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium),
+                            modifier = Modifier.graphicsLayer { scaleX = textScale; scaleY = textScale }
                         )
                     }
                 }
@@ -164,33 +128,18 @@ fun CapsuleTabRow(
     }
 }
 
-// ================== ModeSpinner/LevelSpinner ==================
+// ---------- 下拉选择器 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val modes = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
     Box {
-        FilterChip(
-            selected = true,
-            onClick = { expanded = true },
-            label = {
-                Text(
-                    modes.find { it.first == currentMode }?.second ?: currentMode,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
-            shape = RoundedCornerShape(12.dp)
-        )
+        FilterChip(selected = true, onClick = { expanded = true },
+            label = { Text(modes.find { it.first == currentMode }?.second ?: currentMode, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) }, shape = RoundedCornerShape(12.dp))
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            modes.forEach { (key, label) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    onClick = { onModeSelected(key); expanded = false }
-                )
-            }
+            modes.forEach { (key, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { onModeSelected(key); expanded = false }) }
         }
     }
 }
@@ -201,117 +150,56 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val levels = listOf("info", "warning", "error", "debug", "silent")
     Box {
-        FilterChip(
-            selected = true,
-            onClick = { expanded = true },
-            label = {
-                Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
-            shape = RoundedCornerShape(12.dp)
-        )
+        FilterChip(selected = true, onClick = { expanded = true },
+            label = { Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) }, shape = RoundedCornerShape(12.dp))
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            levels.forEach { level ->
-                DropdownMenuItem(
-                    text = { Text(level.uppercase()) },
-                    onClick = { onLevelSelected(level); expanded = false }
-                )
-            }
+            levels.forEach { level -> DropdownMenuItem(text = { Text(level.uppercase()) }, onClick = { onLevelSelected(level); expanded = false }) }
         }
     }
 }
 
-// ================== SettingsDropdownMenuInline ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsDropdownMenuInline(
-    label: String,
-    currentValue: String,
-    options: List<String>,
-    onSelected: (String) -> Unit
-) {
+fun SettingsDropdownMenuInline(label: String, currentValue: String, options: List<String>, onSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
-        )
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         Box(modifier = Modifier.width(140.dp)) {
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                 OutlinedTextField(
-                    value = currentValue,
-                    onValueChange = {},
-                    readOnly = true,
+                    value = currentValue, onValueChange = {}, readOnly = true,
                     textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    modifier = Modifier.menuAnchor(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
-                    )
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(), shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
                 )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    options.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(option, fontSize = 13.sp) },
-                            onClick = { onSelected(option); expanded = false }
-                        )
-                    }
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { option -> DropdownMenuItem(text = { Text(option, fontSize = 13.sp) }, onClick = { onSelected(option); expanded = false }) }
                 }
             }
         }
     }
 }
 
-// ================== Badge ==================
+// ---------- Badge ----------
 @Composable
-fun TypeBadge(type: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
+fun TypeBadge(text: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
     val color = MaterialTheme.colorScheme.primary
     Surface(
-        color = if (style == "填充") color else Color.Transparent,
-        shape = RoundedCornerShape(cornerRadius.dp),
+        color = if (style == "填充") color else Color.Transparent, shape = RoundedCornerShape(cornerRadius.dp),
         border = if (style == "描边") BorderStroke(1.dp, color) else null,
         modifier = if (isFixedSize) Modifier.width(60.dp).height(20.dp) else Modifier.wrapContentSize()
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = if (!isFixedSize) Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            else Modifier.fillMaxSize()
-        ) {
-            Text(
-                text.uppercase(),
-                style = TextStyle(
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Black,
-                    platformStyle = PlatformTextStyle(includeFontPadding = false)
-                ),
-                color = if (style == "填充") Color.White else color
-            )
+        Box(contentAlignment = Alignment.Center, modifier = if (!isFixedSize) Modifier.padding(horizontal = 6.dp, vertical = 2.dp) else Modifier.fillMaxSize()) {
+            Text(text.uppercase(), style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, platformStyle = PlatformTextStyle(includeFontPadding = false)), color = if (style == "填充") Color.White else color)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DelayBadge(
-    delay: Int,
-    isTesting: Boolean,
-    style: String,
-    cornerRadius: Int,
-    isFixedSize: Boolean,
-    onClick: () -> Unit
-) {
+fun DelayBadge(delay: Int, isTesting: Boolean, style: String, cornerRadius: Int, isFixedSize: Boolean, onClick: () -> Unit) {
     val color = when {
         isTesting -> MaterialTheme.colorScheme.primary
         delay <= 0 -> MaterialTheme.colorScheme.outline
@@ -323,113 +211,43 @@ fun DelayBadge(
     Surface(
         modifier = (if (isFixedSize) Modifier.width(60.dp).height(20.dp) else Modifier.wrapContentSize())
             .clip(RoundedCornerShape(cornerRadius.dp))
-            .clickable(
-                enabled = !isTesting,
-                onClick = onClick,
-                indication = ripple(),
-                interactionSource = remember { MutableInteractionSource() }
-            ),
+            .clickable(enabled = !isTesting, onClick = onClick, indication = ripple(), interactionSource = remember { MutableInteractionSource() }),
         color = if (style == "填充") (if (isTesting) color.copy(0.6f) else color) else Color.Transparent,
         shape = RoundedCornerShape(cornerRadius.dp),
         border = if (style == "描边") BorderStroke(1.dp, color.copy(if (isTesting) 0.5f else 1f)) else null
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = if (!isFixedSize) Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            else Modifier.fillMaxSize()
-        ) {
-            Text(
-                display,
-                style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, platformStyle = PlatformTextStyle(includeFontPadding = false)),
-                color = if (style == "填充") Color.White else color
-            )
+        Box(contentAlignment = Alignment.Center, modifier = if (!isFixedSize) Modifier.padding(horizontal = 6.dp, vertical = 2.dp) else Modifier.fillMaxSize()) {
+            Text(display, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Black, platformStyle = PlatformTextStyle(includeFontPadding = false)), color = if (style == "填充") Color.White else color)
         }
     }
 }
 
-// ================== ProxyIconContainer ==================
+// ---------- 代理图标 ----------
 @Composable
 fun ProxyIconContainer(url: String?, fallbackText: String) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (url.isNullOrBlank()) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!url.isNullOrBlank()) {
-            AsyncImage(
-                model = url,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            Text(
-                fallbackText.take(1).uppercase(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
+    Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(if (url.isNullOrBlank()) MaterialTheme.colorScheme.primaryContainer else Color.Transparent), contentAlignment = Alignment.Center) {
+        if (!url.isNullOrBlank()) AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(24.dp))
+        else Text(fallbackText.take(1).uppercase(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 }
 
-// ================== ConfigToggle ==================
+// ---------- 开关 ----------
 @Composable
 fun ConfigToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(1f).padding(end = 16.dp)
-        )
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 16.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
-// ================== NodeCard ==================
+// ---------- 节点卡片 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NodeCard(
-    name: String,
-    type: String,
-    lastDelay: Int,
-    isSelected: Boolean,
-    isTesting: Boolean,
-    settings: SettingsManager,
-    onClick: () -> Unit,
-    onRefreshDelay: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-            else if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.4f)
-            else MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-        )
-    ) {
+fun NodeCard(name: String, type: String, lastDelay: Int, isSelected: Boolean, isTesting: Boolean, settings: SettingsManager, onClick: () -> Unit, onRefreshDelay: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick), colors = CardDefaults.cardColors(containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.4f) else MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp))) {
         Box(Modifier.padding(10.dp).fillMaxWidth().height(54.dp)) {
-            Text(
-                name,
-                Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
-            Row(
-                Modifier.align(Alignment.BottomStart).fillMaxWidth(),
-                Arrangement.SpaceBetween,
-                Alignment.Bottom
-            ) {
+            Text(name, Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1)
+            Row(Modifier.align(Alignment.BottomStart).fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
                 Text(type, fontSize = 9.sp, color = MaterialTheme.colorScheme.outline)
                 DelayBadge(lastDelay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false, onRefreshDelay)
             }
@@ -437,62 +255,25 @@ fun NodeCard(
     }
 }
 
-// ================== NodeGridSection ==================
+// ---------- 节点网格 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NodeGridSection(
-    groupName: String,
-    nodes: List<String>,
-    settings: SettingsManager,
-    onUpdated: () -> Unit
-) {
+fun NodeGridSection(groupName: String, nodes: List<String>, settings: SettingsManager, onUpdated: () -> Unit) {
     val scope = rememberCoroutineScope()
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(settings.columnCount),
-        modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    LazyVerticalGrid(columns = GridCells.Fixed(settings.columnCount), modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
-            NodeCard(
-                name = nodeName,
-                type = "Proxy",
-                lastDelay = 0,
-                isSelected = false,
-                isTesting = isNodeTesting,
-                settings = settings,
-                onClick = {
-                    scope.launch {
-                        ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
-                        onUpdated()
-                    }
-                },
-                onRefreshDelay = {
-                    scope.launch {
-                        isNodeTesting = true
-                        try {
-                            ApiClient.getProxyDelay(nodeName, settings.testUrl, settings.testTimeout)
-                            delay(300)
-                            onUpdated()
-                        } catch (_: Exception) {}
-                        finally { isNodeTesting = false }
-                    }
-                }
-            )
+            NodeCard(name = nodeName, type = "Proxy", lastDelay = 0, isSelected = false, isTesting = isNodeTesting, settings = settings,
+                onClick = { scope.launch { ApiClient.updateProxy(groupName, mapOf("name" to nodeName)); onUpdated() } },
+                onRefreshDelay = { scope.launch { isNodeTesting = true; try { ApiClient.getProxyDelay(nodeName, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isNodeTesting = false } } })
         }
     }
 }
 
-// ================== ProxyGroupCard ==================
+// ---------- 代理组卡片 ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProxyGroupCard(
-    name: String,
-    group: JSONObject,
-    settings: SettingsManager,
-    onUpdated: () -> Unit
-) {
+fun ProxyGroupCard(name: String, group: JSONObject, settings: SettingsManager, onUpdated: () -> Unit) {
     var isExpanded by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -507,14 +288,8 @@ fun ProxyGroupCard(
 
     val usePopup = settings.groupColumnCount == 2 || settings.useSheetMode
 
-    Card(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-        onClick = { if (usePopup) isExpanded = true else isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(
-            containerColor = if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f)
-            else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-        )
-    ) {
+    Card(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)), onClick = { if (usePopup) isExpanded = true else isExpanded = !isExpanded },
+        colors = CardDefaults.cardColors(containerColor = if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f) else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ProxyIconContainer(url = icon, fallbackText = name)
@@ -527,15 +302,7 @@ fun ProxyGroupCard(
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         TypeBadge(type, settings.groupBadgeStyle, settings.badgeCornerRadius, false)
                         DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false) {
-                            scope.launch {
-                                isTesting = true
-                                try {
-                                    ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
-                                    delay(300)
-                                    onUpdated()
-                                } catch (_: Exception) {}
-                                finally { isTesting = false }
-                            }
+                            scope.launch { isTesting = true; try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isTesting = false } }
                         }
                     }
                 }
@@ -545,127 +312,61 @@ fun ProxyGroupCard(
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                     TypeBadge(type, settings.groupBadgeStyle, settings.badgeCornerRadius, true)
                     DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, true) {
-                        scope.launch {
-                            isTesting = true
-                            try {
-                                ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
-                                delay(300)
-                                onUpdated()
-                            } catch (_: Exception) {}
-                            finally { isTesting = false }
-                        }
+                        scope.launch { isTesting = true; try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isTesting = false } }
                     }
                 }
             }
-            if (!usePopup) {
-                AnimatedVisibility(visible = isExpanded) {
-                    NodeGridSection(name, allNodes, settings, onUpdated)
-                }
-            }
+            if (!usePopup) AnimatedVisibility(visible = isExpanded) { NodeGridSection(name, allNodes, settings, onUpdated) }
         }
     }
 
     if (usePopup && isExpanded) {
-        if (settings.useSheetMode) {
-            ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
-                Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) {
-                    NodeGridSection(name, allNodes, settings, onUpdated)
-                }
-            }
-        } else {
-            Dialog(onDismissRequest = { isExpanded = false }) {
-                Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                        Spacer(Modifier.height(12.dp))
-                        NodeGridSection(name, allNodes, settings, onUpdated)
-                    }
-                }
-            }
-        }
+        if (settings.useSheetMode) ModalBottomSheet(onDismissRequest = { isExpanded = false }) { Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) { NodeGridSection(name, allNodes, settings, onUpdated) } }
+        else Dialog(onDismissRequest = { isExpanded = false }) { Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) { Column(Modifier.padding(16.dp)) { Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Spacer(Modifier.height(12.dp)); NodeGridSection(name, allNodes, settings, onUpdated) } } }
     }
 }
 
-// ================== ConnectionCard ==================
-@OptIn(ExperimentalFoundationApi::class)
+// ---------- 连接卡片 ----------
 @Composable
-fun ConnectionCard(
-    conn: ConnectionItem,
-    onClose: () -> Unit
-) {
+fun ConnectionCard(conn: ConnectionItem, onClose: () -> Unit) {
     val startTimeMillis = remember(conn.rawJson) {
         try {
             val startStr = JSONObject(conn.rawJson).optString("start", "")
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 java.time.Instant.parse(startStr).toEpochMilli()
             } else {
-                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).apply {
-                    timeZone = java.util.TimeZone.getTimeZone("UTC")
-                }.parse(startStr)?.time ?: System.currentTimeMillis()
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.parse(startStr)?.time ?: System.currentTimeMillis()
             }
         } catch (e: Exception) { System.currentTimeMillis() }
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
-    ) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = conn.host,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee()
-                )
+                Text(text = conn.host, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.basicMarquee())
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "${conn.network.uppercase()} · ${conn.proxy}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                Text(text = "${conn.network.uppercase()} · ${conn.proxy}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
             }
-
             Spacer(Modifier.width(12.dp))
-
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Max)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     DurationBadge(startTimeMillis)
                     Spacer(Modifier.width(6.dp))
-                    IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "断开连接",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Close, "断开连接", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.ArrowUpward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(
-                        text = formatSize(conn.upload),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
+                    Text(text = formatSize(conn.upload), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Default.ArrowDownward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
-                    Text(
-                        text = formatSize(conn.download),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
+                    Text(text = formatSize(conn.download), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
                 }
             }
         }
     }
 }
 
-
-// ================== DurationBadge ==================
 @Composable
 fun DurationBadge(startTimeMillis: Long) {
     val durationText by produceState(initialValue = "...", startTimeMillis) {
@@ -679,16 +380,7 @@ fun DurationBadge(startTimeMillis: Long) {
             kotlinx.coroutines.delay(1000)
         }
     }
-
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-        shape = CircleShape
-    ) {
-        Text(
-            text = durationText,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-        )
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
+        Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
     }
 }

@@ -1,32 +1,29 @@
 package io.tl.nekopanel.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.SettingsManager
 import io.tl.nekopanel.ui.components.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @Composable
-fun ProxiesScreen(settings: SettingsManager, refreshTick: Long, currentMode: String, onRefresh: () -> Unit, onModeChange: () -> Unit) {
+fun ProxiesScreen(
+    settings: SettingsManager,
+    refreshTick: Long,
+    currentMode: String,
+    onRefresh: () -> Unit,
+    onModeChange: () -> Unit
+) {
     var allProxies by remember { mutableStateOf<JSONObject?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -55,10 +52,7 @@ fun ProxiesScreen(settings: SettingsManager, refreshTick: Long, currentMode: Str
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             ModeSpinner(currentMode) { newMode ->
-                scope.launch {
-                    ApiClient.updateConfigs(mapOf("mode" to newMode))
-                    onModeChange(); onRefresh()
-                }
+                scope.launch { ApiClient.updateConfigs(mapOf("mode" to newMode)); onModeChange(); onRefresh() }
             }
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onRefresh) { Icon(Icons.Default.Speed, "全面测速", tint = MaterialTheme.colorScheme.primary) }
