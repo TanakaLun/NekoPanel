@@ -68,9 +68,6 @@ fun Long.formatSize(): String {
     )
 }
 
-// 为了向后兼容，保留一个顶层函数调用扩展
-fun formatSize(b: Long): String = b.formatSize()
-
 // ---------- 图表 ----------
 @Composable
 fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier) {
@@ -451,10 +448,10 @@ fun ConnectionCard(conn: ConnectionItem, onClose: () -> Unit) {
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.ArrowUpward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(text = formatSize(conn.upload), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
+                    Text(text = conn.upload.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Default.ArrowDownward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
-                    Text(text = formatSize(conn.download), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
+                    Text(text = conn.download.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
                 }
             }
         }

@@ -91,12 +91,12 @@ fun OverviewView(
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text("内存占用", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text(formatSize(memoryInUse), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Text(memoryInUse.formatSize(), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                             MiniLineChart(memHistory, MaterialTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text("${formatSize(trafficDown)}/s", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                             MiniLineChart(downHistory, MaterialTheme.colorScheme.tertiary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                     }
@@ -104,18 +104,18 @@ fun OverviewView(
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Column {
                             Text("总下载", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text(formatSize(totalDown), fontWeight = FontWeight.Bold)
+                            Text(totalDown.formatSize(),fontWeight = FontWeight.Bold)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("总上传", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                            Text(formatSize(totalUp), fontWeight = FontWeight.Bold)
+                            Text(totalUp.formatSize(), fontWeight = FontWeight.Bold)
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     Text("累计流量 (自记录起)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("↓ ${formatSize(cumulative.first)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text("↑ ${formatSize(cumulative.second)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                        Text("↓ ${cumulative.first.formatSize()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                     }
                 }
             }
