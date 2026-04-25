@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.SettingsManager
-import io.tl.nekopanel.ui.components.TypeBad
+import io.tl.nekopanel.ui.components.TypeBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
