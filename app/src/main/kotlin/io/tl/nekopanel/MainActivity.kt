@@ -59,7 +59,6 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
         Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
-                Text("请输入 Mihomo 核心连接信息", style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true)
                 OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥 (可选)") }, singleLine = true)
                 Row(Modifier.fillMaxWidth(), Arrangement.End) {
@@ -97,8 +96,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
-
-    // 删除原来的 lastRaw 和 LaunchedEffect(totalDown, totalUp) 块
 
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
         if (settings.backgroundWebSocket && settings.apiBaseUrl.isNotBlank()) {
@@ -152,7 +149,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         globalUp = obj.optLong("up", 0L)
                         totalDown = obj.optLong("downTotal", 0L)
                         totalUp = obj.optLong("upTotal", 0L)
-                        // 累加流量（内部处理 delta 判断和持久化）
                         settings.accumulateTraffic(totalDown, totalUp)
                     } catch (_: Exception) {}
                 }

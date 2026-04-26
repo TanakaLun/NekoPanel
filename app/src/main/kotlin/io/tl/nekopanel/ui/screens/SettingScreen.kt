@@ -67,8 +67,8 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                     }
                     var url by remember { mutableStateOf(settings.apiBaseUrl) }
                     var secret by remember { mutableStateOf(settings.apiSecret) }
-                    OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址 (http://IP:PORT)") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥 (可选)") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥") }, singleLine = true, shape = RoundedCornerShape(12.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.End) {
                         Button(onClick = {
                             settings.apiBaseUrl = url.trimEnd('/')
@@ -115,7 +115,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
 
-        // --- TUN 配置（增强） ---
+        // --- TUN 配置 ---
         item {
             val tun = cfg.optJSONObject("tun") ?: JSONObject()
             var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
