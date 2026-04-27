@@ -327,39 +327,25 @@ fun NodeGridSection(
 fun ProxyGroupCard(
     name: String,
     group: JSONObject,
-    allProxies: JSONObject? = null,
+    now: String,                                 // 当前选中的节点名
+    delayCache: Map<String, Int>,                 // 全局延迟缓存
     settings: SettingsManager,
+    onDelayUpdate: (String, Int) -> Unit,         // 延迟更新回调
+    onNodeSelected: (String) -> Unit,             // 节点选中回调
     onUpdated: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val now = group.optString("now", "-")
     val type = group.optString("type", "Unknown")
-    val delay = group.optJSONArray("history")?.optJSONObject(0)?.optInt("delay", 0) ?: 0
     val icon = group.optString("icon", null)
     val allNodes = mutableListOf<String>()
     val allArray = group.optJSONArray("all")
     if (allArray != null) for (i in 0 until allArray.length()) allNodes.add(allArray.getString(i))
 
-    // 构建节点初始延迟映射（从全局代理数据获取历史）
-    val initialDelays = remember(allProxies, name) {
-        mutableMapOf<String, Int>().apply {
-            allProxies?.let { ap ->
-                val proxiesObj = ap.optJSONObject("proxies")
-                allNodes.forEach { node ->
-                    proxiesObj?.optJSONObject(node)?.optJSONArray("history")
-                        ?.let { hist ->
-                            if (hist.length() > 0) {
-                                val d = hist.getJSONObject(0).optInt("delay", 0)
-                                put(node, d)
-                            }
-                        }
-                }
-            }
-        }
-    }
+    // 当前选中节点的延迟
+    val currentDelay = delayCache[now] ?: 0
 
     val usePopup = settings.groupColumnCount == 2 || settings.useSheetMode
 
@@ -378,8 +364,23 @@ fun ProxyGroupCard(
                 if (settings.groupColumnCount == 1) {
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         TypeBadge(type, settings.groupBadgeStyle, settings.badgeCornerRadius, false)
-                        DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false) {
-                            scope.launch { isTesting = true; try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isTesting = false } }
+                        DelayBadge(currentDelay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false) {
+                            scope.launch {
+                                isTesting = true
+                                try {
+                                    val delays = ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
+                                    val keys = delays.keys()
+                                    while (keys.hasNext()) {
+                                        val node = keys.next()
+                                        val d = delays.getInt(node)
+                                        onDelayUpdate(node, d)
+                                    }
+                                } catch (_: Exception) {}
+                                finally {
+                                    isTesting = false
+                                    onUpdated()
+                                }
+                            }
                         }
                     }
                 }
@@ -388,23 +389,77 @@ fun ProxyGroupCard(
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                     TypeBadge(type, settings.groupBadgeStyle, settings.badgeCornerRadius, true)
-                    DelayBadge(delay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, true) {
-                        scope.launch { isTesting = true; try { ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout); delay(300); onUpdated() } catch (_: Exception) {} finally { isTesting = false } }
+                    DelayBadge(currentDelay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, true) {
+                        scope.launch {
+                            isTesting = true
+                            try {
+                                val delays = ApiClient.getGroupDelay(name, settings.testUrl, settings.testTimeout)
+                                val keys = delays.keys()
+                                while (keys.hasNext()) {
+                                    val node = keys.next()
+                                    val d = delays.getInt(node)
+                                    onDelayUpdate(node, d)
+                                }
+                            } catch (_: Exception) {}
+                            finally {
+                                isTesting = false
+                                onUpdated()
+                            }
+                        }
                     }
                 }
             }
-            if (!usePopup) AnimatedVisibility(visible = isExpanded) {
-                NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated)
+            if (!usePopup) {
+                AnimatedVisibility(visible = isExpanded) {
+                    NodeGridSection(
+                        groupName = name,
+                        nodes = allNodes,
+                        currentNode = now,
+                        initialDelays = delayCache,
+                        settings = settings,
+                        onDelayUpdate = onDelayUpdate,
+                        onNodeSelected = onNodeSelected,
+                        onUpdated = onUpdated
+                    )
+                }
             }
         }
     }
 
     if (usePopup && isExpanded) {
-        if (settings.useSheetMode) ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
-            Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) { NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated) }
-        } else Dialog(onDismissRequest = { isExpanded = false }) {
-            Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
-                Column(Modifier.padding(16.dp)) { Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black); Spacer(Modifier.height(12.dp)); NodeGridSection(name, allNodes, now, initialDelays, settings, onUpdated) }
+        if (settings.useSheetMode) {
+            ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
+                Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) {
+                    NodeGridSection(
+                        groupName = name,
+                        nodes = allNodes,
+                        currentNode = now,
+                        initialDelays = delayCache,
+                        settings = settings,
+                        onDelayUpdate = onDelayUpdate,
+                        onNodeSelected = onNodeSelected,
+                        onUpdated = onUpdated
+                    )
+                }
+            }
+        } else {
+            Dialog(onDismissRequest = { isExpanded = false }) {
+                Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        Spacer(Modifier.height(12.dp))
+                        NodeGridSection(
+                            groupName = name,
+                            nodes = allNodes,
+                            currentNode = now,
+                            initialDelays = delayCache,
+                            settings = settings,
+                            onDelayUpdate = onDelayUpdate,
+                            onNodeSelected = onNodeSelected,
+                            onUpdated = onUpdated
+                        )
+                    }
+                }
             }
         }
     }
