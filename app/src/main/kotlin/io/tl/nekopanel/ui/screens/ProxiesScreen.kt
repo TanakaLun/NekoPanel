@@ -103,7 +103,6 @@ fun ProxiesScreen(
         groupSelections = groupSelections.toMutableMap().apply { put(groupName, nodeName) }
         scope.launch {
             ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
-            onRefresh()
         }
     }
 
@@ -169,7 +168,6 @@ fun ProxiesScreen(
                         settings = settings,
                         onDelayUpdate = updateDelay,
                         onNodeSelected = { node -> selectNode(key, node) },
-                        onUpdated = onRefresh
                     )
                 }
             }

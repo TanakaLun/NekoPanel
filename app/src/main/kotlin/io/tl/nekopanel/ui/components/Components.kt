@@ -276,21 +276,13 @@ fun NodeGridSection(
     currentNode: String,
     initialDelays: Map<String, Int> = emptyMap(),
     settings: SettingsManager,
-    onDelayUpdate: (String, Int) -> Unit,    // 新增
-    onNodeSelected: (String) -> Unit,        // 新增
-    onUpdated: () -> Unit
+    onDelayUpdate: (String, Int) -> Unit,
+    onNodeSelected: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(settings.columnCount),
-        modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
+    LazyVerticalGrid(...) {
+        itemsIndexed(nodes, ...) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
-
             val displayDelay = initialDelays[nodeName] ?: 0
 
             NodeCard(
@@ -300,21 +292,15 @@ fun NodeGridSection(
                 isSelected = nodeName == currentNode,
                 isTesting = isNodeTesting,
                 settings = settings,
-                onClick = { onNodeSelected(nodeName) },   // 通过回调选中节点
+                onClick = { onNodeSelected(nodeName) },
                 onRefreshDelay = {
                     scope.launch {
                         isNodeTesting = true
                         try {
-                            val result = ApiClient.getProxyDelay(
-                                nodeName, settings.testUrl, settings.testTimeout
-                            )
-                            val delay = result.optInt("delay", 0)
-                            onDelayUpdate(nodeName, delay)   // 更新全局缓存
-                            onUpdated()
-                        } catch (_: Exception) {
-                        } finally {
-                            isNodeTesting = false
-                        }
+                            val result = ApiClient.getProxyDelay(nodeName, settings.testUrl, settings.testTimeout)
+                            onDelayUpdate(nodeName, result.optInt("delay", 0))
+                        } catch (_: Exception) {}
+                        finally { isNodeTesting = false }
                     }
                 }
             )
@@ -332,7 +318,6 @@ fun ProxyGroupCard(
     settings: SettingsManager,
     onDelayUpdate: (String, Int) -> Unit,         // 延迟更新回调
     onNodeSelected: (String) -> Unit,             // 节点选中回调
-    onUpdated: () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
@@ -378,7 +363,6 @@ fun ProxyGroupCard(
                                 } catch (_: Exception) {}
                                 finally {
                                     isTesting = false
-                                    onUpdated()
                                 }
                             }
                         }
@@ -403,7 +387,6 @@ fun ProxyGroupCard(
                             } catch (_: Exception) {}
                             finally {
                                 isTesting = false
-                                onUpdated()
                             }
                         }
                     }
@@ -419,7 +402,6 @@ fun ProxyGroupCard(
                         settings = settings,
                         onDelayUpdate = onDelayUpdate,
                         onNodeSelected = onNodeSelected,
-                        onUpdated = onUpdated
                     )
                 }
             }
@@ -438,7 +420,6 @@ fun ProxyGroupCard(
                         settings = settings,
                         onDelayUpdate = onDelayUpdate,
                         onNodeSelected = onNodeSelected,
-                        onUpdated = onUpdated
                     )
                 }
             }
@@ -456,7 +437,6 @@ fun ProxyGroupCard(
                             settings = settings,
                             onDelayUpdate = onDelayUpdate,
                             onNodeSelected = onNodeSelected,
-                            onUpdated = onUpdated
                         )
                     }
                 }
