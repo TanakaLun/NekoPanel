@@ -310,7 +310,7 @@ fun NodeGridSection(
                                 settings.testTimeout
                             )
                             val delay = result.optInt("delay", 0)
-                            onDelayUpdate(nodeName, delay)   // 更新全局缓存
+                            onDelayUpdate(nodeName, delay)
                         } catch (_: Exception) {
                         } finally {
                             isNodeTesting = false
