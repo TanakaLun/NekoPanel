@@ -145,7 +145,6 @@ fun ProxiesScreen(
                         settings = settings,
                         onDelayUpdate = updateDelay,
                         onNodeSelected = { node -> selectNode(key, node) },
-                        onUpdated = onRefresh
                     )
                 }
             }

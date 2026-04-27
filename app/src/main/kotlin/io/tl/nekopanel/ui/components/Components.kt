@@ -280,9 +280,16 @@ fun NodeGridSection(
     onNodeSelected: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    LazyVerticalGrid(...) {
-        itemsIndexed(nodes, ...) { _, nodeName ->
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(settings.columnCount),
+        modifier = Modifier.padding(top = 16.dp).heightIn(max = 450.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
+
             val displayDelay = initialDelays[nodeName] ?: 0
 
             NodeCard(
@@ -297,10 +304,17 @@ fun NodeGridSection(
                     scope.launch {
                         isNodeTesting = true
                         try {
-                            val result = ApiClient.getProxyDelay(nodeName, settings.testUrl, settings.testTimeout)
-                            onDelayUpdate(nodeName, result.optInt("delay", 0))
-                        } catch (_: Exception) {}
-                        finally { isNodeTesting = false }
+                            val result = ApiClient.getProxyDelay(
+                                nodeName,
+                                settings.testUrl,
+                                settings.testTimeout
+                            )
+                            val delay = result.optInt("delay", 0)
+                            onDelayUpdate(nodeName, delay)   // 更新全局缓存
+                        } catch (_: Exception) {
+                        } finally {
+                            isNodeTesting = false
+                        }
                     }
                 }
             )
