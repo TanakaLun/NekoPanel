@@ -219,7 +219,7 @@ fun DelayBadge(delay: Int, isTesting: Boolean, style: String, cornerRadius: Int,
         delay < 500 -> Color(0xFFF57C00)
         else -> Color(0xFFD32F2F)
     }
-    val display = if (isTesting) "…..." else if (delay <= 0) "TEST" else "${delay}ms"
+    val display = if (isTesting) "......" else if (delay <= 0) "TEST" else "${delay}ms"
     Surface(
         modifier = (if (isFixedSize) Modifier.width(60.dp).height(20.dp) else Modifier.wrapContentSize())
             .clip(RoundedCornerShape(cornerRadius.dp))
@@ -273,14 +273,14 @@ fun NodeCard(name: String, type: String, lastDelay: Int, isSelected: Boolean, is
 fun NodeGridSection(
     groupName: String,
     nodes: List<String>,
-    currentNode: String,                     // 新增：当前选中的节点名
-    initialDelays: Map<String, Int> = emptyMap(), // 新增：初始延迟（来自全局代理数据）
+    currentNode: String,
+    initialDelays: Map<String, Int> = emptyMap(),
     settings: SettingsManager,
+    onDelayUpdate: (String, Int) -> Unit,    // 新增
+    onNodeSelected: (String) -> Unit,        // 新增
     onUpdated: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    // 维护本地测速延迟，确保节点测速后立即显示
-    val localDelays = remember { mutableStateMapOf<String, Int>() }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(settings.columnCount),
@@ -291,22 +291,16 @@ fun NodeGridSection(
         itemsIndexed(nodes, key = { _, name -> "$groupName-$name" }) { _, nodeName ->
             var isNodeTesting by remember { mutableStateOf(false) }
 
-            // 计算显示延迟：优先本地测速值，其次初始值，最后 0
-            val displayDelay = localDelays[nodeName] ?: initialDelays[nodeName] ?: 0
+            val displayDelay = initialDelays[nodeName] ?: 0
 
             NodeCard(
                 name = nodeName,
                 type = "Proxy",
                 lastDelay = displayDelay,
-                isSelected = nodeName == currentNode,   // 修复选中高亮
+                isSelected = nodeName == currentNode,
                 isTesting = isNodeTesting,
                 settings = settings,
-                onClick = {
-                    scope.launch {
-                        ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
-                        onUpdated()
-                    }
-                },
+                onClick = { onNodeSelected(nodeName) },   // 通过回调选中节点
                 onRefreshDelay = {
                     scope.launch {
                         isNodeTesting = true
@@ -315,9 +309,8 @@ fun NodeGridSection(
                                 nodeName, settings.testUrl, settings.testTimeout
                             )
                             val delay = result.optInt("delay", 0)
-                            localDelays[nodeName] = delay     // 更新本地状态
-                            delay(300)                        // 短暂延迟确保 UI 刷新
-                            onUpdated()                      // 触发组数据刷新
+                            onDelayUpdate(nodeName, delay)   // 更新全局缓存
+                            onUpdated()
                         } catch (_: Exception) {
                         } finally {
                             isNodeTesting = false

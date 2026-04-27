@@ -22,14 +22,60 @@ fun ProxiesScreen(
     refreshTick: Long,
     currentMode: String,
     onRefresh: () -> Unit,
-    onModeChange: () -> Unit
+    onModeChange: (String) -> Unit
 ) {
     var allProxies by remember { mutableStateOf<JSONObject?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
+    // 延迟缓存：节点名 -> 延迟(ms)
+    var delayCache by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    // 选中节点缓存：组名 -> 当前选中的节点名
+    var groupSelections by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
     LaunchedEffect(refreshTick) {
-        try { allProxies = ApiClient.getProxies() } catch (_: Exception) {}
+        try {
+            allProxies = ApiClient.getProxies()
+            // 初始化延迟缓存和选中状态
+            val proxiesJson = allProxies ?: return@LaunchedEffect
+            val proxiesObj = proxiesJson.getJSONObject("proxies")
+            val newDelayCache = mutableMapOf<String, Int>()
+            val newSelections = mutableMapOf<String, String>()
+
+            val keys = proxiesObj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val proxy = proxiesObj.getJSONObject(key)
+                val now = proxy.optString("now", null)
+                if (now != null) {
+                    newSelections[key] = now
+                }
+                // 从历史记录中提取延迟（如果有的话）
+                val historyArr = proxy.optJSONArray("history")
+                if (historyArr != null && historyArr.length() > 0) {
+                    val lastDelay = historyArr.getJSONObject(0).optInt("delay", 0)
+                    if (lastDelay > 0) {
+                        newDelayCache[key] = lastDelay   // 注意：历史记录可能只有组本身的延迟（不是节点），需要处理所有节点的延迟
+                    }
+                }
+            }
+
+            // 更准确的方式：遍历所有代理项，包括节点
+            val allKeysForDelay = proxiesObj.keys().asSequence().toList()
+            for (proxyName in allKeysForDelay) {
+                val proxy = proxiesObj.getJSONObject(proxyName)
+                val historyArr = proxy.optJSONArray("history")
+                if (historyArr != null && historyArr.length() > 0) {
+                    val lastDelay = historyArr.getJSONObject(0).optInt("delay", 0)
+                    if (lastDelay > 0) {
+                        newDelayCache[proxyName] = lastDelay
+                    }
+                }
+            }
+
+            delayCache = newDelayCache
+            groupSelections = newSelections
+        } catch (_: Exception) {}
         isLoading = false
     }
 
@@ -49,6 +95,18 @@ fun ProxiesScreen(
         if (settings.showGlobal) filtered else filtered.filter { it != "GLOBAL" }
     }.sorted()
 
+    // 更新延迟缓存或选中节点的回调
+    val updateDelay: (String, Int) -> Unit = { node, delay ->
+        delayCache = delayCache.toMutableMap().apply { put(node, delay) }
+    }
+    val selectNode: (String, String) -> Unit = { groupName, nodeName ->
+        groupSelections = groupSelections.toMutableMap().apply { put(groupName, nodeName) }
+        scope.launch {
+            ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
+            onRefresh()
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier
@@ -60,7 +118,7 @@ fun ProxiesScreen(
             ModeSpinner(currentMode) { newMode ->
                 scope.launch {
                     ApiClient.updateConfigs(mapOf("mode" to newMode))
-                    onModeChange()
+                    onModeChange(newMode)
                     onRefresh()
                 }
             }
@@ -79,11 +137,15 @@ fun ProxiesScreen(
                 items(displayKeys.size, key = { displayKeys[it] }) { idx ->
                     val key = displayKeys[idx]
                     val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                    val currentNow = groupSelections[key] ?: group.optString("now", "-")
                     ProxyGroupCard(
                         name = key,
                         group = group,
-                        allProxies = proxiesJson,  // 传入全局数据
+                        now = currentNow,
+                        delayCache = delayCache,
                         settings = settings,
+                        onDelayUpdate = updateDelay,
+                        onNodeSelected = { node -> selectNode(key, node) },
                         onUpdated = onRefresh
                     )
                 }
@@ -98,11 +160,15 @@ fun ProxiesScreen(
                 items(displayKeys.size, key = { displayKeys[it] }) { idx ->
                     val key = displayKeys[idx]
                     val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                    val currentNow = groupSelections[key] ?: group.optString("now", "-")
                     ProxyGroupCard(
                         name = key,
                         group = group,
-                        allProxies = proxiesJson,  // 传入全局数据
+                        now = currentNow,
+                        delayCache = delayCache,
                         settings = settings,
+                        onDelayUpdate = updateDelay,
+                        onNodeSelected = { node -> selectNode(key, node) },
                         onUpdated = onRefresh
                     )
                 }

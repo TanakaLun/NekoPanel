@@ -176,7 +176,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (selectedTab) {
-                0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { configUpdateTrigger++ })
+                0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode, configUpdateTrigger++ })
                 1 -> RulesScreen(globalRefreshTick, settings)
                 2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it })
                 3 -> FullSettingsScreen(settings, onPureBlackToggle)
