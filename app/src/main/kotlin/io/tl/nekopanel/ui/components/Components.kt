@@ -157,15 +157,11 @@ fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
             shape = RoundedCornerShape(12.dp)
         )
 
-        MaterialTheme(
-            shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))
-        ) {
+        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .width(150.dp)
-                    .background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.width(150.dp).background(MaterialTheme.colorScheme.surface),
                 offset = DpOffset(0.dp, 4.dp)
             ) {
                 modes.forEach { (key, label) ->
@@ -184,20 +180,18 @@ fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
                         },
                         modifier = Modifier
                             .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(12.dp)),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
                         colors = MenuDefaults.itemColors(
-                            darkTrailingIconColor = MaterialTheme.colorScheme.primary,
-                            focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        ),
-                        interactionSource = remember { MutableInteractionSource() }
+                            textColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            trailingIconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,17 +217,17 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
                 levels.forEach { level ->
                     val isSelected = currentLevel == level
                     DropdownMenuItem(
-                        text = { Text(level.uppercase(), fontSize = 13.sp) },
+                        text = { Text(level.uppercase(), fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                         onClick = { 
                             onLevelSelected(level)
                             expanded = false 
                         },
                         modifier = Modifier
                             .padding(horizontal = 6.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(10.dp)),
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent),
                         colors = MenuDefaults.itemColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            textColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                            textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
@@ -241,7 +235,6 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,16 +272,16 @@ fun SettingsDropdownMenuInline(label: String, currentValue: String, options: Lis
                         options.forEach { option ->
                             val isSelected = currentValue == option
                             DropdownMenuItem(
-                                text = { Text(option, fontSize = 13.sp) },
+                                text = { Text(option, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                                 onClick = { 
                                     onSelected(option)
                                     expanded = false 
                                 },
                                 modifier = Modifier
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    .clip(RoundedCornerShape(12.dp)), // 选项圆角
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
                                 colors = MenuDefaults.itemColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                                     textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                                 )
                             )
@@ -299,7 +292,6 @@ fun SettingsDropdownMenuInline(label: String, currentValue: String, options: Lis
         }
     }
 }
-
 
 // ---------- Badge ----------
 @Composable
