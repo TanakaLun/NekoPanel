@@ -29,6 +29,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
@@ -146,53 +147,159 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
 fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val modes = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
+    
     Box {
-        FilterChip(selected = true, onClick = { expanded = true },
+        FilterChip(
+            selected = true, 
+            onClick = { expanded = true },
             label = { Text(modes.find { it.first == currentMode }?.second ?: currentMode, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) }, shape = RoundedCornerShape(12.dp))
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            modes.forEach { (key, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { onModeSelected(key); expanded = false }) }
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        MaterialTheme(
+            shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))
+        ) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(150.dp)
+                    .background(MaterialTheme.colorScheme.surface),
+                offset = DpOffset(0.dp, 4.dp)
+            ) {
+                modes.forEach { (key, label) ->
+                    val isSelected = currentMode == key
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
+                        onClick = { 
+                            onModeSelected(key)
+                            expanded = false 
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        colors = MenuDefaults.itemColors(
+                            darkTrailingIconColor = MaterialTheme.colorScheme.primary,
+                            focusedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        interactionSource = remember { MutableInteractionSource() }
+                    )
+                }
+            }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val levels = listOf("info", "warning", "error", "debug", "silent")
+    
     Box {
-        FilterChip(selected = true, onClick = { expanded = true },
+        FilterChip(
+            selected = true, 
+            onClick = { expanded = true },
             label = { Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) }, shape = RoundedCornerShape(12.dp))
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            levels.forEach { level -> DropdownMenuItem(text = { Text(level.uppercase()) }, onClick = { onLevelSelected(level); expanded = false }) }
-        }
-    }
-}
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
+            shape = RoundedCornerShape(12.dp)
+        )
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsDropdownMenuInline(label: String, currentValue: String, options: List<String>, onSelected: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-        Box(modifier = Modifier.width(140.dp)) {
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = currentValue, onValueChange = {}, readOnly = true,
-                    textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(), shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent)
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    options.forEach { option -> DropdownMenuItem(text = { Text(option, fontSize = 13.sp) }, onClick = { onSelected(option); expanded = false }) }
+        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.width(140.dp)
+            ) {
+                levels.forEach { level ->
+                    val isSelected = currentLevel == level
+                    DropdownMenuItem(
+                        text = { Text(level.uppercase(), fontSize = 13.sp) },
+                        onClick = { 
+                            onLevelSelected(level)
+                            expanded = false 
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        colors = MenuDefaults.itemColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                            textColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                    )
                 }
             }
         }
     }
 }
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsDropdownMenuInline(label: String, currentValue: String, options: List<String>, onSelected: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+        
+        Box(modifier = Modifier.width(160.dp)) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            ) {
+                OutlinedTextField(
+                    value = currentValue, 
+                    onValueChange = {}, 
+                    readOnly = true,
+                    textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor(), 
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    )
+                )
+
+                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(18.dp))) {
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                    ) {
+                        options.forEach { option ->
+                            val isSelected = currentValue == option
+                            DropdownMenuItem(
+                                text = { Text(option, fontSize = 13.sp) },
+                                onClick = { 
+                                    onSelected(option)
+                                    expanded = false 
+                                },
+                                modifier = Modifier
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    .clip(RoundedCornerShape(12.dp)), // 选项圆角
+                                colors = MenuDefaults.itemColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                    textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 // ---------- Badge ----------
 @Composable
