@@ -19,14 +19,14 @@
     <path
         android:fillColor="#FFF5A9B8"
         android:pathData="M218.31,101.89C210.26,84.15 203.32,79.25 188.49,75.66C201.23,70.91 209.05,69.53 216.79,71.74C220.41,80.44 219.71,88.09 218.31,101.89Z"
-        android:fillType="round" />
+        android:fillType="evenOdd" />
     <path
         android:fillColor="#FFDDAEB7"
         android:pathData="M218.31,101.89C223.29,90.96 225.52,82.17 225.55,75.66C222.48,73.86 219.64,72.56 216.79,71.74C220.41,80.44 219.71,88.09 218.31,101.89Z" />
     <path
         android:fillColor="#FFF5A9B8"
         android:pathData="M63.35,75.66C49,80.36 42.28,85.17 34.28,100.29C33.4,82.98 35.13,75.02 46.6,67.42C52.1,68.24 57.01,71.04 63.35,75.66Z"
-        android:fillType="round" />
+        android:fillType="evenOdd" />
     <path
         android:fillColor="#FFDDAEB7"
         android:pathData="M31.66,69.2C29.59,76.47 29.98,87.11 34.28,100.29C33.4,82.98 35.13,75.02 46.6,67.42C42.3,66.78 37.64,67.35 31.66,69.2Z" />
