@@ -10,11 +10,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyNHentai">
+        android:theme="@style/Theme.ComposeEmptyActivity">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.MyNHentai">
+            android:theme="@style/Theme.ComposeEmptyActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
