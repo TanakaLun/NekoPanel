@@ -50,7 +50,7 @@ fun TrafficScreen(
 ) {
     when (trafficTab) {
         0 -> OverviewView(connections, memoryInUse, trafficDown, totalDown, totalUp, memHistory, downHistory, settings)
-        1 -> ConnectionsView(connections)
+        1 -> ConnectionsView(connections, onClearConnections, onRemoveConnection)
         2 -> LogsView(logs, currentLogLevel, onLevelChange)
     }
 }
