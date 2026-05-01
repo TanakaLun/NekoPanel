@@ -96,6 +96,13 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
+    
+    val removeConnection: (String) -> Unit = { id ->
+        connections = connections.filter { it.id != id }
+    }
+    val clearConnections: () -> Unit = {
+        connections = emptyList()
+    }
 
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
         if (settings.backgroundWebSocket && settings.apiBaseUrl.isNotBlank()) {
@@ -178,7 +185,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
             when (selectedTab) {
                 0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
                 1 -> RulesScreen(globalRefreshTick, settings)
-                2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it })
+                2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
                 3 -> FullSettingsScreen(settings, onPureBlackToggle)
             }
         }

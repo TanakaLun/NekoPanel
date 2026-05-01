@@ -44,7 +44,9 @@ fun TrafficScreen(
     totalUp: Long,
     memHistory: List<Long>,
     downHistory: List<Long>,
-    onLevelChange: (String) -> Unit
+    onLevelChange: (String) -> Unit,
+    onRemoveConnection: (String) -> Unit,
+    onClearConnections: () -> Unit
 ) {
     when (trafficTab) {
         0 -> OverviewView(connections, memoryInUse, trafficDown, totalDown, totalUp, memHistory, downHistory, settings)
@@ -159,7 +161,11 @@ fun OverviewView(
 }
 
 @Composable
-fun ConnectionsView(connections: List<ConnectionItem>) {
+fun ConnectionsView(
+    connections: List<ConnectionItem>,
+    onRemoveConnection: (String) -> Unit,
+    onClearConnections: () -> Unit
+) {
     var selectedJson by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -181,7 +187,12 @@ fun ConnectionsView(connections: List<ConnectionItem>) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black
                 )
-                IconButton(onClick = { scope.launch { ApiClient.deleteAllConnections() } }) {
+                IconButton(onClick = {
+                    scope.launch {
+                        ApiClient.deleteAllConnections()
+                        onClearConnections()   // 清空本地列表
+                    }
+                }) {
                     Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -190,13 +201,18 @@ fun ConnectionsView(connections: List<ConnectionItem>) {
             Box(Modifier.clickable { selectedJson = conn.rawJson }) {
                 ConnectionCard(
                     conn = conn,
-                    onClose = { scope.launch { ApiClient.deleteConnection(conn.id) } }
+                    onClose = {
+                        scope.launch {
+                            ApiClient.deleteConnection(conn.id)
+                            onRemoveConnection(conn.id)   // 本地移除
+                        }
+                    }
                 )
             }
         }
     }
 
-    // JSON 元数据弹窗（格式化 + 高亮）
+    // JSON 元数据弹窗（保持不变）
     if (selectedJson != null) {
         Dialog(onDismissRequest = { selectedJson = null }) {
             Card(
@@ -209,7 +225,6 @@ fun ConnectionsView(connections: List<ConnectionItem>) {
                     Text("元数据明细", fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(8.dp))
 
-                    // 格式化 JSON 并进行语法高亮
                     val formatted = remember(selectedJson) {
                         try {
                             JSONObject(selectedJson!!).toString(4)
@@ -227,11 +242,7 @@ fun ConnectionsView(connections: List<ConnectionItem>) {
                             .verticalScroll(rememberScrollState())
                     ) {
                         SelectionContainer {
-                            Text(
-                                text = annotated,   // 这里必须使用 AnnotatedString 实现高亮
-                                fontSize = 11.sp,
-                                lineHeight = 14.sp
-                            )
+                            Text(text = annotated, fontSize = 11.sp, lineHeight = 14.sp)
                         }
                     }
                     TextButton(
