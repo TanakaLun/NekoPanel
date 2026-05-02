@@ -212,67 +212,69 @@ fun ConnectionsView(
             }
         }
     }
+  
 
     if (selectedJson != null) {
-    Dialog(onDismissRequest = { selectedJson = null }) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            ),
-            shape = RoundedCornerShape(24.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.8f)
-        ) {
-            Column(Modifier.padding(20.dp)) {
-                Text(
-                    text = "元数据明细",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                Spacer(Modifier.height(12.dp))
-
-                val formatted = remember(selectedJson) {
-                    try {
-                        JSONObject(selectedJson!!).toString(4)
-                    } catch (e: Exception) {
-                        selectedJson ?: ""
-                    }
-                }
-                
-                val annotated = highlightJson(formatted)
-
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest, // 更深的衬底
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState())
-                            .padding(12.dp)
-                    ) {
-                        SelectionContainer {
-                            Text(
-                                text = annotated,
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
+        Dialog(onDismissRequest = { selectedJson = null }) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.8f)
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        text = "元数据明细",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(Modifier.height(12.dp))
+    
+                    val formatted = remember(selectedJson) {
+                        try {
+                            JSONObject(selectedJson!!).toString(4)
+                        } catch (e: Exception) {
+                            selectedJson ?: ""
                         }
                     }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { selectedJson = null }) {
-                        Text("确定")
+                    
+                    val annotated = highlightJson(formatted)
+    
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        // color = MaterialTheme.colorScheme.surfaceContainerLowest, // 更深的衬底
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .horizontalScroll(rememberScrollState())
+                                .padding(12.dp)
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = annotated,
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+    
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { selectedJson = null }) {
+                            Text("确定")
+                        }
                     }
                 }
             }
