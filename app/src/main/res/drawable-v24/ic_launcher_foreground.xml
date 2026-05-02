@@ -3,28 +3,35 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    
-    <path
-        android:pathData="M54,54m-48,0a48,48 0,1 1,96 0a48,48 0,1 1,-96 0"
-        android:fillColor="#FFFFFF"/> <group
-        android:translateX="18"
-        android:translateY="18">
+
+    <group
+        android:translateX="23"
+        android:translateY="20">
         
         <path
-            android:strokeColor="#333333"  android:strokeWidth="4"         android:strokeLineCap="round"   android:strokeLineJoin="round"  android:pathData="M16,36 
-                              C16,28 22,20 30,20 
-                              C34,20 37,22 40,26 
-                              C43,22 46,20 50,20 
-                              C58,20 64,28 64,36 
-                              C64,52 56,60 40,68 
-                              C24,60 16,52 16,36 Z"/>
-
-        <path
-            android:fillColor="#333333"
-            android:pathData="M32,40m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
-        <path
-            android:fillColor="#333333"
-            android:pathData="M48,40m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"/>
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
             
+            android:pathData="M15,64 
+                              C15,64 5,64 5,54 
+                              C5,44 15,44 15,44 
+                              L15,30 
+                              C15,20 22,12 32,12 
+                              C36,12 39,14 42,18 
+                              C45,14 48,12 52,12 
+                              C62,12 69,20 69,30 
+                              L69,50 
+                              C69,60 61,68 51,68 
+                              L25,68 
+                              C20,68 15,64 15,64 Z"/>
+        
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:pathData="M48,32 C48,32 51,30 54,32" />
+
     </group>
 </vector>
