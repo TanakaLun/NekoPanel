@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -212,50 +213,73 @@ fun ConnectionsView(
         }
     }
 
-    // JSON 元数据弹窗（保持不变）
     if (selectedJson != null) {
-        Dialog(onDismissRequest = { selectedJson = null }) {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.7f)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("元数据明细", fontWeight = FontWeight.Black)
-                    Spacer(Modifier.height(8.dp))
+    Dialog(onDismissRequest = { selectedJson = null }) {
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ),
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.8f)
+        ) {
+            Column(Modifier.padding(20.dp)) {
+                Text(
+                    text = "元数据明细",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                Spacer(Modifier.height(12.dp))
 
-                    val formatted = remember(selectedJson) {
-                        try {
-                            JSONObject(selectedJson!!).toString(4)
-                        } catch (e: Exception) {
-                            selectedJson ?: ""
-                        }
+                val formatted = remember(selectedJson) {
+                    try {
+                        JSONObject(selectedJson!!).toString(4)
+                    } catch (e: Exception) {
+                        selectedJson ?: ""
                     }
-                    val annotated = remember(formatted) {
-                        highlightJson(formatted)
-                    }
+                }
+                
+                val annotated = highlightJson(formatted)
 
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest, // 更深的衬底
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxSize()
                             .verticalScroll(rememberScrollState())
+                            .horizontalScroll(rememberScrollState())
+                            .padding(12.dp)
                     ) {
                         SelectionContainer {
-                            Text(text = annotated, fontSize = 11.sp, lineHeight = 14.sp)
+                            Text(
+                                text = annotated,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
                         }
                     }
-                    TextButton(
-                        onClick = { selectedJson = null },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("关闭")
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = { selectedJson = null }) {
+                        Text("确定")
                     }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelChange: (String) -> Unit) {

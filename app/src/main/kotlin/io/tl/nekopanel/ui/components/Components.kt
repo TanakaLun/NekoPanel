@@ -617,52 +617,59 @@ fun DurationBadge(startTimeMillis: Long) {
     }
 }
 
-fun highlightJson(jsonStr: String): AnnotatedString = buildAnnotatedString {
-    val keyColor = Color(0xFF7DD3FC)        // 蓝色
-    val stringColor = Color(0xFFF59E0B)     // 橙色
-    val numberColor = Color(0xFF86EFAC)     // 绿色
-    val booleanColor = Color(0xFF3B82F6)    // 蓝色
-    val nullColor = Color(0xFF569CD6)
+@Composable
+fun highlightJson(jsonStr: String): AnnotatedString {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    return remember(jsonStr, colorScheme) {
+        buildAnnotatedString {
+            val keyColor = colorScheme.primary
+            val stringColor = colorScheme.tertiary
+            val numberColor = colorScheme.secondary
+            val booleanColor = colorScheme.error
+            val nullColor = colorScheme.outline
+            val punctuationColor = colorScheme.onSurfaceVariant
 
-    var i = 0
-    while (i < jsonStr.length) {
-        when {
-            jsonStr[i] == '"' -> {
-                // 读取整个字符串，包括转义
-                val start = i
-                i++ // 跳过开始引号
-                while (i < jsonStr.length && jsonStr[i] != '"') {
-                    if (jsonStr[i] == '\\') i++ // 跳过转义字符
-                    i++
+            var i = 0
+            while (i < jsonStr.length) {
+                when {
+                    jsonStr[i] == '"' -> {
+                        val start = i; i++
+                        while (i < jsonStr.length) {
+                            if (jsonStr[i] == '\\' && i + 1 < jsonStr.length) i += 2
+                            else if (jsonStr[i] == '"') { i++; break }
+                            else i++
+                        }
+                        val str = jsonStr.substring(start, i)
+                        var lookAhead = i
+                        while (lookAhead < jsonStr.length && jsonStr[lookAhead].isWhitespace()) lookAhead++
+                        val isKey = lookAhead < jsonStr.length && jsonStr[lookAhead] == ':'
+                        
+                        withStyle(SpanStyle(color = if (isKey) keyColor else stringColor, fontWeight = if(isKey) FontWeight.Bold else FontWeight.Normal)) {
+                            append(str)
+                        }
+                    }
+                    jsonStr[i].isDigit() || jsonStr[i] == '-' -> {
+                        val start = i
+                        while (i < jsonStr.length && (jsonStr[i].isDigit() || jsonStr[i] in ".-eE")) i++
+                        withStyle(SpanStyle(color = numberColor)) { append(jsonStr.substring(start, i)) }
+                    }
+                    jsonStr.startsWith("true", i) || jsonStr.startsWith("false", i) -> {
+                        val bool = if (jsonStr.startsWith("true", i)) "true" else "false"
+                        withStyle(SpanStyle(color = booleanColor, fontWeight = FontWeight.Medium)) { append(bool) }
+                        i += bool.length
+                    }
+                    jsonStr.startsWith("null", i) -> {
+                        withStyle(SpanStyle(color = nullColor)) { append("null") }; i += 4
+                    }
+                    else -> {
+                        val isPunctuation = jsonStr[i] in "{}[],:"
+                        withStyle(SpanStyle(color = if(isPunctuation) punctuationColor else Color.Unspecified)) {
+                            append(jsonStr[i])
+                        }
+                        i++
+                    }
                 }
-                if (i < jsonStr.length) i++ // 结束引号
-                val str = jsonStr.substring(start, i)
-                // 判断是键还是值：如果后面紧跟冒号，则认为是键
-                val isKey = i < jsonStr.length && jsonStr.trimStart().startsWith(":")
-                withStyle(SpanStyle(color = if (isKey) keyColor else stringColor)) {
-                    append(str)
-                }
-            }
-            jsonStr[i].isDigit() || jsonStr[i] == '-' -> {
-                val start = i
-                while (i < jsonStr.length && (jsonStr[i].isDigit() || jsonStr[i] == '.' || jsonStr[i] == 'e' || jsonStr[i] == 'E' || jsonStr[i] == '-')) {
-                    i++
-                }
-                val num = jsonStr.substring(start, i)
-                withStyle(SpanStyle(color = numberColor)) { append(num) }
-            }
-            jsonStr.startsWith("true", i) || jsonStr.startsWith("false", i) -> {
-                val bool = if (jsonStr.startsWith("true", i)) "true" else "false"
-                withStyle(SpanStyle(color = booleanColor)) { append(bool) }
-                i += bool.length
-            }
-            jsonStr.startsWith("null", i) -> {
-                withStyle(SpanStyle(color = nullColor)) { append("null") }
-                i += 4
-            }
-            else -> {
-                append(jsonStr[i])
-                i++
             }
         }
     }
