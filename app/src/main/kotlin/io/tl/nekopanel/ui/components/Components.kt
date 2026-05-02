@@ -627,7 +627,7 @@ fun highlightJson(jsonStr: String): AnnotatedString {
             val stringColor = colorScheme.tertiary
             val numberColor = colorScheme.secondary
             val booleanColor = colorScheme.error
-            val nullColor = colorScheme.outline
+            val nullColor = colorScheme.error
             val punctuationColor = colorScheme.onSurfaceVariant
 
             var i = 0
