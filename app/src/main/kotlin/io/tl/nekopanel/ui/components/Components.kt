@@ -618,12 +618,11 @@ fun DurationBadge(startTimeMillis: Long) {
 }
 
 fun highlightJson(jsonStr: String): AnnotatedString = buildAnnotatedString {
-    val keyColor = Color(0xFF9CDCFE)        // 淡蓝色
-    val stringColor = Color(0xFFCE9178)     // 橙色
-    val numberColor = Color(0xFFB5CEA8)     // 绿色
-    val booleanColor = Color(0xFF569CD6)    // 蓝色
+    val keyColor = Color(0xFF7DD3FC)        // 蓝色
+    val stringColor = Color(0xFFF59E0B)     // 橙色
+    val numberColor = Color(0xFF86EFAC)     // 绿色
+    val booleanColor = Color(0xFF3B82F6)    // 蓝色
     val nullColor = Color(0xFF569CD6)
-    val punctuationColor = Color.White
 
     var i = 0
     while (i < jsonStr.length) {
@@ -662,7 +661,7 @@ fun highlightJson(jsonStr: String): AnnotatedString = buildAnnotatedString {
                 i += 4
             }
             else -> {
-                withStyle(SpanStyle(color = punctuationColor)) { append(jsonStr[i]) }
+                append(jsonStr[i])
                 i++
             }
         }
