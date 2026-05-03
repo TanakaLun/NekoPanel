@@ -199,17 +199,16 @@ fun ConnectionsView(
             }
         }
         items(connections, key = { it.id }) { conn ->
-            Box(Modifier.clickable { selectedJson = conn.rawJson }) {
-                ConnectionCard(
-                    conn = conn,
-                    onClose = {
-                        scope.launch {
-                            ApiClient.deleteConnection(conn.id)
-                            onRemoveConnection(conn.id)   // 本地移除
-                        }
+            ConnectionCard(
+                conn = conn,
+                onClick = { selectedJson = conn.rawJson },
+                onClose = {
+                    scope.launch {
+                        ApiClient.deleteConnection(conn.id)
+                        onRemoveConnection(conn.id)
                     }
-                )
-            }
+                }
+            )
         }
     }
     

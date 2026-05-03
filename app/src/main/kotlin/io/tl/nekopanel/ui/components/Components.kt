@@ -560,7 +560,7 @@ fun ProxyGroupCard(
 
 // ---------- 连接卡片 ----------
 @Composable
-fun ConnectionCard(conn: ConnectionItem, onClose: () -> Unit) {
+fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
     val cardShape = RoundedCornerShape(20.dp)
     val startTimeMillis = remember(conn.rawJson) {
         try {
