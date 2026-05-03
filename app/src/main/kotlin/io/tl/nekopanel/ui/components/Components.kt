@@ -723,7 +723,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 }
             }
 
-            Spacer(Modifier.height(4<.dp))
+            Spacer(Modifier.height(4.dp))
 
             // 第二行：协议、进程、路由节点
             Row(verticalAlignment = Alignment.CenterVertically) {
