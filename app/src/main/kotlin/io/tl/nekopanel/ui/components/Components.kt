@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
@@ -559,62 +561,239 @@ fun ProxyGroupCard(
 }
 
 // ---------- 连接卡片 ----------
+// @Composable
+// fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
+    // val cardShape = RoundedCornerShape(20.dp)
+    // val startTimeMillis = remember(conn.rawJson) {
+        // try {
+            // val startStr = JSONObject(conn.rawJson).optString("start", "")
+            // if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                // java.time.Instant.parse(startStr).toEpochMilli()
+            // } else {
+                // java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.parse(startStr)?.time ?: System.currentTimeMillis()
+            // }
+        // } catch (e: Exception) { System.currentTimeMillis() }
+    // }
+
+    // Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(cardShape).clickable(onClick = onClick), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+        // Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Column(modifier = Modifier.weight(1f)) {
+                // Text(text = conn.host, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.basicMarquee())
+                // Spacer(Modifier.height(4.dp))
+                // Text(text = "${conn.network.uppercase()} · ${conn.proxy}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+            // }
+            // Spacer(Modifier.width(12.dp))
+            // Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Max)) {
+                // Row(verticalAlignment = Alignment.CenterVertically) {
+                    // DurationBadge(startTimeMillis)
+                    // Spacer(Modifier.width(6.dp))
+                    // IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Close, "断开连接", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
+                // }
+                // Spacer(Modifier.height(6.dp))
+                // Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Icon(Icons.Default.ArrowUpward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
+                    // Text(text = conn.upload.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
+                    // Spacer(Modifier.width(8.dp))
+                    // Icon(Icons.Default.ArrowDownward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
+                    // Text(text = conn.download.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
+                // }
+            // }
+        // }
+    // }
+// }
+
+// @Composable
+// fun DurationBadge(startTimeMillis: Long) {
+    // val durationText by produceState(initialValue = "...", startTimeMillis) {
+        // while (true) {
+            // val diffSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
+            // value = when {
+                // diffSeconds < 60 -> "${diffSeconds}s"
+                // diffSeconds < 3600 -> "${diffSeconds / 60}m"
+                // else -> "${diffSeconds / 3600}h"
+            // }
+            // kotlinx.coroutines.delay(1000)
+        // }
+    // }
+    // Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
+        // Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+    // }
+// }
+
 @Composable
 fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
-    val cardShape = RoundedCornerShape(20.dp)
-    val startTimeMillis = remember(conn.rawJson) {
+    // 解析 JSON 提取核心业务字段
+    val detail = remember(conn.rawJson) {
         try {
-            val startStr = JSONObject(conn.rawJson).optString("start", "")
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                java.time.Instant.parse(startStr).toEpochMilli()
+            val json = JSONObject(conn.rawJson)
+            val metadata = json.optJSONObject("metadata") ?: JSONObject()
+            
+            // 目标地址优先级：host > sniffHost > destinationIP
+            val host = metadata.optString("host", "")
+            val sniff = metadata.optString("sniffHost", "")
+            val ip = metadata.optString("destinationIP", "")
+            val target = host.ifEmpty { sniff.ifEmpty { ip } }
+            
+            // 进程名（去除多余路径，保留核心包名）
+            val process = metadata.optString("process", "Unknown").substringAfterLast("\\").substringAfterLast("/")
+            
+            // 网络类型 (例如 TCP · SOCKS5)
+            val net = metadata.optString("network", "").uppercase()
+            val type = metadata.optString("type", "").uppercase()
+            val networkInfo = listOf(net, type).filter { it.isNotEmpty() }.joinToString(" · ")
+            
+            // 路由节点 (chains 的第一个元素通常是出站节点)
+            val chains = json.optJSONArray("chains")
+            val routeNode = if (chains != null && chains.length() > 0) chains.optString(0) else "DIRECT"
+            
+            // 匹配规则 (优先显示 payload)
+            val rulePayload = json.optString("rulePayload", "")
+            val ruleType = json.optString("rule", "")
+            val rule = rulePayload.ifEmpty { ruleType }
+
+            // 时间解析
+            val startStr = json.optString("start", "")
+            val startTimeMillis = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                runCatching { java.time.Instant.parse(startStr).toEpochMilli() }.getOrDefault(System.currentTimeMillis())
             } else {
-                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }.parse(startStr)?.time ?: System.currentTimeMillis()
+                System.currentTimeMillis() // 为简明起见，低版本回退当前时间，你可保留原来的 SimpleDateFormat
             }
-        } catch (e: Exception) { System.currentTimeMillis() }
-    }
 
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(cardShape).clickable(onClick = onClick), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = conn.host, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.basicMarquee())
-                Spacer(Modifier.height(4.dp))
-                Text(text = "${conn.network.uppercase()} · ${conn.proxy}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Max)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    DurationBadge(startTimeMillis)
-                    Spacer(Modifier.width(6.dp))
-                    IconButton(onClick = onClose, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Close, "断开连接", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp)) }
-                }
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.ArrowUpward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(text = conn.upload.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Icon(Icons.Default.ArrowDownward, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.tertiary)
-                    Text(text = conn.download.formatSize(), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 2.dp))
-                }
-            }
+            ConnectionDetail(target, process, networkInfo, routeNode, rule, startTimeMillis)
+        } catch (e: Exception) {
+            ConnectionDetail(conn.host, "Error", "", "Unknown", "", System.currentTimeMillis())
         }
     }
-}
 
-@Composable
-fun DurationBadge(startTimeMillis: Long) {
-    val durationText by produceState(initialValue = "...", startTimeMillis) {
-        while (true) {
-            val diffSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
-            value = when {
-                diffSeconds < 60 -> "${diffSeconds}s"
-                diffSeconds < 3600 -> "${diffSeconds / 60}m"
-                else -> "${diffSeconds / 3600}h"
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // 第一行：目标地址 和 断开按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = detail.target,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f).basicMarquee()
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // 协议标签 (如 TCP·SOCKS5)
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text(
+                        text = detail.networkInfo,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "断开连接",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
-            kotlinx.coroutines.delay(1000)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 第二行：进程名 和 路由节点规则
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = detail.process,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(0.4f)
+                )
+                
+                // 路由信息 (Rule -> Node)
+                Row(
+                    modifier = Modifier.weight(0.6f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CallSplit,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = detail.routeNode,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 第三行：数据统计 (上传、下载、时长)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // 上传
+                    Icon(Icons.Default.ArrowUpward, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = conn.upload.formatSize(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 2.dp, end = 12.dp)
+                    )
+                    // 下载
+                    Icon(Icons.Default.ArrowDownward, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                    Text(
+                        text = conn.download.formatSize(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+                
+                // 持续时间 Badge
+                DurationBadge(startTimeMillis = detail.startTimeMillis)
+            }
         }
-    }
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
-        Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
     }
 }
 
