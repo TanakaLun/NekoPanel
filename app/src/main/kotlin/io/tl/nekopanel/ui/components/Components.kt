@@ -723,7 +723,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(4<.dp))
 
             // 第二行：协议、进程、路由节点
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -750,11 +750,11 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
-                        .weight(0.8f)
+                        .weight(1f)
                         .basicMarquee(iterations = Int.MAX_VALUE)
                 )
                 
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(6.dp))
 
                 // 路由节点
                 Text(
