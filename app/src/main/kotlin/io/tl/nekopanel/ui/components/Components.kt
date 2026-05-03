@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.CallSplit
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -793,13 +793,13 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TrafficStatItem(
-                        icon = Icons.Default.ArrowUpward,
+                        icon = Icons.Rounded.ArrowUpward,
                         value = conn.upload.formatSize(),
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.width(12.dp))
                     TrafficStatItem(
-                        icon = Icons.Default.ArrowDownward,
+                        icon = Icons.Rounded.ArrowDownward,
                         value = conn.download.formatSize(),
                         color = MaterialTheme.colorScheme.secondary
                     )
