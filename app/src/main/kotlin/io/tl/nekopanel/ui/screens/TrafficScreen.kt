@@ -213,51 +213,6 @@ fun ConnectionsView(
         }
     }
     
-    // if (selectedJson != null) {
-        // Dialog(onDismissRequest = { selectedJson = null }) {
-            // Card(
-                // shape = RoundedCornerShape(16.dp),
-                // modifier = Modifier
-                    // .fillMaxWidth()
-                    // .fillMaxHeight(0.7f)
-            // ) {
-                // Column(Modifier.padding(16.dp)) {
-                    // Text("元数据明细", fontWeight = FontWeight.Black)
-                    // Spacer(Modifier.height(8.dp))
-
-                    // val formatted = remember(selectedJson) {
-                        // try {
-                            // JSONObject(selectedJson!!).toString(4)
-                        // } catch (e: Exception) {
-                            // selectedJson ?: ""
-                        // }
-                    // }
-                    // val annotated = remember(formatted) {
-                        // highlightJson(formatted)
-                    // }
-
-                    // Box(
-                        // modifier = Modifier
-                            // .weight(1f)
-                            // .verticalScroll(rememberScrollState())
-                    // ) {
-                        // SelectionContainer {
-                            // Text(text = annotated, fontSize = 11.sp, lineHeight = 14.sp, fontFamily = FontFamily.Monospace)
-                        // }
-                    // }
-                    // TextButton(
-                        // onClick = { selectedJson = null },
-                        // modifier = Modifier.align(Alignment.End)
-                    // ) {
-                        // Text("关闭")
-                    // }
-                // }
-            // }
-        // }
-    // }
-// }
-  
-
     if (selectedJson != null) {
         Dialog(onDismissRequest = { selectedJson = null }) {
             Card(
@@ -288,12 +243,6 @@ fun ConnectionsView(
                     
                     val annotated = highlightJson(formatted)
     
-                    // Surface(
-                        // modifier = Modifier.weight(1f),
-                        // // color = MaterialTheme.colorScheme.surfaceContainerLowest, // 更深的衬底
-                        // shape = RoundedCornerShape(12.dp),
-                        // border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
-                    // ) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -307,16 +256,6 @@ fun ConnectionsView(
                                 lineHeight = 16.sp,
                                 fontFamily = FontFamily.Monospace
                             )
-                        }
-                    }
-                    // }
-    
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = { selectedJson = null }) {
-                            Text("确定")
                         }
                     }
                 }
