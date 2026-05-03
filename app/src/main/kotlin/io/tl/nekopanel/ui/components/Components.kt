@@ -743,13 +743,6 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 Spacer(Modifier.width(8.dp))
                 
                 // 进程图标与名称
-                // Icon(
-                    // imageVector = Icons.Default.Android,
-                    // contentDescription = null,
-                    // modifier = Modifier.size(14.dp),
-                    // tint = MaterialTheme.colorScheme.outline
-                // )
-                // Spacer(Modifier.width(4.dp))
                 Text(
                     text = detail.process,
                     style = MaterialTheme.typography.labelMedium,
@@ -757,17 +750,11 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(0.7f)
                         .basicMarquee(iterations = Int.MAX_VALUE)
                 )
 
                 // 路由节点
-                // Icon(
-                    // imageVector = Icons.Rounded.CallSplit,
-                    // contentDescription = null,
-                    // modifier = Modifier.size(12.dp),
-                    // tint = MaterialTheme.colorScheme.tertiary
-                // )
                 Text(
                     text = detail.routeNode,
                     style = MaterialTheme.typography.labelSmall,
