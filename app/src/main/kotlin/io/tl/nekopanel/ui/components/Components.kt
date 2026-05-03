@@ -756,7 +756,9 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                     color = MaterialTheme.colorScheme.outline,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .basicMarquee(iterations = Int.MAX_VALUE)
                 )
 
                 // 路由节点
@@ -772,7 +774,8 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .padding(start = 2.dp)
-                        .widthIn(max = 100.dp),
+                        .widthIn(max = 100.dp)
+                        .basicMarquee(iterations = Int.MAX_VALUE),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
