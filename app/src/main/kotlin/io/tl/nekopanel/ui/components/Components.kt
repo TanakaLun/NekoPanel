@@ -611,23 +611,23 @@ fun ProxyGroupCard(
     // }
 // }
 
-// @Composable
-// fun DurationBadge(startTimeMillis: Long) {
-    // val durationText by produceState(initialValue = "...", startTimeMillis) {
-        // while (true) {
-            // val diffSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
-            // value = when {
-                // diffSeconds < 60 -> "${diffSeconds}s"
-                // diffSeconds < 3600 -> "${diffSeconds / 60}m"
-                // else -> "${diffSeconds / 3600}h"
-            // }
-            // kotlinx.coroutines.delay(1000)
-        // }
-    // }
-    // Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
-        // Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-    // }
-// }
+@Composable
+fun DurationBadge(startTimeMillis: Long) {
+    val durationText by produceState(initialValue = "...", startTimeMillis) {
+        while (true) {
+            val diffSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
+            value = when {
+                diffSeconds < 60 -> "${diffSeconds}s"
+                diffSeconds < 3600 -> "${diffSeconds / 60}m"
+                else -> "${diffSeconds / 3600}h"
+            }
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
+        Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+    }
+}
 
 @Composable
 fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
