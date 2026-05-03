@@ -793,14 +793,13 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TrafficStatItem(
-                        icon = Icons.Rounded.ArrowUpward,
-                        value = conn.upload.formatSize(),
+                        symbol = "↑", 
+                        value = conn.upload.formatSize(), 
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(Modifier.width(12.dp))
                     TrafficStatItem(
-                        icon = Icons.Rounded.ArrowDownward,
-                        value = conn.download.formatSize(),
+                        symbol = "↓", 
+                        value = conn.download.formatSize(), 
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
@@ -816,23 +815,16 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
  * 内部流量辅助组件
  */
 @Composable
-private fun TrafficStatItem(value: String, color: Color) {
-// private fun TrafficStatItem(icon: ImageVector, value: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        // Icon(
-            // imageVector = icon,
-            // contentDescription = null,
-            // modifier = Modifier.size(10.dp),
-            // tint = color
-        // )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(start = 2.dp),
-            fontWeight = FontWeight.Medium
-        )
-    }
+private fun TrafficStatItem(symbol: String, value: String, color: Color) {
+    Text(
+        text = "$symbol $value",
+        style = MaterialTheme.typography.labelSmall,
+        color = color, // 将颜色应用到整串文字，视觉对比更强
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(end = 12.dp)
+    )
 }
+
 
 @Composable
 fun highlightJson(jsonStr: String): AnnotatedString {
