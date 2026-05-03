@@ -743,13 +743,13 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 Spacer(Modifier.width(8.dp))
                 
                 // 进程图标与名称
-                Icon(
-                    imageVector = Icons.Default.Android,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-                Spacer(Modifier.width(4.dp))
+                // Icon(
+                    // imageVector = Icons.Default.Android,
+                    // contentDescription = null,
+                    // modifier = Modifier.size(14.dp),
+                    // tint = MaterialTheme.colorScheme.outline
+                // )
+                // Spacer(Modifier.width(4.dp))
                 Text(
                     text = detail.process,
                     style = MaterialTheme.typography.labelMedium,
@@ -760,12 +760,12 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 )
 
                 // 路由节点
-                Icon(
-                    imageVector = Icons.Rounded.CallSplit,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.tertiary
-                )
+                // Icon(
+                    // imageVector = Icons.Rounded.CallSplit,
+                    // contentDescription = null,
+                    // modifier = Modifier.size(12.dp),
+                    // tint = MaterialTheme.colorScheme.tertiary
+                // )
                 Text(
                     text = detail.routeNode,
                     style = MaterialTheme.typography.labelSmall,
@@ -816,14 +816,15 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
  * 内部流量辅助组件
  */
 @Composable
-private fun TrafficStatItem(icon: ImageVector, value: String, color: Color) {
+private fun TrafficStatItem(value: String, color: Color) {
+// private fun TrafficStatItem(icon: ImageVector, value: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(10.dp),
-            tint = color
-        )
+        // Icon(
+            // imageVector = icon,
+            // contentDescription = null,
+            // modifier = Modifier.size(10.dp),
+            // tint = color
+        // )
         Text(
             text = value,
             style = MaterialTheme.typography.labelSmall,
