@@ -161,7 +161,7 @@ fun OverviewView(
     }
 }
 
-@Composable
+// @Composable
 fun ConnectionsView(
     connections: List<ConnectionItem>,
     onRemoveConnection: (String) -> Unit,
