@@ -573,7 +573,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
         } catch (e: Exception) { System.currentTimeMillis() }
     }
 
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(cardShape), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(cardShape).clickable(onClick = onClick), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = conn.host, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.basicMarquee())
