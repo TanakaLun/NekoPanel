@@ -89,11 +89,12 @@ class TrafficForegroundService : Service() {
         )
 
         val totalText = "累计 ↓ ${totalDown.formatSize()}  ↑ ${totalUp.formatSize()}"
+        val bigText = "$content\n$totalText"
 
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
-            .setSubText(totalText)
+            .setStyle(Notification.BigTextStyle().bigText(bigText))
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
