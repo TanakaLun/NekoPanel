@@ -2,6 +2,7 @@ package io.tl.nekopanel.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -55,6 +56,7 @@ fun DelayBadge(delay: Int, isTesting: Boolean, style: String, cornerRadius: Int,
     }
     val display = if (isTesting) "......" else if (delay <= 0) "TEST" else "${delay}ms"
     Surface(
+        modifier = Modifier.clickable(onClick = onClick),
         color = if (style == "填充") (if (isTesting) color.copy(0.6f) else color) else Color.Transparent,
         shape = RoundedCornerShape(cornerRadius.dp),
         border = if (style == "描边") BorderStroke(1.dp, color.copy(if (isTesting) 0.5f else 1f)) else null

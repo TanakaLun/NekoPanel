@@ -32,6 +32,7 @@ fun ProxiesScreen(
     var delayCache by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     // 选中节点缓存：组名 -> 当前选中的节点名
     var groupSelections by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var isGlobalTesting by remember { mutableStateOf(false) }
 
     LaunchedEffect(refreshTick) {
         try {
@@ -122,8 +123,30 @@ fun ProxiesScreen(
                 }
             }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = onRefresh) {
-                Icon(Icons.Default.Speed, "全面测速", tint = MaterialTheme.colorScheme.primary)
+            IconButton(onClick = {
+                scope.launch {
+                    isGlobalTesting = true
+                    try {
+                        val proxiesObj = proxiesJson.getJSONObject("proxies")
+                        val groupNames = proxiesObj.keys().asSequence().filter { key ->
+                            proxiesObj.getJSONObject(key).optJSONArray("all") != null
+                        }.toList()
+                        for (groupName in groupNames) {
+                            try {
+                                val delays = ApiClient.getGroupDelay(groupName, settings.testUrl, settings.testTimeout)
+                                val keys = delays.keys()
+                                while (keys.hasNext()) {
+                                    val node = keys.next()
+                                    delayCache = delayCache.toMutableMap().apply { put(node, delays.getInt(node)) }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    } catch (_: Exception) {} finally {
+                        isGlobalTesting = false
+                    }
+                }
+            }) {
+                Icon(Icons.Default.Speed, "全面测速", tint = if (isGlobalTesting) MaterialTheme.colorScheme.primary.copy(0.5f) else MaterialTheme.colorScheme.primary)
             }
         }
 
