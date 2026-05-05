@@ -101,6 +101,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
+    var settingsSubScreenActive by remember { mutableStateOf(false) }
 
     val logs = remember { mutableStateListOf<LogItem>() }
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
@@ -195,10 +196,12 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(title = {
-                if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
-                else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
-            })
+            if (!(selectedTab == 3 && settingsSubScreenActive)) {
+                CenterAlignedTopAppBar(title = {
+                    if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
+                    else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
+                })
+            }
         },
         bottomBar = {
             NavigationBar {
@@ -213,7 +216,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
                 1 -> RulesScreen(globalRefreshTick, settings)
                 2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                3 -> FullSettingsScreen(settings, onPureBlackToggle)
+                3 -> FullSettingsScreen(settings, onPureBlackToggle, onSubScreenChange = { settingsSubScreenActive = it })
             }
         }
     }

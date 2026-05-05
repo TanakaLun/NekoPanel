@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,20 +28,18 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 @Composable
-fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit) {
-    var showUiSettings by remember { mutableStateOf(false) }
-    BackHandler(showUiSettings) { showUiSettings = false }
-
-    if (showUiSettings) {
-        UiSettingsScreen(settings, onPureBlackToggle, onBack = { showUiSettings = false })
-        return
-    }
-
+fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onSubScreenChange: ((Boolean) -> Unit)? = null) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
     var coreVersion by remember { mutableStateOf("正在获取...") }
-    val cumulative = remember { settings.getCumulativeTraffic() }
+    var showUiSettings by remember { mutableStateOf(false) }
+    BackHandler(showUiSettings) { showUiSettings = false; onSubScreenChange?.invoke(false) }
+
+    if (showUiSettings) {
+        UiSettingsScreen(settings, onPureBlackToggle, onBack = { showUiSettings = false; onSubScreenChange?.invoke(false) })
+        return
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -61,7 +60,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
     }
 
     @Composable fun SectionTitle(title: String) {
-        Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall)
+        Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
     }
 
     if (config == null) {
@@ -80,28 +79,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                     Column {
                         Text("内核版本", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(coreVersion, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-            }
-        }
-
-        // --- API 连接设置 ---
-        item {
-            SectionTitle("连接设置")
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    var url by remember { mutableStateOf(settings.apiBaseUrl) }
-                    var secret by remember { mutableStateOf(settings.apiSecret) }
-                    OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                        Button(onClick = {
-                            settings.apiBaseUrl = url.trimEnd('/')
-                            settings.apiSecret = secret
-                            ApiClient.baseUrl = settings.apiBaseUrl
-                            ApiClient.secret = settings.apiSecret
-                            Toast.makeText(context, "已保存，重启应用后生效", Toast.LENGTH_SHORT).show()
-                        }) { Text("保存并应用") }
                     }
                 }
             }
@@ -181,10 +158,36 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
         // --- 界面设置 (导航) ---
         item {
             SectionTitle("界面设置")
-            Card(Modifier.fillMaxWidth().clickable { showUiSettings = true }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+            Card(Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { showUiSettings = true; onSubScreenChange?.invoke(true) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("自定义主题、布局与显示偏好", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
+        
+        // --- API 连接设置 ---
+        item {
+            SectionTitle("连接设置")
+            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    var url by remember { mutableStateOf(settings.apiBaseUrl) }
+                    var secret by remember { mutableStateOf(settings.apiSecret) }
+                    OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
+                        Button(onClick = {
+                            settings.apiBaseUrl = url.trimEnd('/')
+                            settings.apiSecret = secret
+                            ApiClient.baseUrl = settings.apiBaseUrl
+                            ApiClient.secret = settings.apiSecret
+                            Toast.makeText(context, "已保存，重启应用后生效", Toast.LENGTH_SHORT).show()
+                        }) { Text("保存并应用") }
+                    }
                 }
             }
         }
