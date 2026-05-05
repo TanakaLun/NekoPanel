@@ -10,10 +10,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.verticalGradient
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -44,7 +44,7 @@ fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier)
             lineTo(getX(0), height)
             close()
         }
-        drawPath(fillPath, verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
+        drawPath(fillPath, Brush.verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
         drawPath(strokePath, color = color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }

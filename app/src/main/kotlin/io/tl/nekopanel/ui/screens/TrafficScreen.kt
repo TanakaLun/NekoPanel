@@ -31,6 +31,7 @@ import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.*
+import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.*
 import org.json.JSONObject
 
