@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">猫猫去哪了？</string>
+    <string name="traffic_notification_channel">流量监控</string>
 </resources>

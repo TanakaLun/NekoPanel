@@ -1,10 +1,13 @@
 package io.tl.nekopanel
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
 import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
@@ -25,9 +29,20 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         val settings = SettingsManager(this)
 
         setContent {
@@ -96,7 +111,15 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
-    
+
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (settings.backgroundWebSocket) {
+            TrafficForegroundService.start(context)
+        }
+    }
+
     val removeConnection: (String) -> Unit = { id ->
         connections = connections.filter { it.id != id }
     }

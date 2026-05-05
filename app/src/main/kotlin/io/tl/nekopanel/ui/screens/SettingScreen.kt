@@ -17,6 +17,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.SettingsManager
+import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -250,7 +251,12 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                     
                     ConfigToggle("后台持续获取数据", bgWs) { 
                         bgWs = it
-                        settings.backgroundWebSocket = it 
+                        settings.backgroundWebSocket = it
+                        if (it) {
+                            TrafficForegroundService.start(context)
+                        } else {
+                            TrafficForegroundService.stop(context)
+                        }
                     }
 
                     HorizontalDivider(Modifier.padding(vertical = 8.dp), thickness = 0.5.dp)

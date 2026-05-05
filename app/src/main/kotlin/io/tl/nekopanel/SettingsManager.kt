@@ -1,91 +1,141 @@
 package io.tl.nekopanel
 
 import android.content.Context
+import io.tl.nekopanel.data.AppDatabase
+import io.tl.nekopanel.data.SettingsEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.ConcurrentHashMap
 
 class SettingsManager(context: Context) {
-    private val prefs = context.getSharedPreferences("mihomo_settings", Context.MODE_PRIVATE)
+    private val dao = AppDatabase.getInstance(context).settingsDao()
+    private val cache = ConcurrentHashMap<String, String>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // 现有字段保持不变 ...
+    init {
+        val preloaded = runBlocking {
+            val entities = dao.getAll()
+            entities.forEach { cache[it.key] = it.value }
+            cache["data_migrated"] != null
+        }
+        if (!preloaded) {
+            scope.launch { migrateFromSharedPreferences(context) }
+        }
+    }
+
+    private suspend fun migrateFromSharedPreferences(context: Context) {
+        val prefs = context.getSharedPreferences("mihomo_settings", Context.MODE_PRIVATE)
+        prefs.all.forEach { (key, value) ->
+            val strValue = when (value) {
+                is String -> value
+                is Int -> value.toString()
+                is Long -> value.toString()
+                is Boolean -> value.toString()
+                is Float -> value.toString()
+                else -> return@forEach
+            }
+            dao.put(SettingsEntity(key, strValue))
+            cache[key] = strValue
+        }
+        dao.put(SettingsEntity("data_migrated", "true"))
+        cache["data_migrated"] = "true"
+    }
+
+    private fun getString(key: String, default: String): String = cache[key] ?: default
+
+    private fun setString(key: String, value: String) {
+        cache[key] = value
+        scope.launch { dao.put(SettingsEntity(key, value)) }
+    }
+
+    private fun getInt(key: String, default: Int): Int = cache[key]?.toIntOrNull() ?: default
+    private fun setInt(key: String, value: Int) = setString(key, value.toString())
+    private fun getBoolean(key: String, default: Boolean): Boolean = cache[key]?.toBooleanStrictOrNull() ?: default
+    private fun setBoolean(key: String, value: Boolean) = setString(key, value.toString())
+    private fun getLong(key: String, default: Long): Long = cache[key]?.toLongOrNull() ?: default
+    private fun setLong(key: String, value: Long) = setString(key, value.toString())
+
     var testUrl: String
-        get() = prefs.getString("test_url", "http://www.gstatic.com/generate_204") ?: "http://www.gstatic.com/generate_204"
-        set(value) = prefs.edit().putString("test_url", value).apply()
+        get() = getString("test_url", "http://www.gstatic.com/generate_204")
+        set(value) = setString("test_url", value)
 
     var testTimeout: Int
-        get() = prefs.getInt("test_timeout", 5000)
-        set(value) = prefs.edit().putInt("test_timeout", value).apply()
+        get() = getInt("test_timeout", 5000)
+        set(value) = setInt("test_timeout", value)
 
     var logLevel: String
-        get() = prefs.getString("log_level", "info") ?: "info"
-        set(value) = prefs.edit().putString("log_level", value).apply()
+        get() = getString("log_level", "info")
+        set(value) = setString("log_level", value)
 
     var backgroundWebSocket: Boolean
-        get() = prefs.getBoolean("background_websocket", false)
-        set(value) = prefs.edit().putBoolean("background_websocket", value).apply()
+        get() = getBoolean("background_websocket", false)
+        set(value) = setBoolean("background_websocket", value)
 
     var pureBlackMode: Boolean
-        get() = prefs.getBoolean("pure_black_mode", false)
-        set(value) = prefs.edit().putBoolean("pure_black_mode", value).apply()
+        get() = getBoolean("pure_black_mode", false)
+        set(value) = setBoolean("pure_black_mode", value)
 
     var groupColumnCount: Int
-        get() = prefs.getInt("group_column_count", 1)
-        set(value) = prefs.edit().putInt("group_column_count", value).apply()
+        get() = getInt("group_column_count", 1)
+        set(value) = setInt("group_column_count", value)
 
     var columnCount: Int
-        get() = prefs.getInt("column_count", 2)
-        set(value) = prefs.edit().putInt("column_count", value).apply()
+        get() = getInt("column_count", 2)
+        set(value) = setInt("column_count", value)
 
     var groupBadgeStyle: String
-        get() = prefs.getString("group_badge_style", "填充") ?: "填充"
-        set(value) = prefs.edit().putString("group_badge_style", value).apply()
+        get() = getString("group_badge_style", "填充")
+        set(value) = setString("group_badge_style", value)
 
     var delayBadgeStyle: String
-        get() = prefs.getString("delay_badge_style", "描边") ?: "描边"
-        set(value) = prefs.edit().putString("delay_badge_style", value).apply()
+        get() = getString("delay_badge_style", "描边")
+        set(value) = setString("delay_badge_style", value)
 
     var ruleBadgeStyle: String
-        get() = prefs.getString("rule_badge_style", "描边") ?: "描边"
-        set(value) = prefs.edit().putString("rule_badge_style", value).apply()
+        get() = getString("rule_badge_style", "描边")
+        set(value) = setString("rule_badge_style", value)
 
     var badgeCornerRadius: Int
-        get() = prefs.getInt("badge_corner_radius", 8)
-        set(value) = prefs.edit().putInt("badge_corner_radius", value).apply()
+        get() = getInt("badge_corner_radius", 8)
+        set(value) = setInt("badge_corner_radius", value)
 
     var showGlobal: Boolean
-        get() = prefs.getBoolean("show_global", true)
-        set(value) = prefs.edit().putBoolean("show_global", value).apply()
+        get() = getBoolean("show_global", true)
+        set(value) = setBoolean("show_global", value)
 
     var useSheetMode: Boolean
-        get() = prefs.getBoolean("use_sheet_mode", false)
-        set(value) = prefs.edit().putBoolean("use_sheet_mode", value).apply()
+        get() = getBoolean("use_sheet_mode", false)
+        set(value) = setBoolean("use_sheet_mode", value)
 
     var cardFillStyle: Boolean
-        get() = prefs.getBoolean("card_fill_style", false)
-        set(value) = prefs.edit().putBoolean("card_fill_style", value).apply()
+        get() = getBoolean("card_fill_style", false)
+        set(value) = setBoolean("card_fill_style", value)
 
-    // ------------- 新增持久化字段 -------------
-
-    /** 核心 API 地址（包含 http://IP:PORT） */
     var apiBaseUrl: String
-        get() = prefs.getString("api_base_url", "") ?: ""
-        set(value) = prefs.edit().putString("api_base_url", value).apply()
+        get() = getString("api_base_url", "")
+        set(value) = setString("api_base_url", value)
 
-    /** API 密钥（Bearer Token），可为空 */
     var apiSecret: String
-        get() = prefs.getString("api_secret", "") ?: ""
-        set(value) = prefs.edit().putString("api_secret", value).apply()
+        get() = getString("api_secret", "")
+        set(value) = setString("api_secret", value)
 
     fun getCumulativeTraffic(): Pair<Long, Long> {
-        return prefs.getLong("cumulative_down", 0L) to prefs.getLong("cumulative_up", 0L)
+        return getLong("cumulative_down") to getLong("cumulative_up")
     }
 
     fun getLastTraffic(): Pair<Long, Long> {
-        return prefs.getLong("last_total_down", 0L) to prefs.getLong("last_total_up", 0L)
+        return getLong("last_total_down") to getLong("last_total_up")
     }
 
     fun saveLastTraffic(down: Long, up: Long) {
-        prefs.edit().putLong("last_total_down", down).putLong("last_total_up", up).apply()
+        setLong("last_total_down", down)
+        setLong("last_total_up", up)
     }
 
+    @Synchronized
     fun accumulateTraffic(totalDown: Long, totalUp: Long, maxDelta: Long = 10_000_000_000_000L) {
         val (lastDown, lastUp) = getLastTraffic()
         val deltaDown = totalDown - lastDown
@@ -97,21 +147,16 @@ class SettingsManager(context: Context) {
         val newCumDown = if (validDown) cumDown + deltaDown else cumDown
         val newCumUp = if (validUp) cumUp + deltaUp else cumUp
 
-        prefs.edit()
-            .putLong("cumulative_down", newCumDown)
-            .putLong("cumulative_up", newCumUp)
-            .apply()
-
-        saveLastTraffic(totalDown, totalUp)
+        setLong("cumulative_down", newCumDown)
+        setLong("cumulative_up", newCumUp)
+        setLong("last_total_down", totalDown)
+        setLong("last_total_up", totalUp)
     }
 
-    /** 重置累计流量计数器 */
     fun resetCumulativeTraffic() {
-        prefs.edit()
-            .putLong("cumulative_down", 0L)
-            .putLong("cumulative_up", 0L)
-            .putLong("last_total_down", 0L)
-            .putLong("last_total_up", 0L)
-            .apply()
+        setLong("cumulative_down", 0L)
+        setLong("cumulative_up", 0L)
+        setLong("last_total_down", 0L)
+        setLong("last_total_up", 0L)
     }
 }
