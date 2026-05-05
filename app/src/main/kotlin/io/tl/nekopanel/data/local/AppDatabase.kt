@@ -1,4 +1,4 @@
-package io.tl.nekopanel.data
+package io.tl.nekopanel.data.local
 
 import android.content.Context
 import androidx.room.Database

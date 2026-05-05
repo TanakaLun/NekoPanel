@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.tl.nekopanel.ApiClient
-import io.tl.nekopanel.SettingsManager
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.TypeBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

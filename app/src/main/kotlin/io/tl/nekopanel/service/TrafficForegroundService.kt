@@ -9,10 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import io.tl.nekopanel.ApiClient
 import io.tl.nekopanel.MainActivity
-import io.tl.nekopanel.SettingsManager
-import io.tl.nekopanel.ui.components.formatSize
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

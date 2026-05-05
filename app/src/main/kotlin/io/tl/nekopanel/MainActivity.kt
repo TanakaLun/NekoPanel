@@ -21,6 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.model.ConnectionItem
+import io.tl.nekopanel.model.LogItem
+import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*

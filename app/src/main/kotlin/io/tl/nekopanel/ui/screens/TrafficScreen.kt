@@ -26,8 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import io.tl.nekopanel.ApiClient
-import io.tl.nekopanel.SettingsManager
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.model.ConnectionItem
+import io.tl.nekopanel.model.LogItem
+import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.*
 import org.json.JSONObject

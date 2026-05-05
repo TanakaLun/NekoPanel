@@ -1,4 +1,4 @@
-package io.tl.nekopanel.data
+package io.tl.nekopanel.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

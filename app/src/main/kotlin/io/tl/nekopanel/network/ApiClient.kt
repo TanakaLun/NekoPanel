@@ -1,4 +1,4 @@
-package io.tl.nekopanel
+package io.tl.nekopanel.network
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

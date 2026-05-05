@@ -15,8 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import io.tl.nekopanel.ApiClient
-import io.tl.nekopanel.SettingsManager
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers

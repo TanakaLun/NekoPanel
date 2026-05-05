@@ -10,8 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.tl.nekopanel.ApiClient
-import io.tl.nekopanel.SettingsManager
+import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.launch
 import org.json.JSONObject

@@ -1,8 +1,8 @@
-package io.tl.nekopanel
+package io.tl.nekopanel.data.repository
 
 import android.content.Context
-import io.tl.nekopanel.data.AppDatabase
-import io.tl.nekopanel.data.SettingsEntity
+import io.tl.nekopanel.data.local.AppDatabase
+import io.tl.nekopanel.data.local.SettingsEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +45,6 @@ class SettingsManager(context: Context) {
     }
 
     private fun getString(key: String, default: String): String = cache[key] ?: default
-
     private fun setString(key: String, value: String) {
         cache[key] = value
         scope.launch { dao.put(SettingsEntity(key, value)) }
@@ -123,11 +122,11 @@ class SettingsManager(context: Context) {
         set(value) = setString("api_secret", value)
 
     fun getCumulativeTraffic(): Pair<Long, Long> {
-        return getLong("cumulative_down") to getLong("cumulative_up")
+        return getLong("cumulative_down", 0L) to getLong("cumulative_up", 0L)
     }
 
     fun getLastTraffic(): Pair<Long, Long> {
-        return getLong("last_total_down") to getLong("last_total_up")
+        return getLong("last_total_down", 0L) to getLong("last_total_up", 0L)
     }
 
     fun saveLastTraffic(down: Long, up: Long) {
