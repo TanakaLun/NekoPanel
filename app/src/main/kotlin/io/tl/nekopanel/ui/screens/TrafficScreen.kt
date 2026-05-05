@@ -271,13 +271,14 @@ fun ConnectionsView(
 fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelChange: (String) -> Unit) {
     val listState = rememberLazyListState()
     LaunchedEffect(logs.size) { if (logs.isNotEmpty()) listState.animateScrollToItem(logs.size - 1) }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             LevelSpinner(currentLogLevel) { onLevelChange(it) }
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { logs.clear() }) { Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error) }
         }
-        Surface(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 16.dp), color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)) {
+        Spacer(Modifier.height(8.dp))
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)) {
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
                 itemsIndexed(logs) { index, log ->
                     Column {
