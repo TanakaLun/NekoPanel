@@ -75,7 +75,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
     val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
 
     val springSpec = spring<Dp>(
-        dampingRatio = Spring.DampingRatioLowBounce,
+        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBounce,
         stiffness = Spring.StiffnessMediumLow
     )
 
