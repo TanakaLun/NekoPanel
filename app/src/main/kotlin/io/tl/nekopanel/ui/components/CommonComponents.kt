@@ -1,6 +1,9 @@
 package io.tl.nekopanel.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,10 +41,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -58,21 +64,51 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
+    val density = LocalDensity.current
+    val tabOffsets = remember { mutableStateListOf<Dp>() }
+    val tabWidths = remember { mutableStateListOf<Dp>() }
+
+    val indicatorOffset by animateDpAsState(
+        targetValue = tabOffsets.getOrElse(selectedTab) { 0.dp },
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        label = "indicatorOffset"
+    )
+    val indicatorWidth by animateDpAsState(
+        targetValue = tabWidths.getOrElse(selectedTab) { 0.dp },
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        label = "indicatorWidth"
+    )
+
     Surface(
         modifier = Modifier.wrapContentWidth().height(40.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+            Box(
+                modifier = Modifier
+                    .offset(x = indicatorOffset)
+                    .width(indicatorWidth)
+                    .height(32.dp)
+                    .align(Alignment.CenterStart)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+
             Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
-                    val textScale by animateFloatAsState(if (isSelected) 1.05f else 1f, label = "scale")
+                    val textScale by animateFloatAsState(if (isSelected) 1.05f else 1f, label = "scale_$index")
                     Box(
                         modifier = Modifier.height(32.dp).wrapContentWidth().clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = 16.dp)
+                            .onGloballyPositioned {
+                                with(density) {
+                                    tabOffsets[index] = it.positionInParent().x.toDp()
+                                    tabWidths[index] = it.size.width.toDp()
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
