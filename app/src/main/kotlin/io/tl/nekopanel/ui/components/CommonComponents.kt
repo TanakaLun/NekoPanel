@@ -75,8 +75,8 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
     val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
 
     val springSpec = spring<Dp>(
-        dampingRatio = Spring.DampingRatioLowBounce, 
-        stiffness = Spring.StiffnessMediumLow 
+        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBounce, 
+        stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow 
     )
 
     val indicatorOffset by animateDpAsState(
@@ -91,9 +91,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
     )
 
     Surface(
-        modifier = Modifier
-            .wrapContentWidth()
-            .height(40.dp),
+        modifier = Modifier.wrapContentWidth().height(40.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
@@ -116,10 +114,9 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
             ) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
-                    
                     val textScale by animateFloatAsState(
                         targetValue = if (isSelected) 1.05f else 1f,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessLow),
                         label = "scale_$index"
                     )
 
@@ -134,13 +131,14 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                             ) { onTabSelected(index) }
                             .padding(horizontal = 16.dp)
                             .onGloballyPositioned { coords ->
-                                val positionInParent = coords.localBoundingBoxOf(coords.parentLayoutCoordinates!!, false).left
-                                with(density) {
-                                    if (tabOffsets[index] != positionInParent.toDp()) {
-                                        tabOffsets[index] = positionInParent.toDp()
-                                    }
-                                    if (tabWidths[index] != coords.size.width.toDp()) {
-                                        tabWidths[index] = coords.size.width.toDp()
+                                val parentLayout = coords.parentLayoutCoordinates
+                                if (parentLayout != null) {
+                                    val offsetInParent = parentLayout.localPositionOf(coords, Offset.Zero)
+                                    with(density) {
+                                        if (tabOffsets.size > index) {
+                                            tabOffsets[index] = offsetInParent.x.toDp()
+                                            tabWidths[index] = coords.size.width.toDp()
+                                        }
                                     }
                                 }
                             },
@@ -149,9 +147,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                         Text(
                             text = title,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            ),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium),
                             modifier = Modifier.graphicsLayer {
                                 scaleX = textScale
                                 scaleY = textScale
@@ -163,7 +159,6 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         }
     }
 }
-
 
 @Composable
 fun FilterChipDropdown(
