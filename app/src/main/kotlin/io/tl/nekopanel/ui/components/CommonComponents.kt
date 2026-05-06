@@ -1,12 +1,8 @@
 package io.tl.nekopanel.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.Spring.DampingRatioLowBounce
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -44,19 +40,15 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -71,23 +63,16 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
     val density = LocalDensity.current
-    
-    val tabOffsets = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
-    val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
+    var tabPositions by remember { mutableStateOf(List(tabs.size) { 0.dp to 0.dp }) }
 
-    val springSpec = spring<Dp>(
-        dampingRatio = Spring.DampingRatioLowBounce,
-        stiffness = Spring.StiffnessMediumLow
+    val animatedOffsetX by animateDpAsState(
+        targetValue = tabPositions.getOrNull(selectedTab)?.first ?: 0.dp,
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        label = "indicatorX"
     )
-
-    val indicatorOffset by animateDpAsState(
-        targetValue = tabOffsets.getOrElse(selectedTab) { 0.dp },
-        animationSpec = springSpec,
-        label = "indicatorOffset"
-    )
-    val indicatorWidth by animateDpAsState(
-        targetValue = tabWidths.getOrElse(selectedTab) { 0.dp },
-        animationSpec = springSpec,
+    val animatedWidth by animateDpAsState(
+        targetValue = tabPositions.getOrNull(selectedTab)?.second ?: 0.dp,
+        animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "indicatorWidth"
     )
 
@@ -97,64 +82,38 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
-            if (tabWidths.isNotEmpty() && tabWidths[0] > 0.dp) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = indicatorOffset)
-                        .width(indicatorWidth)
-                        .height(32.dp)
-                        .align(Alignment.CenterStart)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxHeight(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = animatedOffsetX)
+                    .width(animatedWidth)
+                    .height(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
-                    val textScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.05f else 1f,
-                        animationSpec = spring(stiffness = Spring.StiffnessLow),
-                        label = "scale_$index"
-                    )
-
                     Box(
                         modifier = Modifier
-                            .height(32.dp)
-                            .wrapContentWidth()
-                            .clip(CircleShape)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { onTabSelected(index) }
+                            .height(32.dp).wrapContentWidth().clip(CircleShape)
+                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
                             .padding(horizontal = 16.dp)
                             .onGloballyPositioned { coords ->
-                                val parentLayout = coords.parentLayoutCoordinates
-                                if (parentLayout != null) {
-                                    val offsetInParent = parentLayout.localPositionOf(coords, androidx.compose.ui.geometry.Offset.Zero)
-                                    with(density) {
-                                        if (index < tabOffsets.size) {
-                                            tabOffsets[index] = offsetInParent.x.toDp()
-                                            tabWidths[index] = coords.size.width.toDp()
-                                        }
-                                    }
+                                val pos = coords.positionInParent()
+                                val xDp = with(density) { pos.x.toDp() }
+                                val wDp = with(density) { coords.size.width.toDp() }
+                                val newPositions = tabPositions.toMutableList().also { list ->
+                                    while (list.size <= index) list.add(0.dp to 0.dp)
+                                    list[index] = xDp to wDp
                                 }
+                                tabPositions = newPositions
                             },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = title,
+                            title,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            ),
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = textScale
-                                scaleY = textScale
-                            }
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                         )
                     }
                 }
