@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Spring.DampingRatioLowBounce
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +76,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
     val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
 
     val springSpec = spring<Dp>(
-        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBounce,
+        dampingRatio = Spring.DampingRatioLowBounce,
         stiffness = Spring.StiffnessMediumLow
     )
 
