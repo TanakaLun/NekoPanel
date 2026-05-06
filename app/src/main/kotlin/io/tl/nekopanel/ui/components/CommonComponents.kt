@@ -4,6 +4,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -50,6 +52,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.localBoundingBoxOf
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
@@ -62,62 +66,95 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
     val density = LocalDensity.current
-    val tabOffsets = remember { mutableStateListOf<Dp>() }
-    val tabWidths = remember { mutableStateListOf<Dp>() }
+    
+    val tabOffsets = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
+    val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
+
+    val springSpec = spring<Dp>(
+        dampingRatio = Spring.DampingRatioLowBounce, 
+        stiffness = Spring.StiffnessMediumLow 
+    )
 
     val indicatorOffset by animateDpAsState(
         targetValue = tabOffsets.getOrElse(selectedTab) { 0.dp },
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        animationSpec = springSpec,
         label = "indicatorOffset"
     )
     val indicatorWidth by animateDpAsState(
         targetValue = tabWidths.getOrElse(selectedTab) { 0.dp },
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
+        animationSpec = springSpec,
         label = "indicatorWidth"
     )
 
     Surface(
-        modifier = Modifier.wrapContentWidth().height(40.dp),
+        modifier = Modifier
+            .wrapContentWidth()
+            .height(40.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
-            Box(
-                modifier = Modifier
-                    .offset(x = indicatorOffset)
-                    .width(indicatorWidth)
-                    .height(32.dp)
-                    .align(Alignment.CenterStart)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
+            if (tabWidths.any { it > 0.dp }) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = indicatorOffset)
+                        .width(indicatorWidth)
+                        .height(32.dp)
+                        .align(Alignment.CenterStart)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
 
-            Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
-                    val textScale by animateFloatAsState(if (isSelected) 1.05f else 1f, label = "scale_$index")
+                    
+                    val textScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1f,
+                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                        label = "scale_$index"
+                    )
+
                     Box(
-                        modifier = Modifier.height(32.dp).wrapContentWidth().clip(CircleShape)
-                            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
+                        modifier = Modifier
+                            .height(32.dp)
+                            .wrapContentWidth()
+                            .clip(CircleShape)
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { onTabSelected(index) }
                             .padding(horizontal = 16.dp)
                             .onGloballyPositioned { coords ->
-                                val parent = coords.parentCoordinates ?: return@onGloballyPositioned
+                                val positionInParent = coords.localBoundingBoxOf(coords.parentLayoutCoordinates!!, false).left
                                 with(density) {
-                                    tabOffsets[index] = (coords.positionInRoot().x - parent.positionInRoot().x).toDp()
-                                    tabWidths[index] = coords.size.width.toDp()
+                                    if (tabOffsets[index] != positionInParent.toDp()) {
+                                        tabOffsets[index] = positionInParent.toDp()
+                                    }
+                                    if (tabWidths[index] != coords.size.width.toDp()) {
+                                        tabWidths[index] = coords.size.width.toDp()
+                                    }
                                 }
                             },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            title,
+                            text = title,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium),
-                            modifier = Modifier.graphicsLayer { scaleX = textScale; scaleY = textScale }
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            ),
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = textScale
+                                scaleY = textScale
+                            }
                         )
                     }
                 }
@@ -125,6 +162,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         }
     }
 }
+
 
 @Composable
 fun FilterChipDropdown(
