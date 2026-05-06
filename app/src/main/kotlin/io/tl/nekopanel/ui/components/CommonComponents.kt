@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.localBoundingBoxOf
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -75,8 +76,8 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
     val tabWidths = remember { mutableStateListOf<Dp>().apply { repeat(tabs.size) { add(0.dp) } } }
 
     val springSpec = spring<Dp>(
-        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBounce, 
-        stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow 
+        dampingRatio = Spring.DampingRatioLowBounce,
+        stiffness = Spring.StiffnessMediumLow
     )
 
     val indicatorOffset by animateDpAsState(
@@ -96,7 +97,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
-            if (tabWidths.any { it > 0.dp }) {
+            if (tabWidths.isNotEmpty() && tabWidths[0] > 0.dp) {
                 Box(
                     modifier = Modifier
                         .offset(x = indicatorOffset)
@@ -116,7 +117,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                     val isSelected = selectedTab == index
                     val textScale by animateFloatAsState(
                         targetValue = if (isSelected) 1.05f else 1f,
-                        animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessLow),
+                        animationSpec = spring(stiffness = Spring.StiffnessLow),
                         label = "scale_$index"
                     )
 
@@ -133,9 +134,9 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                             .onGloballyPositioned { coords ->
                                 val parentLayout = coords.parentLayoutCoordinates
                                 if (parentLayout != null) {
-                                    val offsetInParent = parentLayout.localPositionOf(coords, Offset.Zero)
+                                    val offsetInParent = parentLayout.localPositionOf(coords, androidx.compose.ui.geometry.Offset.Zero)
                                     with(density) {
-                                        if (tabOffsets.size > index) {
+                                        if (index < tabOffsets.size) {
                                             tabOffsets[index] = offsetInParent.x.toDp()
                                             tabWidths[index] = coords.size.width.toDp()
                                         }
@@ -147,7 +148,9 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                         Text(
                             text = title,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium),
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            ),
                             modifier = Modifier.graphicsLayer {
                                 scaleX = textScale
                                 scaleY = textScale
