@@ -104,10 +104,11 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                         modifier = Modifier.height(32.dp).wrapContentWidth().clip(CircleShape)
                             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
                             .padding(horizontal = 16.dp)
-                            .onGloballyPositioned {
+                            .onGloballyPositioned { coords ->
+                                val parent = coords.parentCoordinates ?: return@onGloballyPositioned
                                 with(density) {
-                                    tabOffsets[index] = it.positionInParent().x.toDp()
-                                    tabWidths[index] = it.size.width.toDp()
+                                    tabOffsets[index] = (coords.positionInRoot().x - parent.positionInRoot().x).toDp()
+                                    tabWidths[index] = coords.size.width.toDp()
                                 }
                             },
                         contentAlignment = Alignment.Center
