@@ -85,10 +85,12 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     ) {
-        Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+        Box(
+            modifier = Modifier.padding(horizontal = 4.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterVertically)
                     .offset(x = animatedOffset)
                     .width(animatedWidth)
                     .height(32.dp)
@@ -99,7 +101,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                 modifier = Modifier
                     .fillMaxHeight()
                     .onGloballyPositioned { coords ->
-                        rowWindowX = coords.positionInWindow().x
+                        rowWindowX = coords.positionInRoot().x
                     },
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -110,7 +112,7 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                             .onGloballyPositioned { coords ->
                                 tabWindowXs = tabWindowXs.toMutableList().also {
                                     while (it.size <= index) it.add(0f)
-                                    it[index] = coords.positionInWindow().x
+                                    it[index] = coords.positionInRoot().x
                                 }
                                 tabWidths = tabWidths.toMutableList().also {
                                     while (it.size <= index) it.add(0f)
