@@ -1,8 +1,7 @@
 package io.tl.nekopanel.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -63,17 +62,22 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
     val density = LocalDensity.current
-    var tabWidths by remember { mutableStateOf(List(tabs.size) { 0.dp }) }
+    var rowWindowX by remember { mutableStateOf(0f) }
+    var tabWindowXs by remember { mutableStateOf(List(tabs.size) { 0f }) }
+    var tabWidths by remember { mutableStateOf(List(tabs.size) { 0f }) }
 
-    val animatedOffsetX by animateDpAsState(
-        targetValue = tabWidths.take(selectedTab).fold(0.dp) { acc, w -> acc + w },
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "indicatorX"
+    val animatedOffset by animateDpAsState(
+        targetValue = with(density) {
+            val relX = (tabWindowXs.getOrNull(selectedTab) ?: 0f) - rowWindowX
+            relX.toDp()
+        },
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 300f),
+        label = "offset"
     )
     val animatedWidth by animateDpAsState(
-        targetValue = tabWidths.getOrNull(selectedTab) ?: 0.dp,
-        animationSpec = tween(300, easing = FastOutSlowInEasing),
-        label = "indicatorWidth"
+        targetValue = with(density) { (tabWidths.getOrNull(selectedTab) ?: 0f).toDp() },
+        animationSpec = spring(dampingRatio = 0.4f, stiffness = 300f),
+        label = "width"
     )
 
     Surface(
@@ -84,27 +88,38 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         Box(modifier = Modifier.padding(horizontal = 4.dp)) {
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX)
+                    .align(Alignment.CenterVertically)
+                    .offset(x = animatedOffset)
                     .width(animatedWidth)
                     .height(32.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             )
-            Row(Modifier.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .onGloballyPositioned { coords ->
+                        rowWindowX = coords.positionInWindow().x
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
                     Box(
                         modifier = Modifier
+                            .onGloballyPositioned { coords ->
+                                tabWindowXs = tabWindowXs.toMutableList().also {
+                                    while (it.size <= index) it.add(0f)
+                                    it[index] = coords.positionInWindow().x
+                                }
+                                tabWidths = tabWidths.toMutableList().also {
+                                    while (it.size <= index) it.add(0f)
+                                    it[index] = coords.size.width.toFloat()
+                                }
+                            }
                             .height(32.dp).wrapContentWidth().clip(CircleShape)
                             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
-                            .padding(horizontal = 16.dp)
-                            .onGloballyPositioned { coords ->
-                                val wDp = with(density) { coords.size.width.toDp() }
-                                tabWidths = tabWidths.toMutableList().also { list ->
-                                    while (list.size <= index) list.add(0.dp)
-                                    list[index] = wDp
-                                }
-                            },
+                            .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
