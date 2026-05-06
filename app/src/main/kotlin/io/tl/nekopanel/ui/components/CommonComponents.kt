@@ -1,6 +1,7 @@
 package io.tl.nekopanel.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -63,23 +65,26 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
     val density = LocalDensity.current
-    var rowWindowX by remember { mutableStateOf(0f) }
-    var tabWindowXs by remember { mutableStateOf(List(tabs.size) { 0f }) }
     var tabWidths by remember { mutableStateOf(List(tabs.size) { 0f }) }
 
+    val targetOffset = with(density) { tabWidths.take(selectedTab).sum().toDp() }
+    val targetWidth = with(density) { (tabWidths.getOrNull(selectedTab) ?: 0f).toDp() }
+
     val animatedOffset by animateDpAsState(
-        targetValue = with(density) {
-            val relX = (tabWindowXs.getOrNull(selectedTab) ?: 0f) - rowWindowX
-            relX.toDp()
-        },
+        targetValue = targetOffset,
         animationSpec = spring(dampingRatio = 0.4f, stiffness = 300f),
         label = "offset"
     )
     val animatedWidth by animateDpAsState(
-        targetValue = with(density) { (tabWidths.getOrNull(selectedTab) ?: 0f).toDp() },
+        targetValue = targetWidth,
         animationSpec = spring(dampingRatio = 0.4f, stiffness = 300f),
         label = "width"
     )
+
+    val contentWidth = with(density) { tabWidths.sum().toDp() }
+    val squishLeft = animatedOffset.coerceAtLeast(0.dp)
+    val squishRight = (animatedOffset + animatedWidth).coerceAtMost(contentWidth)
+    val squishWidth = (squishRight - squishLeft).coerceAtLeast(0.dp)
 
     Surface(
         modifier = Modifier.wrapContentWidth().height(40.dp),
@@ -92,29 +97,26 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
         ) {
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffset)
-                    .width(animatedWidth)
+                    .offset(x = squishLeft)
+                    .width(squishWidth)
                     .height(32.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             )
             Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .onGloballyPositioned { coords ->
-                        rowWindowX = coords.positionInRoot().x
-                    },
+                modifier = Modifier.fillMaxHeight(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 tabs.forEachIndexed { index, title ->
                     val isSelected = selectedTab == index
+                    val textScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1f,
+                        animationSpec = spring(dampingRatio = 0.4f, stiffness = 300f),
+                        label = "scale"
+                    )
                     Box(
                         modifier = Modifier
                             .onGloballyPositioned { coords ->
-                                tabWindowXs = tabWindowXs.toMutableList().also {
-                                    while (it.size <= index) it.add(0f)
-                                    it[index] = coords.positionInRoot().x
-                                }
                                 tabWidths = tabWidths.toMutableList().also {
                                     while (it.size <= index) it.add(0f)
                                     it[index] = coords.size.width.toFloat()
@@ -128,7 +130,8 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                         Text(
                             title,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium),
+                            modifier = Modifier.graphicsLayer { scaleX = textScale; scaleY = textScale }
                         )
                     }
                 }
