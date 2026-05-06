@@ -51,6 +51,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,31 +89,37 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
 }
 
 @Composable
-fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
+fun FilterChipDropdown(
+    label: String,
+    options: List<Pair<String, String>>,
+    selectedKey: String,
+    onOptionSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    menuWidth: Dp = 150.dp
+) {
     var expanded by remember { mutableStateOf(false) }
-    val modes = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
 
-    Box {
+    Box(modifier = modifier) {
         FilterChip(
             selected = true, onClick = { expanded = true },
-            label = { Text(modes.find { it.first == currentMode }?.second ?: currentMode, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+            label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
             trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
             shape = RoundedCornerShape(12.dp)
         )
         MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
             DropdownMenu(
                 expanded = expanded, onDismissRequest = { expanded = false },
-                modifier = Modifier.width(150.dp).background(MaterialTheme.colorScheme.surface),
+                modifier = Modifier.width(menuWidth).background(MaterialTheme.colorScheme.surface),
                 offset = DpOffset(0.dp, 4.dp)
             ) {
-                modes.forEach { (key, label) ->
-                    val isSelected = currentMode == key
+                options.forEach { (key, displayLabel) ->
+                    val isSelected = selectedKey == key
                     DropdownMenuItem(
-                        text = { Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                        onClick = { onModeSelected(key); expanded = false },
+                        text = { Text(displayLabel, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        onClick = { onOptionSelected(key); expanded = false },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-                        colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
+                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
+                        colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
                     )
                 }
             }
@@ -121,32 +128,27 @@ fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
 }
 
 @Composable
-fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val levels = listOf("info", "warning", "error", "debug", "silent")
+fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
+    val modes = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
+    FilterChipDropdown(
+        label = modes.find { it.first == currentMode }?.second ?: currentMode,
+        options = modes,
+        selectedKey = currentMode,
+        onOptionSelected = onModeSelected,
+        menuWidth = 150.dp
+    )
+}
 
-    Box {
-        FilterChip(
-            selected = true, onClick = { expanded = true },
-            label = { Text(currentLevel.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp)) },
-            shape = RoundedCornerShape(12.dp)
-        )
-        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.width(140.dp)) {
-                levels.forEach { level ->
-                    val isSelected = currentLevel == level
-                    DropdownMenuItem(
-                        text = { Text(level.uppercase(), fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        onClick = { onLevelSelected(level); expanded = false },
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp).clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent),
-                        colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
-                    )
-                }
-            }
-        }
-    }
+@Composable
+fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
+    val levels = listOf("info", "warning", "error", "debug", "silent")
+    FilterChipDropdown(
+        label = currentLevel.uppercase(),
+        options = levels.map { it to it.uppercase() },
+        selectedKey = currentLevel,
+        onOptionSelected = onLevelSelected,
+        menuWidth = 140.dp
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
