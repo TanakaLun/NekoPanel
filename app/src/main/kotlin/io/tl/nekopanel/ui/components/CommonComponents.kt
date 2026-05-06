@@ -63,15 +63,15 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
     val density = LocalDensity.current
-    var tabPositions by remember { mutableStateOf(List(tabs.size) { 0.dp to 0.dp }) }
+    var tabWidths by remember { mutableStateOf(List(tabs.size) { 0.dp }) }
 
     val animatedOffsetX by animateDpAsState(
-        targetValue = tabPositions.getOrNull(selectedTab)?.first ?: 0.dp,
+        targetValue = tabWidths.take(selectedTab).fold(0.dp) { acc, w -> acc + w },
         animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "indicatorX"
     )
     val animatedWidth by animateDpAsState(
-        targetValue = tabPositions.getOrNull(selectedTab)?.second ?: 0.dp,
+        targetValue = tabWidths.getOrNull(selectedTab) ?: 0.dp,
         animationSpec = tween(300, easing = FastOutSlowInEasing),
         label = "indicatorWidth"
     )
@@ -99,14 +99,11 @@ fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<Str
                             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { onTabSelected(index) }
                             .padding(horizontal = 16.dp)
                             .onGloballyPositioned { coords ->
-                                val pos = coords.positionInParent()
-                                val xDp = with(density) { pos.x.toDp() }
                                 val wDp = with(density) { coords.size.width.toDp() }
-                                val newPositions = tabPositions.toMutableList().also { list ->
-                                    while (list.size <= index) list.add(0.dp to 0.dp)
-                                    list[index] = xDp to wDp
+                                tabWidths = tabWidths.toMutableList().also { list ->
+                                    while (list.size <= index) list.add(0.dp)
+                                    list[index] = wDp
                                 }
-                                tabPositions = newPositions
                             },
                         contentAlignment = Alignment.Center
                     ) {
