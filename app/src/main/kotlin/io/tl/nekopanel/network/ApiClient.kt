@@ -67,6 +67,8 @@ object ApiClient {
     suspend fun updateRulesDisable(body: Map<String, Boolean>) {
         request("PATCH", "/rules/disable", JSONObject(body).toString())
     }
+    suspend fun flushDnsCache() { request("POST", "/cache/dns/flush") }
+    suspend fun flushFakeipCache() { request("POST", "/cache/fakeip/flush") }
     suspend fun restartCore() { request("POST", "/restart") }
     suspend fun getVersion(): JSONObject = JSONObject(get("/version"))
     suspend fun deleteAllConnections() { request("DELETE", "/connections") }

@@ -97,6 +97,14 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                             Icon(Icons.Default.PowerSettingsNew, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("重启核心")
                         }
                     }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("清除 DNS 缓存")
+                        }
+                        Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("清除 FakeIP 池")
+                        }
+                    }
                 }
             }
         }
@@ -122,12 +130,12 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             SectionTitle("TUN 模式")
             val tun = cfg.optJSONObject("tun") ?: JSONObject()
             var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
-            var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system")) }
+            var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system").lowercase()) }
             Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ConfigToggle("启用 TUN", tunEnable) { enabled ->
                         tunEnable = enabled
-                        val newTun = tun.also { it.put("enable", enabled) }
+                        val newTun = tun.also { it.put("enable", enabled); it.put("stack", tunStack) }
                         updateRemote("tun", newTun)
                     }
                     if (tunEnable) {
