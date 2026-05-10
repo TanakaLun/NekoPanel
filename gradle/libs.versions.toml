@@ -7,6 +7,7 @@ kotlinCoroutines = "1.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
 coil = "2.7.0"
+okhttp = "5.3.2"
 room = "2.8.4"
 ksp = "2.3.7"
 
@@ -33,3 +34,4 @@ androidx-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.r
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }

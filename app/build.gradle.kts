@@ -65,7 +65,7 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation(libs.okhttp)
     implementation(libs.androidx.coil.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.room.runtime)
