@@ -91,7 +91,7 @@ fun ProxiesScreen(
     val displayKeys = if (isGlobalMode) allKeys.filter { it == "GLOBAL" } else {
         val filtered = allKeys.filter { key ->
             val obj = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-            obj.optJSONArray("all") != null
+            obj.optJSONArray("all") != null && !obj.optBoolean("hidden", false)
         }
         if (settings.showGlobal) filtered else filtered.filter { it != "GLOBAL" }
     }.sorted()
