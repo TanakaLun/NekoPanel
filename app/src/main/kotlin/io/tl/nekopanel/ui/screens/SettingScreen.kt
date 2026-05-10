@@ -60,7 +60,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
     }
 
     @Composable fun SectionTitle(title: String) {
-        Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        Text(title, modifier = Modifier.padding(start = 15.dp, bottom = 8.dp), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
     }
 
     if (config == null) {
@@ -178,7 +178,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("自定义主题、布局与显示偏好", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("自定义主题、布局与显示偏好")
                     Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                 }
             }
