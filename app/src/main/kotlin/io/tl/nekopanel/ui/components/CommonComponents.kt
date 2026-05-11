@@ -239,14 +239,6 @@ fun SettingsDropdownMenuInline(label: String, currentValue: String, options: Lis
 }
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(title, modifier = Modifier.padding(start = 13.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-}
-        }
-    }
-}
-
-@Composable
 fun ConfigToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 16.dp))
@@ -304,4 +296,9 @@ fun highlightJson(jsonStr: String): AnnotatedString {
             }
         }
     }
+}
+
+@Composable
+fun SectionTitle(title: String) {
+    Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 }
