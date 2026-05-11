@@ -24,7 +24,7 @@ object ApiClient {
         val request = Request.Builder().url("$baseUrl$path").headers(buildHeaders()).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("${response.code}: ${response.message}")
-            response.body?.string() ?: "{}"
+            response.body.string()
         }
     }
 
@@ -32,15 +32,15 @@ object ApiClient {
         val builder = Request.Builder().url("$baseUrl$path").headers(buildHeaders())
         val body = bodyJson?.toRequestBody("application/json".toMediaType())
         when (method.uppercase()) {
-            "PUT" -> builder.put(body ?: RequestBody.create(null, ""))
-            "PATCH" -> builder.patch(body ?: RequestBody.create(null, ""))
-            "POST" -> builder.post(body ?: RequestBody.create(null, ""))
+            "PUT" -> builder.put(body ?: "".toRequestBody(null))
+            "PATCH" -> builder.patch(body ?: "".toRequestBody(null))
+            "POST" -> builder.post(body ?: "".toRequestBody(null))
             "DELETE" -> builder.delete()
             else -> throw IllegalArgumentException("Unsupported method: $method")
         }
         client.newCall(builder.build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("${response.code}: ${response.message}")
-            response.body?.string() ?: ""
+            response.body.string()
         }
     }
 

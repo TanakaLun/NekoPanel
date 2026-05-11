@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -56,7 +57,7 @@ fun DelayBadge(delay: Int, isTesting: Boolean, style: String, cornerRadius: Int,
     }
     val display = if (isTesting) "......" else if (delay <= 0) "TEST" else "${delay}ms"
     Surface(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.clip(RoundedCornerShape(cornerRadius.dp)).clickable(onClick = onClick),
         color = if (style == "填充") (if (isTesting) color.copy(0.6f) else color) else Color.Transparent,
         shape = RoundedCornerShape(cornerRadius.dp),
         border = if (style == "描边") BorderStroke(1.dp, color.copy(if (isTesting) 0.5f else 1f)) else null

@@ -47,7 +47,7 @@ fun ProxiesScreen(
             while (keys.hasNext()) {
                 val key = keys.next()
                 val proxy = proxiesObj.getJSONObject(key)
-                val now = proxy.optString("now", null)
+                val now: String? = proxy.optString("now", null)
                 if (now != null) {
                     newSelections[key] = now
                 }

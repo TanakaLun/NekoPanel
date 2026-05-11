@@ -144,7 +144,7 @@ fun ProxyGroupCard(
     val scope = rememberCoroutineScope()
 
     val type = group.optString("type", "Unknown")
-    val icon = group.optString("icon", null)
+    val icon: String? = group.optString("icon", null)
     val allNodes = mutableListOf<String>()
     val allArray = group.optJSONArray("all")
     if (allArray != null) for (i in 0 until allArray.length()) allNodes.add(allArray.getString(i))
