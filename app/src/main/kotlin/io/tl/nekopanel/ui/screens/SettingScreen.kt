@@ -60,10 +60,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
         }
     }
 
-    @Composable fun SectionTitle(title: String) {
-        Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-    }
-
     if (config == null) {
         Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         return
@@ -238,29 +234,31 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
             }
 
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("实时预览", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(60.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("代理组", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                    Spacer(Modifier.height(4.dp))
-                                    TypeBadge("URL-TEST", gBadgeStyle, radiusState, false)
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("延迟", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                    Spacer(Modifier.height(4.dp))
-                                    DelayBadge(120, false, dBadgeStyle, radiusState, false) {}
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("规则", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                                    Spacer(Modifier.height(4.dp))
-                                    TypeBadge("FINAL", rBadgeStyle, radiusState, false)
+                Column {
+                    SectionTitle("实时预览")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(60.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("代理组", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Spacer(Modifier.height(4.dp))
+                                        TypeBadge("URL-TEST", gBadgeStyle, radiusState, false)
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("延迟", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Spacer(Modifier.height(4.dp))
+                                        DelayBadge(120, false, dBadgeStyle, radiusState, false) {}
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("规则", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Spacer(Modifier.height(4.dp))
+                                        TypeBadge("FINAL", rBadgeStyle, radiusState, false)
+                                    }
                                 }
                             }
                         }
@@ -269,52 +267,60 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
             }
 
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("徽章样式", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(4.dp))
-                        Text("Badge 圆角弧度: ${radiusState}dp", style = MaterialTheme.typography.labelSmall)
-                        Slider(
-                            value = radiusState.toFloat(),
-                            onValueChange = { radiusState = it.toInt(); settings.badgeCornerRadius = it.toInt() },
-                            valueRange = 0f..12f, steps = 12
-                        )
-                        SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
-                        SettingsDropdownMenuInline("延迟类型风格", dBadgeStyle, listOf("填充", "描边")) { dBadgeStyle = it; settings.delayBadgeStyle = it }
-                        SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
-                    }
-                }
-            }
-
-            item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("布局设置", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
-                        SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
-                    }
-                }
-            }
-
-            item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("主题与行为", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        ConfigToggle("AMOLED 纯黑模式", pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
-                        ConfigToggle("后台持续获取数据", bgWs) { bgWs = it; settings.backgroundWebSocket = it
-                            if (it) TrafficForegroundService.start(context) else TrafficForegroundService.stop(context)
+                Column {
+                    SectionTitle("徽章样式")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Spacer(Modifier.height(4.dp))
+                            Text("Badge 圆角弧度: ${radiusState}dp", style = MaterialTheme.typography.labelSmall)
+                            Slider(
+                                value = radiusState.toFloat(),
+                                onValueChange = { radiusState = it.toInt(); settings.badgeCornerRadius = it.toInt() },
+                                valueRange = 0f..12f, steps = 12
+                            )
+                            SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
+                            SettingsDropdownMenuInline("延迟类型风格", dBadgeStyle, listOf("填充", "描边")) { dBadgeStyle = it; settings.delayBadgeStyle = it }
+                            SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
                         }
                     }
                 }
             }
 
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("代理组显示", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                        ConfigToggle("显示 GLOBAL 代理组", showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
-                        ConfigToggle("点击开启底部抽屉模式", useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
-                        ConfigToggle("代理卡片扁平填充风格", cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
+                Column {
+                    SectionTitle("布局设置")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
+                            SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column {
+                    SectionTitle("主题与行为")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ConfigToggle("AMOLED 纯黑模式", pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
+                            ConfigToggle("后台持续获取数据", bgWs) { bgWs = it; settings.backgroundWebSocket = it
+                                if (it) TrafficForegroundService.start(context) else TrafficForegroundService.stop(context)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column {
+                    SectionTitle("代理组显示")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            ConfigToggle("显示 GLOBAL 代理组", showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
+                            ConfigToggle("点击开启底部抽屉模式", useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
+                            ConfigToggle("代理卡片扁平填充风格", cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
+                        }
                     }
                 }
             }

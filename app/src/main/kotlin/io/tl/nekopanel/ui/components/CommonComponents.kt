@@ -233,10 +233,15 @@ fun SettingsDropdownMenuInline(label: String, currentValue: String, options: Lis
                                     .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
                                 colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
                             )
-                        }
-                    }
-                }
             }
+        }
+    }
+}
+
+@Composable
+fun SectionTitle(title: String) {
+    Text(title, modifier = Modifier.padding(start = 13.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+}
         }
     }
 }
