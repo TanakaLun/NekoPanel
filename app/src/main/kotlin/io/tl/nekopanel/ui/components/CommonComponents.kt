@@ -233,6 +233,9 @@ fun SettingsDropdownMenuInline(label: String, currentValue: String, options: Lis
                                     .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
                                 colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
                             )
+                        }
+                    }
+                }
             }
         }
     }
