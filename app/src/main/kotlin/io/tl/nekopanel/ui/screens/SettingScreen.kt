@@ -175,7 +175,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("自定义主题、布局与显示偏好", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("自定义主题、布局与显示偏好", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                     Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                 }
             }
