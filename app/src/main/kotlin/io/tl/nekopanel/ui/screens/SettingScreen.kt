@@ -1,5 +1,10 @@
 package io.tl.nekopanel.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -19,8 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
@@ -305,7 +312,38 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             ConfigToggle("AMOLED 纯黑模式", pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
                             ConfigToggle("后台持续获取数据", bgWs) { bgWs = it; settings.backgroundWebSocket = it
-                                if (it) TrafficForegroundService.start(context) else TrafficForegroundService.stop(context)
+                                if (it) {
+                                    DataDaemonService.start(context)
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                                        if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                                            MainActivity.requestBatteryExemption(context as android.app.Activity)
+                                        }
+                                    }
+                                } else {
+                                    DataDaemonService.stop(context)
+                                }
+                            }
+                            if (bgWs && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                                val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
+                                Row(Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        null,
+                                        tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.clickable {
+                                            if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

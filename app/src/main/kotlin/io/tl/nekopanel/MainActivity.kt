@@ -1,10 +1,15 @@
 package io.tl.nekopanel
 
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +30,7 @@ import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
@@ -62,6 +68,19 @@ class MainActivity : ComponentActivity() {
                     }
                 } else {
                     ClashManagerApp(settings = settings, onPureBlackToggle = { pureBlackMode = it })
+                }
+            }
+        }
+    }
+
+    companion object {
+        fun requestBatteryExemption(activity: Activity) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!activity.packageManager.isIgnoringBatteryOptimizations(activity.packageName)) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:${activity.packageName}")
+                    }
+                    activity.startActivity(intent)
                 }
             }
         }
@@ -121,7 +140,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     LaunchedEffect(Unit) {
         if (settings.backgroundWebSocket) {
-            TrafficForegroundService.start(context)
+            DataDaemonService.start(context)
         }
     }
 
@@ -130,6 +149,12 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     }
     val clearConnections: () -> Unit = {
         connections = emptyList()
+    }
+
+    if (!settingsSubScreenActive) {
+        BackHandler {
+            (context as? Activity)?.finishAndRemoveTask()
+        }
     }
 
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
@@ -184,7 +209,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         globalUp = obj.optLong("up", 0L)
                         totalDown = obj.optLong("downTotal", 0L)
                         totalUp = obj.optLong("upTotal", 0L)
-                        settings.accumulateTraffic(totalDown, totalUp)
                     } catch (_: Exception) {}
                 }
             )

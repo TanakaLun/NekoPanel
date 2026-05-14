@@ -20,15 +20,18 @@ import kotlinx.coroutines.cancel
 import okhttp3.WebSocket
 import org.json.JSONObject
 
-class TrafficForegroundService : Service() {
+class DataDaemonService : Service() {
 
     private var trafficWs: WebSocket? = null
+    private var memWs: WebSocket? = null
+    private var connWs: WebSocket? = null
     private lateinit var settings: SettingsManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var globalDown = 0L
     private var globalUp = 0L
     private var totalDown = 0L
     private var totalUp = 0L
+    private var globalInUse = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -44,13 +47,13 @@ class TrafficForegroundService : Service() {
         ApiClient.secret = settings.apiSecret
 
         if (ApiClient.baseUrl.isNotBlank()) {
-            startTrafficWebSocket()
+            startAllWebSockets()
         }
 
         return START_STICKY
     }
 
-    private fun startTrafficWebSocket() {
+    private fun startAllWebSockets() {
         trafficWs?.cancel()
         trafficWs = ApiClient.buildWebSocket(
             path = "/traffic",
@@ -65,10 +68,31 @@ class TrafficForegroundService : Service() {
                     updateNotification()
                 } catch (_: Exception) {}
             },
-            onError = {
-                updateNotification("连接中断，等待重连...")
+            onError = { updateNotification("连接中断，等待重连...") }
+        )
+
+        memWs?.cancel()
+        memWs = ApiClient.buildWebSocket(
+            path = "/memory",
+            onText = { text ->
+                try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
             }
         )
+
+        connWs?.cancel()
+        connWs = ApiClient.buildWebSocket(
+            path = "/connections?interval=5000",
+            onText = { }
+        )
+    }
+
+    private fun stopAllWebSockets() {
+        trafficWs?.cancel()
+        memWs?.cancel()
+        connWs?.cancel()
+        trafficWs = null
+        memWs = null
+        connWs = null
     }
 
     private fun updateNotification(contentOverride: String? = null) {
@@ -80,8 +104,7 @@ class TrafficForegroundService : Service() {
 
     private fun buildNotification(content: String): Notification {
         val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
+            this, 0,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             },
@@ -92,7 +115,7 @@ class TrafficForegroundService : Service() {
         val bigText = "$content\n$totalText"
 
         val builder = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("NekoPanel 流量监控")
+            .setContentTitle("NekoPanel 数据采集")
             .setContentText(content)
             .setStyle(Notification.BigTextStyle().bigText(bigText))
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
@@ -108,10 +131,10 @@ class TrafficForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "流量监控",
+                "数据采集",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "显示实时流量信息和累计统计"
+                description = "后台数据采集守护进程"
                 setShowBadge(false)
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -122,21 +145,27 @@ class TrafficForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        trafficWs?.cancel()
+        stopAllWebSockets()
         scope.cancel()
         super.onDestroy()
     }
 
     companion object {
-        const val CHANNEL_ID = "traffic_monitor"
-        const val NOTIFICATION_ID = 114514
+        const val CHANNEL_ID = "data_daemon"
+        const val NOTIFICATION_ID = 114515
 
         fun start(context: Context) {
-            DataDaemonService.start(context)
+            val intent = Intent(context, DataDaemonService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
 
         fun stop(context: Context) {
-            DataDaemonService.stop(context)
+            val intent = Intent(context, DataDaemonService::class.java)
+            context.stopService(intent)
         }
     }
 }

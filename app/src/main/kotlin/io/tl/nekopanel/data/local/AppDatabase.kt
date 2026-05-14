@@ -20,7 +20,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nekopanel.db"
-                ).build().also { INSTANCE = it }
+                ).enableMultiInstanceInvalidation().build().also { INSTANCE = it }
             }
         }
     }
