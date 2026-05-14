@@ -1,11 +1,13 @@
 package io.tl.nekopanel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -76,7 +78,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         fun requestBatteryExemption(activity: Activity) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (!activity.packageManager.isIgnoringBatteryOptimizations(activity.packageName)) {
+                val pm = activity.getSystemService(Context.POWER_SERVICE) as PowerManager
+                if (!pm.isIgnoringBatteryOptimizations(activity.packageName)) {
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                         data = Uri.parse("package:${activity.packageName}")
                     }
