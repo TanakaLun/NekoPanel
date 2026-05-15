@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -232,6 +233,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     AnimatedContent(
         targetState = currentPage,
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
         transitionSpec = {
             if (targetState == Page.UI_SETTINGS) {
                 (slideInHorizontally { it } + fadeIn()) togetherWith
