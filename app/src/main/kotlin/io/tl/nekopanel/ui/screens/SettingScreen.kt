@@ -216,7 +216,8 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
     var pureState by remember { mutableStateOf(settings.pureBlackMode) }
     var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
     var contData by remember { mutableStateOf(settings.continuousData) }
-    var hideRecents by remember { mutableStateOf(settings.hideFromRecents) }
+
+
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
@@ -314,29 +315,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                                     DataDaemonService.stop(context)
                                 }
                             }
-                            if (bgWs && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
-                                val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
-                                Row(Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                        null,
-                                        tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.clickable {
-                                            if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity)
-                                        }
-                                    )
-                                }
-                            }
                             ConfigToggle("持续获取所有数据（确保时效性）", contData) { contData = it; settings.continuousData = it }
-                            ConfigToggle("离开前台时隐藏最近任务", hideRecents) { hideRecents = it; settings.hideFromRecents = it }
                         }
                     }
                 }
@@ -350,6 +329,33 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                             ConfigToggle("显示 GLOBAL 代理组", showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
                             ConfigToggle("点击开启底部抽屉模式", useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
                             ConfigToggle("代理卡片扁平填充风格", cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
+                        }
+                    }
+                }
+            }
+
+            if (bgWs && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                item {
+                    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                    val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                null,
+                                tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.clickable {
+                                    if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity)
+                                }
+                            )
                         }
                     }
                 }

@@ -117,9 +117,7 @@ class SettingsManager(context: Context) {
         get() = getBoolean("card_fill_style", false)
         set(value) = setBoolean("card_fill_style", value)
 
-    var hideFromRecents: Boolean
-        get() = getBoolean("hide_from_recents", false)
-        set(value) = setBoolean("hide_from_recents", value)
+
 
     var apiBaseUrl: String
         get() = getString("api_base_url", "")
