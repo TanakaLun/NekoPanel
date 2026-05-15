@@ -1,7 +1,6 @@
 package io.tl.nekopanel
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -228,22 +228,21 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     BackHandler(currentPage == Page.MAIN) {
         if (settings.hideFromRecents) {
-            val activity = context as? Activity
-            if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                val am = activity.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-                am?.removeTask(activity.taskId, 0)
-            }
+            (context as? Activity)?.finishAndRemoveTask()
+        } else {
+            (context as? Activity)?.finish()
         }
-        (context as? Activity)?.finish()
     }
 
     AnimatedContent(
         targetState = currentPage,
         transitionSpec = {
             if (targetState == Page.UI_SETTINGS) {
-                (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it / 4 } + fadeOut())
+                (slideInHorizontally { it } + fadeIn()) togetherWith
+                    (fadeOut(animationSpec = tween(300)))
             } else {
-                (slideInHorizontally { -it / 4 } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
+                (scaleIn(initialScale = 0.95f) + fadeIn()) togetherWith
+                    (slideOutHorizontally { it / 3 } + scaleOut(targetScale = 0.9f) + fadeOut())
             }
         }
     ) { page ->
