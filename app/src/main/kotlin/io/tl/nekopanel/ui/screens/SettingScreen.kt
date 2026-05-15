@@ -227,6 +227,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
     var radiusState by remember { mutableIntStateOf(settings.badgeCornerRadius) }
     var pureState by remember { mutableStateOf(settings.pureBlackMode) }
     var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
+    var hideRecents by remember { mutableStateOf(settings.hideFromRecents) }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
@@ -345,6 +346,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                                     )
                                 }
                             }
+                            ConfigToggle("离开前台时隐藏最近任务", hideRecents) { hideRecents = it; settings.hideFromRecents = it }
                         }
                     }
                 }

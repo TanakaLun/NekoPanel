@@ -115,7 +115,7 @@ class DataDaemonService : Service() {
         val bigText = "$content\n$totalText"
 
         val builder = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("NekoPanel 数据采集")
+            .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
             .setStyle(Notification.BigTextStyle().bigText(bigText))
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
@@ -131,10 +131,10 @@ class DataDaemonService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "数据采集",
+                "流量监控",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "后台数据采集守护进程"
+                description = "显示实时流量信息"
                 setShowBadge(false)
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -151,8 +151,8 @@ class DataDaemonService : Service() {
     }
 
     companion object {
-        const val CHANNEL_ID = "data_daemon"
-        const val NOTIFICATION_ID = 114515
+        const val CHANNEL_ID = "traffic_monitor"
+        const val NOTIFICATION_ID = 114514
 
         fun start(context: Context) {
             val intent = Intent(context, DataDaemonService::class.java)

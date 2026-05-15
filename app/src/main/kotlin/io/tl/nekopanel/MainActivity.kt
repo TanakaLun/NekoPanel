@@ -11,7 +11,6 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,7 +32,6 @@ import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
-import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
 import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
@@ -72,6 +70,15 @@ class MainActivity : ComponentActivity() {
                     ClashManagerApp(settings = settings, onPureBlackToggle = { pureBlackMode = it })
                 }
             }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        val settings = SettingsManager(this)
+        if (settings.hideFromRecents) {
+            if (isFinishing) return
+            finishAndRemoveTask()
         }
     }
 
@@ -152,12 +159,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     }
     val clearConnections: () -> Unit = {
         connections = emptyList()
-    }
-
-    if (!settingsSubScreenActive) {
-        BackHandler {
-            (context as? Activity)?.finishAndRemoveTask()
-        }
     }
 
     LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
