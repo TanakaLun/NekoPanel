@@ -73,6 +73,10 @@ class SettingsManager(context: Context) {
         get() = getBoolean("background_websocket", false)
         set(value) = setBoolean("background_websocket", value)
 
+    var continuousData: Boolean
+        get() = getBoolean("continuous_data", false)
+        set(value) = setBoolean("continuous_data", value)
+
     var pureBlackMode: Boolean
         get() = getBoolean("pure_black_mode", false)
         set(value) = setBoolean("pure_black_mode", value)

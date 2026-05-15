@@ -215,6 +215,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
     var radiusState by remember { mutableIntStateOf(settings.badgeCornerRadius) }
     var pureState by remember { mutableStateOf(settings.pureBlackMode) }
     var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
+    var contData by remember { mutableStateOf(settings.continuousData) }
     var hideRecents by remember { mutableStateOf(settings.hideFromRecents) }
 
     Box(Modifier.fillMaxSize()) {
@@ -300,7 +301,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             ConfigToggle("AMOLED 纯黑模式", pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
-                            ConfigToggle("后台持续获取数据", bgWs) { bgWs = it; settings.backgroundWebSocket = it
+                            ConfigToggle("流量监控", bgWs) { bgWs = it; settings.backgroundWebSocket = it
                                 if (it) {
                                     DataDaemonService.start(context)
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -334,6 +335,7 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                                     )
                                 }
                             }
+                            ConfigToggle("持续获取所有数据（确保时效性）", contData) { contData = it; settings.continuousData = it }
                             ConfigToggle("离开前台时隐藏最近任务", hideRecents) { hideRecents = it; settings.hideFromRecents = it }
                         }
                     }

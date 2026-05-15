@@ -161,8 +161,8 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         connections = emptyList()
     }
 
-    LaunchedEffect(settings.backgroundWebSocket, currentLogLevel) {
-        if (settings.backgroundWebSocket && settings.apiBaseUrl.isNotBlank()) {
+    LaunchedEffect(selectedTab, settings.continuousData, currentLogLevel) {
+        if (settings.apiBaseUrl.isNotBlank() && (settings.continuousData || selectedTab == 2)) {
             val logWs = ApiClient.buildWebSocket(
                 "/logs?level=$currentLogLevel",
                 onText = { text ->
@@ -227,11 +227,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     }
 
     BackHandler(currentPage == Page.MAIN) {
-        if (settings.hideFromRecents) {
-            (context as? Activity)?.finishAndRemoveTask()
-        } else {
-            (context as? Activity)?.finish()
-        }
+        (context as? Activity)?.moveTaskToBack(true)
     }
 
     AnimatedContent(
@@ -267,7 +263,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         when (selectedTab) {
                             0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
                             1 -> RulesScreen(globalRefreshTick, settings)
-                            2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
+                            2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
                             3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS })
                         }
                     }

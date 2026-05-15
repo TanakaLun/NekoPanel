@@ -23,15 +23,12 @@ import org.json.JSONObject
 class DataDaemonService : Service() {
 
     private var trafficWs: WebSocket? = null
-    private var memWs: WebSocket? = null
-    private var connWs: WebSocket? = null
     private lateinit var settings: SettingsManager
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var globalDown = 0L
     private var globalUp = 0L
     private var totalDown = 0L
     private var totalUp = 0L
-    private var globalInUse = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -47,13 +44,13 @@ class DataDaemonService : Service() {
         ApiClient.secret = settings.apiSecret
 
         if (ApiClient.baseUrl.isNotBlank()) {
-            startAllWebSockets()
+            startTrafficWebSocket()
         }
 
         return START_STICKY
     }
 
-    private fun startAllWebSockets() {
+    private fun startTrafficWebSocket() {
         trafficWs?.cancel()
         trafficWs = ApiClient.buildWebSocket(
             path = "/traffic",
@@ -70,29 +67,11 @@ class DataDaemonService : Service() {
             },
             onError = { updateNotification("连接中断，等待重连...") }
         )
-
-        memWs?.cancel()
-        memWs = ApiClient.buildWebSocket(
-            path = "/memory",
-            onText = { text ->
-                try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
-            }
-        )
-
-        connWs?.cancel()
-        connWs = ApiClient.buildWebSocket(
-            path = "/connections?interval=5000",
-            onText = { }
-        )
     }
 
-    private fun stopAllWebSockets() {
+    private fun stopTrafficWebSocket() {
         trafficWs?.cancel()
-        memWs?.cancel()
-        connWs?.cancel()
         trafficWs = null
-        memWs = null
-        connWs = null
     }
 
     private fun updateNotification(contentOverride: String? = null) {
@@ -145,7 +124,7 @@ class DataDaemonService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        stopAllWebSockets()
+        stopTrafficWebSocket()
         scope.cancel()
         super.onDestroy()
     }
