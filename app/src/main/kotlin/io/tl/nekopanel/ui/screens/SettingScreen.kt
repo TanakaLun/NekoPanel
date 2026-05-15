@@ -1,12 +1,8 @@
 package io.tl.nekopanel.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
-import android.provider.Settings
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.draw.clip
@@ -28,7 +24,6 @@ import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
-import io.tl.nekopanel.service.TrafficForegroundService
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,18 +31,11 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 @Composable
-fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onSubScreenChange: ((Boolean) -> Unit)? = null) {
+fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onNavigateToUiSettings: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
     var coreVersion by remember { mutableStateOf("正在获取...") }
-    var showUiSettings by remember { mutableStateOf(false) }
-    BackHandler(showUiSettings) { showUiSettings = false; onSubScreenChange?.invoke(false) }
-
-    if (showUiSettings) {
-        UiSettingsScreen(settings, onPureBlackToggle, onBack = { showUiSettings = false; onSubScreenChange?.invoke(false) })
-        return
-    }
 
     LaunchedEffect(Unit) {
         try {
@@ -178,7 +166,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             SectionTitle("界面设置")
             Card(Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .clickable { showUiSettings = true; onSubScreenChange?.invoke(true) },
+                .clickable { onNavigateToUiSettings() },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                 Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

@@ -1,6 +1,7 @@
 package io.tl.nekopanel
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,9 +12,11 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,7 +36,11 @@ import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
-import io.tl.nekopanel.ui.screens.*
+import io.tl.nekopanel.ui.screens.FullSettingsScreen
+import io.tl.nekopanel.ui.screens.UiSettingsScreen
+import io.tl.nekopanel.ui.screens.ProxiesScreen
+import io.tl.nekopanel.ui.screens.RulesScreen
+import io.tl.nekopanel.ui.screens.TrafficScreen
 import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
@@ -70,15 +77,6 @@ class MainActivity : ComponentActivity() {
                     ClashManagerApp(settings = settings, onPureBlackToggle = { pureBlackMode = it })
                 }
             }
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        val settings = SettingsManager(this)
-        if (settings.hideFromRecents) {
-            if (isFinishing) return
-            finishAndRemoveTask()
         }
     }
 
@@ -123,6 +121,8 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     }
 }
 
+enum class Page { MAIN, UI_SETTINGS }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit) {
@@ -130,7 +130,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
-    var settingsSubScreenActive by remember { mutableStateOf(false) }
+    var currentPage by remember { mutableStateOf(Page.MAIN) }
 
     val logs = remember { mutableStateListOf<LogItem>() }
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
@@ -222,29 +222,60 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         }
     }
 
-    Scaffold(
-        topBar = {
-            if (!(selectedTab == 3 && settingsSubScreenActive)) {
-                CenterAlignedTopAppBar(title = {
-                    if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
-                    else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
-                })
-            }
-        },
-        bottomBar = {
-            NavigationBar {
-                listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                    NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
-                }
+    BackHandler(currentPage == Page.UI_SETTINGS) {
+        currentPage = Page.MAIN
+    }
+
+    BackHandler(currentPage == Page.MAIN) {
+        if (settings.hideFromRecents) {
+            val activity = context as? Activity
+            if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                val am = activity.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                am?.removeTask(activity.taskId, 0)
             }
         }
-    ) { padding ->
-        Box(Modifier.padding(padding)) {
-            when (selectedTab) {
-                0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
-                1 -> RulesScreen(globalRefreshTick, settings)
-                2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                3 -> FullSettingsScreen(settings, onPureBlackToggle, onSubScreenChange = { settingsSubScreenActive = it })
+        (context as? Activity)?.finish()
+    }
+
+    AnimatedContent(
+        targetState = currentPage,
+        transitionSpec = {
+            if (targetState == Page.UI_SETTINGS) {
+                (slideInHorizontally { it } + fadeIn()) togetherWith (slideOutHorizontally { -it / 4 } + fadeOut())
+            } else {
+                (slideInHorizontally { -it / 4 } + fadeIn()) togetherWith (slideOutHorizontally { it } + fadeOut())
+            }
+        }
+    ) { page ->
+        when (page) {
+            Page.MAIN -> {
+                Scaffold(
+                    topBar = {
+                        CenterAlignedTopAppBar(title = {
+                            if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
+                            else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
+                        })
+                    },
+                    bottomBar = {
+                        NavigationBar {
+                            listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
+                                NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
+                            }
+                        }
+                    }
+                ) { padding ->
+                    Box(Modifier.padding(padding)) {
+                        when (selectedTab) {
+                            0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
+                            1 -> RulesScreen(globalRefreshTick, settings)
+                            2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
+                            3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS })
+                        }
+                    }
+                }
+            }
+            Page.UI_SETTINGS -> {
+                UiSettingsScreen(settings, onPureBlackToggle, onBack = { currentPage = Page.MAIN })
             }
         }
     }
