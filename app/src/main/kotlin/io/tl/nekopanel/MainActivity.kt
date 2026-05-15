@@ -270,7 +270,9 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 }
             }
             Page.UI_SETTINGS -> {
-                UiSettingsScreen(settings, onPureBlackToggle, onBack = { currentPage = Page.MAIN })
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    UiSettingsScreen(settings, onPureBlackToggle, onBack = { currentPage = Page.MAIN })
+                }
             }
         }
     }
