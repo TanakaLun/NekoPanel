@@ -1,13 +1,22 @@
 package io.tl.nekopanel.ui.components
 
+import android.os.Build
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +28,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,36 +36,34 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
@@ -63,6 +71,296 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+
+data class SplicedItemData(
+    val key: Any?,
+    val visible: Boolean,
+    val content: @Composable () -> Unit,
+)
+
+class SplicedGroupScope {
+    val items = mutableListOf<SplicedItemData>()
+
+    fun item(key: Any? = null, visible: Boolean = true, content: @Composable () -> Unit) {
+        items.add(SplicedItemData(key ?: items.size, visible, content))
+    }
+}
+
+@Composable
+fun SplicedColumnGroup(
+    modifier: Modifier = Modifier,
+    title: String = "",
+    content: SplicedGroupScope.() -> Unit,
+) {
+    val scope = SplicedGroupScope().apply(content)
+    val allItems = scope.items
+    if (allItems.isEmpty()) return
+
+    Column(modifier = modifier) {
+        if (title.isNotEmpty()) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp),
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.Top) {
+            val firstVisibleIndex = allItems.indexOfFirst { it.visible }
+            val lastVisibleIndex = allItems.indexOfLast { it.visible }
+            val sharedStiffness = Spring.StiffnessMediumLow
+
+            allItems.forEachIndexed { index, itemData ->
+                key(itemData.key) {
+                    val zIndex = if (itemData.visible) 0f else 1f
+
+                    AnimatedVisibility(
+                        visible = itemData.visible,
+                        modifier = Modifier.zIndex(zIndex),
+                        enter = expandVertically(
+                            animationSpec = spring(stiffness = sharedStiffness),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(
+                            animationSpec = spring(stiffness = sharedStiffness),
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = spring(stiffness = sharedStiffness),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(
+                            animationSpec = spring(stiffness = sharedStiffness),
+                        ),
+                    ) {
+                        val isFirstVisible = index <= firstVisibleIndex && itemData.visible
+                        val isLastVisible = index >= lastVisibleIndex && itemData.visible
+                        var isPressed by remember { mutableStateOf(false) }
+
+                        val targetTopRadius = if (isPressed) 16.dp else if (isFirstVisible) 16.dp else 2.dp
+                        val targetBottomRadius = if (isPressed) 16.dp else if (isLastVisible) 16.dp else 2.dp
+
+                        val isAtLeastTiramisu = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+                        val currentTopRadius = if (isAtLeastTiramisu) {
+                            animateDpAsState(
+                                targetValue = targetTopRadius,
+                                animationSpec = spring(stiffness = sharedStiffness),
+                                label = "TopRadius",
+                            ).value
+                        } else targetTopRadius
+
+                        val currentBottomRadius = if (isAtLeastTiramisu) {
+                            animateDpAsState(
+                                targetValue = targetBottomRadius,
+                                animationSpec = spring(stiffness = sharedStiffness),
+                                label = "BottomRadius",
+                            ).value
+                        } else targetBottomRadius
+
+                        val shape = RoundedCornerShape(
+                            topStart = currentTopRadius,
+                            topEnd = currentTopRadius,
+                            bottomStart = currentBottomRadius,
+                            bottomEnd = currentBottomRadius,
+                        )
+
+                        val targetTopPadding = if (isFirstVisible) 0.dp else 2.dp
+                        val currentTopPadding = if (isAtLeastTiramisu) {
+                            animateDpAsState(
+                                targetValue = targetTopPadding,
+                                animationSpec = spring(stiffness = sharedStiffness),
+                                label = "TopGap",
+                            ).value
+                        } else targetTopPadding
+
+                        Column(
+                            modifier = Modifier
+                                .padding(top = currentTopPadding)
+                                .pointerInput(itemData.key) {
+                                    while (true) {
+                                        awaitPointerEventScope {
+                                            var event = awaitPointerEvent(PointerEventPass.Main)
+                                            val firstChange = event.changes.firstOrNull() ?: return@awaitPointerEventScope
+                                            if (!firstChange.pressed) return@awaitPointerEventScope
+                                            val longPressMs = 400L
+                                            val longPressActivated = withTimeoutOrNull(longPressMs) {
+                                                while (true) {
+                                                    val ev = awaitPointerEvent(PointerEventPass.Main)
+                                                    val c = ev.changes.firstOrNull() ?: break
+                                                    if (!c.pressed) return@withTimeoutOrNull false
+                                                }
+                                                false
+                                            }
+                                            if (longPressActivated == null) {
+                                                isPressed = true
+                                                while (true) {
+                                                    event = awaitPointerEvent(PointerEventPass.Main)
+                                                    val c = event.changes.firstOrNull() ?: break
+                                                    isPressed = c.pressed
+                                                    if (!c.pressed) break
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .graphicsLayer {
+                                    this.shape = shape
+                                    this.clip = true
+                                }
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        ) {
+                            itemData.content()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BasePreference(
+    title: String,
+    description: String? = null,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+    trailing: @Composable BoxScope.() -> Unit = {},
+) {
+    val haptic = LocalHapticFeedback.current
+    val alpha = if (enabled) 1f else 0.38f
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                enabled = enabled,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                    onClick()
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            if (description != null) {
+                Text(
+                    text = description,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        Box(Modifier.alpha(alpha)) {
+            trailing()
+        }
+    }
+}
+
+@Composable
+fun ConfigToggle(
+    label: String,
+    description: String? = null,
+    checked: Boolean,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    BasePreference(
+        title = label,
+        description = description,
+        enabled = enabled,
+        onClick = { if (enabled) onCheckedChange(!checked) },
+        modifier = modifier,
+        trailing = {
+            Switch(
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = { onCheckedChange(it) },
+            )
+        }
+    )
+}
+
+@Composable
+fun SettingsDropdownMenuInline(
+    label: String,
+    currentValue: String,
+    options: List<String>,
+    modifier: Modifier = Modifier,
+    onSelected: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var parentWidth by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { parentWidth = it.size.width }
+    ) {
+        BasePreference(
+            title = label,
+            modifier = modifier,
+            onClick = { expanded = true },
+            trailing = {
+                Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
+                    Text(
+                        text = currentValue,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
+        )
+
+        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .widthIn(min = 120.dp)
+                    .background(MaterialTheme.colorScheme.surface),
+                offset = DpOffset(
+                    x = with(density) {
+                        val tapXDp = 16.dp
+                        val estimatedMenuWidth = 200.dp
+                        val parentDp = parentWidth.toDp()
+                        val rightEdge = tapXDp + estimatedMenuWidth + 8.dp
+                        if (rightEdge > parentDp) {
+                            (parentDp - estimatedMenuWidth - 8.dp).coerceAtLeast(4.dp)
+                        } else tapXDp
+                    },
+                    y = 0.dp
+                ),
+            ) {
+                options.forEach { option ->
+                    val isSelected = currentValue == option
+                    DropdownMenuItem(
+                        text = { Text(option, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        onClick = { onSelected(option); expanded = false },
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
+                        colors = MenuDefaults.itemColors(
+                            textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun CapsuleTabRow(selectedTab: Int, onTabSelected: (Int) -> Unit, tabs: List<String>) {
@@ -203,50 +501,6 @@ fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
         onOptionSelected = onLevelSelected,
         menuWidth = 140.dp
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsDropdownMenuInline(label: String, currentValue: String, options: List<String>, onSelected: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-
-        Box(modifier = Modifier.width(160.dp)) {
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                OutlinedTextField(
-                    value = currentValue, onValueChange = {}, readOnly = true,
-                    textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true), shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                )
-                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(18.dp))) {
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
-                        options.forEach { option ->
-                            val isSelected = currentValue == option
-                            DropdownMenuItem(
-                                text = { Text(option, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                onClick = { onSelected(option); expanded = false },
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
-                                colors = MenuDefaults.itemColors(textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ConfigToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 16.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
 }
 
 @Composable

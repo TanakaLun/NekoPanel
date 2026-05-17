@@ -5,7 +5,6 @@ import android.os.PowerManager
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -125,23 +124,22 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
 
         // --- TUN 模式 ---
         item {
-            SectionTitle("TUN 模式")
             val tun = cfg.optJSONObject("tun") ?: JSONObject()
             var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
             var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system").lowercase()) }
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ConfigToggle("启用 TUN", tunEnable) { enabled ->
+            SplicedColumnGroup(title = "TUN 模式") {
+                item {
+                    ConfigToggle("启用 TUN", checked = tunEnable) { enabled ->
                         tunEnable = enabled
                         val newTun = tun.also { it.put("enable", enabled); it.put("stack", tunStack) }
                         updateRemote("tun", newTun)
                     }
-                    if (tunEnable) {
-                        SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
-                            tunStack = selected
-                            val newTun = tun.also { it.put("stack", selected) }
-                            updateRemote("tun", newTun)
-                        }
+                }
+                item(key = "tun_stack", visible = tunEnable) {
+                    SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
+                        tunStack = selected
+                        val newTun = tun.also { it.put("stack", selected) }
+                        updateRemote("tun", newTun)
                     }
                 }
             }
@@ -149,29 +147,26 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
 
         // --- 内核设置 ---
         item {
-            SectionTitle("内核设置")
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                Column(Modifier.padding(16.dp)) {
-                    ConfigToggle("允许局域网", cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) }
-                    ConfigToggle("IPv6 支持", cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) }
-                    ConfigToggle("流量嗅探", cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) }
-                    ConfigToggle("统一延迟", cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) }
-                    ConfigToggle("TCP 并发", cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) }
-                }
+            SplicedColumnGroup(title = "内核设置") {
+                item { ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) } }
+                item { ConfigToggle("IPv6 支持", checked = cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) } }
+                item { ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) } }
+                item { ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) } }
+                item { ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) } }
             }
         }
 
         // --- 界面设置 (导航) ---
         item {
-            SectionTitle("界面设置")
-            Card(Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { onNavigateToUiSettings() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                Row(Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("自定义主题、布局与显示偏好", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                    Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+            SplicedColumnGroup(title = "界面设置") {
+                item {
+                    BasePreference(
+                        title = "自定义主题、布局与显示偏好",
+                        onClick = onNavigateToUiSettings,
+                        trailing = {
+                            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                        }
+                    )
                 }
             }
         }
@@ -220,17 +215,22 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
 
 
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
-            item {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Text("界面设置", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 12.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.primary)
                 }
+                Spacer(Modifier.width(8.dp))
+                Text("界面设置", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
             }
 
+            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
             item {
                 Column {
                     SectionTitle("实时预览")
@@ -269,15 +269,23 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                     SectionTitle("徽章样式")
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Spacer(Modifier.height(4.dp))
                             Text("Badge 圆角弧度: ${radiusState}dp", style = MaterialTheme.typography.labelSmall)
                             Slider(
                                 value = radiusState.toFloat(),
                                 onValueChange = { radiusState = it.toInt(); settings.badgeCornerRadius = it.toInt() },
                                 valueRange = 0f..12f, steps = 12
                             )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    SplicedColumnGroup {
+                        item {
                             SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
+                        }
+                        item {
                             SettingsDropdownMenuInline("延迟类型风格", dBadgeStyle, listOf("填充", "描边")) { dBadgeStyle = it; settings.delayBadgeStyle = it }
+                        }
+                        item {
                             SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
                         }
                     }
@@ -285,51 +293,52 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
             }
 
             item {
-                Column {
-                    SectionTitle("布局设置")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
-                            SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
-                        }
+                SplicedColumnGroup(title = "布局设置") {
+                    item {
+                        SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
+                    }
+                    item {
+                        SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
                     }
                 }
             }
 
             item {
-                Column {
-                    SectionTitle("主题与行为")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            ConfigToggle("AMOLED 纯黑模式", pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
-                            ConfigToggle("流量监控", bgWs) { bgWs = it; settings.backgroundWebSocket = it
-                                if (it) {
-                                    DataDaemonService.start(context)
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                        val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
-                                        if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
-                                            MainActivity.requestBatteryExemption(context as android.app.Activity)
-                                        }
+                SplicedColumnGroup(title = "主题与行为") {
+                    item {
+                        ConfigToggle("AMOLED 纯黑模式", checked = pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
+                    }
+                    item {
+                        ConfigToggle("流量监控", checked = bgWs) { bgWs = it; settings.backgroundWebSocket = it
+                            if (it) {
+                                DataDaemonService.start(context)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                                    if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                                        MainActivity.requestBatteryExemption(context as android.app.Activity)
                                     }
-                                } else {
-                                    DataDaemonService.stop(context)
                                 }
+                            } else {
+                                DataDaemonService.stop(context)
                             }
-                            ConfigToggle("持续获取所有数据（确保时效性）", contData) { contData = it; settings.continuousData = it }
                         }
+                    }
+                    item {
+                        ConfigToggle("持续获取所有数据（确保时效性）", checked = contData) { contData = it; settings.continuousData = it }
                     }
                 }
             }
 
             item {
-                Column {
-                    SectionTitle("代理组显示")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            ConfigToggle("显示 GLOBAL 代理组", showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
-                            ConfigToggle("点击开启底部抽屉模式", useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
-                            ConfigToggle("代理卡片扁平填充风格", cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
-                        }
+                SplicedColumnGroup(title = "代理组显示") {
+                    item {
+                        ConfigToggle("显示 GLOBAL 代理组", checked = showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
+                    }
+                    item {
+                        ConfigToggle("点击开启底部抽屉模式", checked = useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
+                    }
+                    item {
+                        ConfigToggle("代理卡片扁平填充风格", checked = cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
                     }
                 }
             }
@@ -362,4 +371,5 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
             }
         }
     }
+}
 }
