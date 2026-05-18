@@ -168,7 +168,10 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         val memWs = ApiClient.buildWebSocket(
             "/memory",
             onText = { text ->
-                try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
+                try {
+                    val v = JSONObject(text).optLong("inuse", -1L)
+                    if (v >= 0) globalInUse = v
+                } catch (_: Exception) {}
             }
         )
         val trafficWs = ApiClient.buildWebSocket(
@@ -176,10 +179,16 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
             onText = { text ->
                 try {
                     val obj = JSONObject(text)
-                    globalDown = obj.optLong("down", 0L)
-                    globalUp = obj.optLong("up", 0L)
-                    totalDown = obj.optLong("downTotal", 0L)
-                    totalUp = obj.optLong("upTotal", 0L)
+                    val down = obj.optLong("down", -1L)
+                    val up = obj.optLong("up", -1L)
+                    val dt = obj.optLong("downTotal", -1L)
+                    val ut = obj.optLong("upTotal", -1L)
+                    if (down >= 0 && up >= 0 && dt >= 0 && ut >= 0) {
+                        globalDown = down
+                        globalUp = up
+                        totalDown = dt
+                        totalUp = ut
+                    }
                 } catch (_: Exception) {}
             }
         )

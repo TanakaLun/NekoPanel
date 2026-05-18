@@ -57,12 +57,15 @@ class DataDaemonService : Service() {
             onText = { text ->
                 try {
                     val obj = JSONObject(text)
-                    globalDown = obj.optLong("down", 0L)
-                    globalUp = obj.optLong("up", 0L)
-                    totalDown = obj.optLong("downTotal", 0L)
-                    totalUp = obj.optLong("upTotal", 0L)
-                    settings.accumulateTraffic(totalDown, totalUp)
-                    updateNotification()
+                    val d = obj.optLong("down", -1L)
+                    val u = obj.optLong("up", -1L)
+                    val dt = obj.optLong("downTotal", -1L)
+                    val ut = obj.optLong("upTotal", -1L)
+                    if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
+                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
+                        settings.accumulateTraffic(totalDown, totalUp)
+                        updateNotification()
+                    }
                 } catch (_: Exception) {}
             },
             onError = { updateNotification("连接中断，等待重连...") }
