@@ -53,6 +53,7 @@ fun MiniLineChart(data: List<Long>, color: Color, modifier: Modifier = Modifier)
 fun rememberChartHistory(currentValue: Long): List<Long> {
     val history = remember { mutableStateListOf<Long>() }
     LaunchedEffect(currentValue) {
+        if (history.isEmpty() && currentValue == 0L) return@LaunchedEffect
         history.add(currentValue)
         if (history.size > 50) history.removeAt(0)
     }

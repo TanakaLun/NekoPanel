@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -226,21 +227,35 @@ fun BasePreference(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     trailing: @Composable BoxScope.() -> Unit = {},
+    onTapPosition: ((Float) -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
     val alpha = if (enabled) 1f else 0.38f
 
+    val baseModifier = modifier
+        .fillMaxWidth()
+        .clickable(
+            enabled = enabled,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                onClick()
+            }
+        )
+        .padding(horizontal = 16.dp, vertical = 12.dp)
+
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                enabled = enabled,
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                    onClick()
+        modifier = if (onTapPosition != null) {
+            baseModifier.pointerInput(onTapPosition) {
+                while (true) {
+                    awaitPointerEventScope {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        event.changes.firstOrNull()?.let {
+                            onTapPosition(it.position.x)
+                        }
+                    }
                 }
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            }
+        } else baseModifier,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -299,6 +314,7 @@ fun SettingsDropdownMenuInline(
     onSelected: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var tapOffsetX by remember { mutableFloatStateOf(0f) }
     var parentWidth by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
 
@@ -311,6 +327,7 @@ fun SettingsDropdownMenuInline(
             title = label,
             modifier = modifier,
             onClick = { expanded = true },
+            onTapPosition = { tapOffsetX = it },
             trailing = {
                 Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
@@ -332,7 +349,7 @@ fun SettingsDropdownMenuInline(
                     .background(MaterialTheme.colorScheme.surface),
                 offset = DpOffset(
                     x = with(density) {
-                        val tapXDp = 16.dp
+                        val tapXDp = tapOffsetX.toDp()
                         val estimatedMenuWidth = 200.dp
                         val parentDp = parentWidth.toDp()
                         val rightEdge = tapXDp + estimatedMenuWidth + 8.dp

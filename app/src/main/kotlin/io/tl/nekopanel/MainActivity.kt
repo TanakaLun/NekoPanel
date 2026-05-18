@@ -37,6 +37,7 @@ import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
+import io.tl.nekopanel.ui.screens.BackupScreen
 import io.tl.nekopanel.ui.screens.FullSettingsScreen
 import io.tl.nekopanel.ui.screens.UiSettingsScreen
 import io.tl.nekopanel.ui.screens.ProxiesScreen
@@ -122,7 +123,7 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     }
 }
 
-enum class Page { MAIN, UI_SETTINGS }
+enum class Page { MAIN, UI_SETTINGS, BACKUP }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,18 +163,43 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         connections = emptyList()
     }
 
-    LaunchedEffect(selectedTab, settings.continuousData, currentLogLevel) {
-        if (settings.apiBaseUrl.isNotBlank() && (settings.continuousData || selectedTab == 2)) {
-            val logWs = ApiClient.buildWebSocket(
-                "/logs?level=$currentLogLevel",
-                onText = { text ->
-                    try {
-                        val obj = JSONObject(text)
-                        logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
-                        if (logs.size > 1000) logs.removeAt(0)
-                    } catch (_: Exception) {}
-                }
-            )
+    LaunchedEffect(Unit) {
+        if (settings.apiBaseUrl.isBlank()) return@LaunchedEffect
+        val memWs = ApiClient.buildWebSocket(
+            "/memory",
+            onText = { text ->
+                try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
+            }
+        )
+        val trafficWs = ApiClient.buildWebSocket(
+            "/traffic",
+            onText = { text ->
+                try {
+                    val obj = JSONObject(text)
+                    globalDown = obj.optLong("down", 0L)
+                    globalUp = obj.optLong("up", 0L)
+                    totalDown = obj.optLong("downTotal", 0L)
+                    totalUp = obj.optLong("upTotal", 0L)
+                } catch (_: Exception) {}
+            }
+        )
+        val logWs = ApiClient.buildWebSocket(
+            "/logs?level=$currentLogLevel",
+            onText = { text ->
+                try {
+                    val obj = JSONObject(text)
+                    logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
+                    if (logs.size > 1000) logs.removeAt(0)
+                } catch (_: Exception) {}
+            }
+        )
+        try { delay(Long.MAX_VALUE) } finally {
+            memWs.cancel(); trafficWs.cancel(); logWs.cancel()
+        }
+    }
+
+    LaunchedEffect(selectedTab) {
+        if (settings.apiBaseUrl.isNotBlank() && selectedTab == 2) {
             val connWs = ApiClient.buildWebSocket(
                 "/connections?interval=1000",
                 onText = { text ->
@@ -199,31 +225,13 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     } catch (_: Exception) {}
                 }
             )
-            val memWs = ApiClient.buildWebSocket(
-                "/memory",
-                onText = { text ->
-                    try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
-                }
-            )
-            val trafficWs = ApiClient.buildWebSocket(
-                "/traffic",
-                onText = { text ->
-                    try {
-                        val obj = JSONObject(text)
-                        globalDown = obj.optLong("down", 0L)
-                        globalUp = obj.optLong("up", 0L)
-                        totalDown = obj.optLong("downTotal", 0L)
-                        totalUp = obj.optLong("upTotal", 0L)
-                    } catch (_: Exception) {}
-                }
-            )
             try { delay(Long.MAX_VALUE) } finally {
-                logWs.cancel(); connWs.cancel(); memWs.cancel(); trafficWs.cancel()
+                connWs.cancel()
             }
         }
     }
 
-    BackHandler(currentPage == Page.UI_SETTINGS) {
+    BackHandler(currentPage == Page.UI_SETTINGS || currentPage == Page.BACKUP) {
         currentPage = Page.MAIN
     }
 
@@ -266,7 +274,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                             0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
                             1 -> RulesScreen(globalRefreshTick, settings)
                             2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                            3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS })
+                            3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
                         }
                     }
                 }
@@ -276,6 +284,11 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     Surface(modifier = Modifier.fillMaxSize()) {
                         UiSettingsScreen(settings, onPureBlackToggle, onBack = { currentPage = Page.MAIN })
                     }
+                }
+            }
+            Page.BACKUP -> {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    BackupScreen(settings, onBack = { currentPage = Page.MAIN })
                 }
             }
         }

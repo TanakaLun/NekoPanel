@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 @Composable
-fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onNavigateToUiSettings: () -> Unit = {}) {
+fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onNavigateToUiSettings: () -> Unit = {}, onNavigateToBackup: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
@@ -171,6 +171,21 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
         
+        // --- 数据备份 ---
+        item {
+            SplicedColumnGroup(title = "数据备份") {
+                item {
+                    BasePreference(
+                        title = "WebDAV / GitHub 远程备份",
+                        onClick = onNavigateToBackup,
+                        trailing = {
+                            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                        }
+                    )
+                }
+            }
+        }
+        
         // --- API 连接设置 ---
         item {
             SectionTitle("连接设置")
@@ -210,7 +225,6 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
     var radiusState by remember { mutableIntStateOf(settings.badgeCornerRadius) }
     var pureState by remember { mutableStateOf(settings.pureBlackMode) }
     var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
-    var contData by remember { mutableStateOf(settings.continuousData) }
 
 
 
@@ -322,9 +336,6 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                                 DataDaemonService.stop(context)
                             }
                         }
-                    }
-                    item {
-                        ConfigToggle("持续获取所有数据（确保时效性）", checked = contData) { contData = it; settings.continuousData = it }
                     }
                 }
             }

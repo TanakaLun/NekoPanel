@@ -73,10 +73,6 @@ class SettingsManager(context: Context) {
         get() = getBoolean("background_websocket", false)
         set(value) = setBoolean("background_websocket", value)
 
-    var continuousData: Boolean
-        get() = getBoolean("continuous_data", false)
-        set(value) = setBoolean("continuous_data", value)
-
     var pureBlackMode: Boolean
         get() = getBoolean("pure_black_mode", false)
         set(value) = setBoolean("pure_black_mode", value)
@@ -164,4 +160,32 @@ class SettingsManager(context: Context) {
         setLong("last_total_down", 0L)
         setLong("last_total_up", 0L)
     }
+
+    var backupWebdavUrl: String
+        get() = getString("backup_webdav_url", "")
+        set(value) = setString("backup_webdav_url", value)
+
+    var backupWebdavUser: String
+        get() = getString("backup_webdav_user", "")
+        set(value) = setString("backup_webdav_user", value)
+
+    var backupWebdavPass: String
+        get() = getString("backup_webdav_pass", "")
+        set(value) = setString("backup_webdav_pass", value)
+
+    var backupGithubRepo: String
+        get() = getString("backup_github_repo", "")
+        set(value) = setString("backup_github_repo", value)
+
+    var backupGithubToken: String
+        get() = getString("backup_github_token", "")
+        set(value) = setString("backup_github_token", value)
+
+    var backupGithubPath: String
+        get() = getString("backup_github_path", "nekopanel-backup.json")
+        set(value) = setString("backup_github_path", value)
+
+    var backupAutoInterval: Int
+        get() = getInt("backup_auto_interval", 0)
+        set(value) = setInt("backup_auto_interval", value)
 }
