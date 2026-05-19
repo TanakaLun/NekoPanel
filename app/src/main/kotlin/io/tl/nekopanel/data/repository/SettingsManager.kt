@@ -188,4 +188,20 @@ class SettingsManager(context: Context) {
     var backupAutoInterval: Int
         get() = getInt("backup_auto_interval", 0)
         set(value) = setInt("backup_auto_interval", value)
+
+    var autoStartService: Boolean
+        get() = getBoolean("auto_start_service", false)
+        set(value) = setBoolean("auto_start_service", value)
+
+    var themeMode: String
+        get() = getString("theme_mode", "follow_system")
+        set(value) = setString("theme_mode", value)
+
+    var dynamicColorEnabled: Boolean
+        get() = getBoolean("dynamic_color_enabled", true)
+        set(value) = setBoolean("dynamic_color_enabled", value)
+
+    var customThemeColorKey: String
+        get() = getString("custom_theme_color_key", "")
+        set(value) = setString("custom_theme_color_key", value)
 }

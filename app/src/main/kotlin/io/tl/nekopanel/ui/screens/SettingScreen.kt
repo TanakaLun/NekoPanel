@@ -1,9 +1,8 @@
 package io.tl.nekopanel.ui.screens
-
 import android.os.Build
 import android.os.PowerManager
 import android.widget.Toast
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +13,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +24,7 @@ import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
+import io.tl.nekopanel.ui.theme.JapaneseThemeSchemes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -186,6 +187,46 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
         
+        // --- 流量监控 ---
+        item {
+            var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
+            var autoStart by remember { mutableStateOf(settings.autoStartService) }
+            SplicedColumnGroup(title = "流量监控") {
+                item {
+                    ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
+                        bgWs = enabled; settings.backgroundWebSocket = enabled
+                        if (enabled) {
+                            DataDaemonService.start(context)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                                if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                                    MainActivity.requestBatteryExemption(context as android.app.Activity)
+                                }
+                            }
+                        } else {
+                            DataDaemonService.stop(context)
+                        }
+                    }
+                }
+                item {
+                    ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
+                }
+            }
+        }
+        if (settings.backgroundWebSocket && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            item {
+                val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
+                val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning, null, tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, modifier = Modifier.clickable { if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity) })
+                    }
+                }
+            }
+        }
+        
         // --- API 连接设置 ---
         item {
             SectionTitle("连接设置")
@@ -211,7 +252,11 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
 }
 
 @Composable
-fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onBack: () -> Unit) {
+fun UiSettingsScreen(
+    settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit,
+    onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
 
     var groupColBy by remember { mutableStateOf(if(settings.groupColumnCount == 1) "1 列" else "2 列") }
@@ -224,7 +269,9 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
     var cardFillBy by remember { mutableStateOf(settings.cardFillStyle) }
     var radiusState by remember { mutableIntStateOf(settings.badgeCornerRadius) }
     var pureState by remember { mutableStateOf(settings.pureBlackMode) }
-    var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
+    var themeModeState by remember { mutableStateOf(settings.themeMode) }
+    var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
+    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
 
 
 
@@ -320,21 +367,39 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
             item {
                 SplicedColumnGroup(title = "主题与行为") {
                     item {
-                        ConfigToggle("AMOLED 纯黑模式", checked = pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
+                        SettingsDropdownMenuInline("外观模式", themeModeState, listOf("跟随系统", "浅色模式", "深色模式")) { s ->
+                            themeModeState = when (s) { "浅色模式" -> "light"; "深色模式" -> "dark"; else -> "follow_system" }
+                            onThemeModeChange(themeModeState)
+                        }
                     }
                     item {
-                        ConfigToggle("流量监控", checked = bgWs) { bgWs = it; settings.backgroundWebSocket = it
-                            if (it) {
-                                DataDaemonService.start(context)
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
-                                    if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
-                                        MainActivity.requestBatteryExemption(context as android.app.Activity)
+                        ConfigToggle("AMOLED 纯黑模式 (深色)", checked = pureState) { pureState = it; settings.pureBlackMode = it; onPureBlackToggle(it) }
+                    }
+                    item {
+                        ConfigToggle("动态取色", checked = dynColorState) {
+                            dynColorState = it; onDynamicColorChange(it)
+                            if (!it && customColorState.isBlank()) {
+                                customColorState = "akabeni"; onCustomColorChange("akabeni")
+                            }
+                        }
+                    }
+                    if (!dynColorState) {
+                        item {
+                            DropDownList(
+                                label = "自定义主题色",
+                                currentValue = JapaneseThemeSchemes.firstOrNull { it.key == customColorState }?.name ?: "未选择",
+                                options = JapaneseThemeSchemes.map { it.key },
+                                onSelected = { customColorState = it; onCustomColorChange(it) },
+                                itemContent = { key, selected ->
+                                    val tc = JapaneseThemeSchemes.firstOrNull { it.key == key }!!
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(if (isSystemInDarkTheme()) tc.darkPrimary else tc.lightPrimary))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(tc.name, fontWeight = FontWeight.Normal, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                        if (selected) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                     }
                                 }
-                            } else {
-                                DataDaemonService.stop(context)
-                            }
+                            )
                         }
                     }
                 }
@@ -354,32 +419,6 @@ fun UiSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> 
                 }
             }
 
-            if (bgWs && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                item {
-                    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
-                    val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning,
-                                null,
-                                tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.clickable {
-                                    if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
@@ -29,11 +30,18 @@ class DataDaemonService : Service() {
     private var globalUp = 0L
     private var totalDown = 0L
     private var totalUp = 0L
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
         settings = SettingsManager(this)
         createNotificationChannel()
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        try {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NekoPanel:TrafficMonitor").apply {
+                acquire(10 * 60 * 1000L)
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -96,6 +104,12 @@ class DataDaemonService : Service() {
         val totalText = "累计 ↓ ${totalDown.formatSize()}  ↑ ${totalUp.formatSize()}"
         val bigText = "$content\n$totalText"
 
+        val stopIntent = PendingIntent.getService(
+            this, 1,
+            Intent(this, DataDaemonService::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
@@ -103,8 +117,8 @@ class DataDaemonService : Service() {
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            builder.setPriority(Notification.PRIORITY_LOW)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
         }
         return builder.build()
     }
@@ -129,6 +143,8 @@ class DataDaemonService : Service() {
     override fun onDestroy() {
         stopTrafficWebSocket()
         scope.cancel()
+        try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
+        try { wakeLock?.release() } catch (_: Exception) {}
         super.onDestroy()
     }
 

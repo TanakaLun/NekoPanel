@@ -18,6 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -66,7 +67,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
-            ComposeEmptyActivityTheme(pureBlackMode = pureBlackMode) {
+            var themeModeState by remember { mutableStateOf(settings.themeMode) }
+            var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
+            var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+            val isDark = themeModeState == "dark" || (themeModeState == "follow_system" && isSystemInDarkTheme())
+            ComposeEmptyActivityTheme(
+                darkTheme = isDark,
+                dynamicColor = dynColorState,
+                pureBlackMode = pureBlackMode,
+                customPrimaryKey = customColorState
+            ) {
                 ApiClient.baseUrl = settings.apiBaseUrl
                 ApiClient.secret = settings.apiSecret
 
@@ -76,7 +86,13 @@ class MainActivity : ComponentActivity() {
                         ApiClient.secret = settings.apiSecret
                     }
                 } else {
-                    ClashManagerApp(settings = settings, onPureBlackToggle = { pureBlackMode = it })
+                    ClashManagerApp(
+                        settings = settings,
+                        onPureBlackToggle = { pureBlackMode = it },
+                        onThemeModeChange = { themeModeState = it; settings.themeMode = it },
+                        onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
+                        onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it }
+                    )
                 }
             }
         }
@@ -127,7 +143,7 @@ enum class Page { MAIN, UI_SETTINGS, BACKUP }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit) {
+fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {}) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
@@ -151,7 +167,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        if (settings.backgroundWebSocket) {
+        if (settings.backgroundWebSocket || settings.autoStartService) {
             DataDaemonService.start(context)
         }
     }
@@ -272,10 +288,14 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 }
             }
             Page.UI_SETTINGS -> {
-                ComposeEmptyActivityTheme(pureBlackMode = settings.pureBlackMode) {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        UiSettingsScreen(settings, onPureBlackToggle, onBack = { currentPage = Page.MAIN })
-                    }
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    UiSettingsScreen(
+                        settings, onPureBlackToggle,
+                        onThemeModeChange = onThemeModeChange,
+                        onDynamicColorChange = onDynamicColorChange,
+                        onCustomColorChange = onCustomColorChange,
+                        onBack = { currentPage = Page.MAIN }
+                    )
                 }
             }
             Page.BACKUP -> {

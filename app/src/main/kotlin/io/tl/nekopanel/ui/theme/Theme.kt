@@ -23,11 +23,22 @@ private val LightColorScheme = lightColorScheme(
     tertiary = Pink40
 )
 
+fun resolveThemeScheme(customKey: String, dark: Boolean, pureBlack: Boolean) =
+    JapaneseThemeSchemes.firstOrNull { it.key == customKey }?.let { scheme ->
+        val base = if (dark) scheme.darkScheme() else scheme.lightScheme()
+        if (dark && pureBlack) base.copy(
+            background = Color.Black, surface = Color.Black,
+            surfaceVariant = Color(0xFF121212),
+            surfaceContainer = Color.Black, surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
+        ) else base
+    }
+
 @Composable
 fun ComposeEmptyActivityTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     pureBlackMode: Boolean = false,
+    customPrimaryKey: String = "",
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -48,6 +59,8 @@ fun ComposeEmptyActivityTheme(
                 dynamicScheme
             }
         }
+        customPrimaryKey.isNotBlank() ->
+            resolveThemeScheme(customPrimaryKey, darkTheme, pureBlackMode) ?: if (darkTheme) DarkColorScheme else LightColorScheme
         darkTheme -> {
             if (pureBlackMode) {
                 DarkColorScheme.copy(
