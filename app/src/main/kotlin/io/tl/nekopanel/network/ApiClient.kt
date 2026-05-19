@@ -56,6 +56,9 @@ object ApiClient {
         val encoded = java.net.URLEncoder.encode(url, "utf-8")
         return JSONObject(get("/group/$name/delay?url=$encoded&timeout=$timeout"))
     }
+    suspend fun getMemory(): JSONObject = JSONObject(get("/memory"))
+    suspend fun getTraffic(): JSONObject = JSONObject(get("/traffic"))
+
     suspend fun getConfigs(): JSONObject = JSONObject(get("/configs"))
     suspend fun updateConfigs(body: Map<String, Any>) {
         request("PATCH", "/configs", JSONObject(body).toString())

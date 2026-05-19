@@ -289,55 +289,59 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                     }
                 }
 
-                SectionTitle(if (provider == "webdav") "WebDAV 配置" else "GitHub 配置")
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (provider == "webdav") {
-                            OutlinedTextField(value = webdavUrl, onValueChange = { webdavUrl = it }, label = { Text("服务器地址") }, placeholder = { Text("https://example.com/dav") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = webdavUser, onValueChange = { webdavUser = it }, label = { Text("用户名") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = webdavPass, onValueChange = { webdavPass = it }, label = { Text("密码") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
-                                IconButton(onClick = { showWebdavPass = !showWebdavPass }) { Icon(if (showWebdavPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
-                            })
-                        } else {
-                            OutlinedTextField(value = ghRepo, onValueChange = { ghRepo = it }, label = { Text("仓库") }, placeholder = { Text("user/repo") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(value = ghToken, onValueChange = { ghToken = it }, label = { Text("Token") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
-                                IconButton(onClick = { showGhToken = !showGhToken }) { Icon(if (showGhToken) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
-                            })
-                            OutlinedTextField(value = ghPath, onValueChange = { ghPath = it }, label = { Text("文件路径") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                Column {
+                    SectionTitle(if (provider == "webdav") "WebDAV 配置" else "GitHub 配置")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (provider == "webdav") {
+                                OutlinedTextField(value = webdavUrl, onValueChange = { webdavUrl = it }, label = { Text("服务器地址") }, placeholder = { Text("https://example.com/dav") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = webdavUser, onValueChange = { webdavUser = it }, label = { Text("用户名") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = webdavPass, onValueChange = { webdavPass = it }, label = { Text("密码") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                    IconButton(onClick = { showWebdavPass = !showWebdavPass }) { Icon(if (showWebdavPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
+                                })
+                            } else {
+                                OutlinedTextField(value = ghRepo, onValueChange = { ghRepo = it }, label = { Text("仓库") }, placeholder = { Text("user/repo") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = ghToken, onValueChange = { ghToken = it }, label = { Text("Token") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                    IconButton(onClick = { showGhToken = !showGhToken }) { Icon(if (showGhToken) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
+                                })
+                                OutlinedTextField(value = ghPath, onValueChange = { ghPath = it }, label = { Text("文件路径") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }
 
-                SectionTitle("操作")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = { doBackup() },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isBackingUp && !isRestoring,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(Icons.Default.Upload, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        if (isBackingUp) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Text("备份到服务器")
-                    }
-                    OutlinedButton(
-                        onClick = { doRestore() },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isBackingUp && !isRestoring,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Download, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        if (isRestoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Text("从服务器恢复")
+                Column {
+                    SectionTitle("操作")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = { doBackup() },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isBackingUp && !isRestoring,
+                                    shape = RoundedCornerShape(24.dp)
+                                ) {
+                                    if (isBackingUp) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                                    else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
+                                }
+                                OutlinedButton(
+                                    onClick = { doRestore() },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isBackingUp && !isRestoring,
+                                    shape = RoundedCornerShape(24.dp)
+                                ) {
+                                    if (isRestoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
+                                }
+                            }
+                        }
                     }
                 }
 
-                SectionTitle("自动备份")
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column {
+                    SectionTitle("自动备份")
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Column {
                                 Text("定时自动备份", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
@@ -370,6 +374,7 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                             }
                         }
                     }
+                }
                 }
 
                 Spacer(Modifier.height(80.dp))

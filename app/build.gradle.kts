@@ -13,8 +13,8 @@ android {
         applicationId = "io.tl.nekopanel"
         minSdk = 33
         targetSdk = 37
-        versionCode = 50
-        versionName = "evolution"
+        versionCode = 57
+        versionName = "foundation"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
