@@ -36,12 +36,17 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
     val context = LocalContext.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
     var coreVersion by remember { mutableStateOf("正在获取...") }
+    var connectFailed by remember { mutableStateOf(false) }
+    var reconfigDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
             coreVersion = ApiClient.getVersion().optString("version", "Unknown")
             config = ApiClient.getConfigs()
-        } catch (_: Exception) { coreVersion = "获取失败" }
+        } catch (_: Exception) {
+            coreVersion = "获取失败"
+            connectFailed = true
+        }
     }
 
     fun updateRemote(key: String, value: Any) {
@@ -53,6 +58,41 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 withContext(Dispatchers.Main) { Toast.makeText(context, "更新失败", Toast.LENGTH_SHORT).show() }
             }
         }
+    }
+
+    if (connectFailed && !reconfigDialog) reconfigDialog = true
+
+    if (reconfigDialog) {
+        var tmpUrl by remember { mutableStateOf(settings.apiBaseUrl) }
+        var tmpSecret by remember { mutableStateOf(settings.apiSecret) }
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("连接失败") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("无法连接到核心，请检查地址和密钥是否正确", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(value = tmpUrl, onValueChange = { tmpUrl = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = tmpSecret, onValueChange = { tmpSecret = it }, label = { Text("密钥 (可选)") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    settings.apiBaseUrl = tmpUrl.trimEnd('/')
+                    settings.apiSecret = tmpSecret
+                    ApiClient.baseUrl = settings.apiBaseUrl
+                    ApiClient.secret = settings.apiSecret
+                    reconfigDialog = false
+                    connectFailed = false
+                    config = null; coreVersion = "正在获取..."
+                    scope.launch {
+                        try {
+                            coreVersion = ApiClient.getVersion().optString("version", "Unknown")
+                            config = ApiClient.getConfigs()
+                        } catch (_: Exception) { coreVersion = "获取失败"; connectFailed = true }
+                    }
+                }) { Text("重新连接") }
+            }
+        )
     }
 
     if (config == null) {
@@ -367,9 +407,11 @@ fun UiSettingsScreen(
             item {
                 SplicedColumnGroup(title = "主题与行为") {
                     item {
-                        SettingsDropdownMenuInline("外观模式", themeModeState, listOf("跟随系统", "浅色模式", "深色模式")) { s ->
-                            themeModeState = when (s) { "浅色模式" -> "light"; "深色模式" -> "dark"; else -> "follow_system" }
-                            onThemeModeChange(themeModeState)
+                        val modeNames = listOf("跟随系统", "浅色模式", "深色模式")
+                        val currentModeName = when (themeModeState) { "light" -> "浅色模式"; "dark" -> "深色模式"; else -> "跟随系统" }
+                        SettingsDropdownMenuInline("外观模式", currentModeName, modeNames) { s ->
+                            val newMode = when (s) { "浅色模式" -> "light"; "深色模式" -> "dark"; else -> "follow_system" }
+                            themeModeState = newMode; onThemeModeChange(newMode)
                         }
                     }
                     item {
@@ -387,7 +429,8 @@ fun UiSettingsScreen(
                         item {
                             DropDownList(
                                 label = "自定义主题色",
-                                currentValue = JapaneseThemeSchemes.firstOrNull { it.key == customColorState }?.name ?: "未选择",
+                                currentValue = customColorState,
+                                displayValue = JapaneseThemeSchemes.firstOrNull { it.key == customColorState }?.name ?: "未选择",
                                 options = JapaneseThemeSchemes.map { it.key },
                                 onSelected = { customColorState = it; onCustomColorChange(it) },
                                 itemContent = { key, selected ->

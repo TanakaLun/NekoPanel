@@ -387,6 +387,7 @@ fun DropDownList(
     modifier: Modifier = Modifier,
     onSelected: (String) -> Unit,
     itemContent: @Composable (String, Boolean) -> Unit,
+    displayValue: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     var tapOffsetX by remember { mutableFloatStateOf(0f) }
@@ -406,7 +407,7 @@ fun DropDownList(
             trailing = {
                 Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
-                        text = currentValue,
+                        text = displayValue ?: currentValue,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
