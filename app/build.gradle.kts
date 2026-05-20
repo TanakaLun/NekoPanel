@@ -13,7 +13,7 @@ android {
         applicationId = "io.tl.nekopanel"
         minSdk = 33
         targetSdk = 37
-        versionCode = 103
+        versionCode = 104
         versionName = "overdreaming"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

@@ -36,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Slider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -658,9 +659,9 @@ fun SliderPreference(
     label: String,
     value: Int,
     onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..12f,
     steps: Int = 12,
-    modifier: Modifier = Modifier,
 ) {
     BasePreference(
         title = label,
