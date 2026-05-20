@@ -381,7 +381,7 @@ fun UiSettingsScreen(
                             SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
                         }
                         item {
-                            SliderPreference("圆角弧度", radiusState) { radiusState = it; settings.badgeCornerRadius = it }
+                            SliderPreference("圆角弧度", radiusState, onValueChange = { radiusState = it; settings.badgeCornerRadius = it })
                         }
                     }
                 }
