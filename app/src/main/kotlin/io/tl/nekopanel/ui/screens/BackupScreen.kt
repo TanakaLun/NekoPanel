@@ -22,6 +22,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.local.AppDatabase
 import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.ui.components.BasePreference
+import io.tl.nekopanel.ui.components.ConfigToggle
 import io.tl.nekopanel.ui.components.SectionTitle
 import io.tl.nekopanel.ui.components.SettingsDropdownMenuInline
 import io.tl.nekopanel.ui.components.SplicedColumnGroup
@@ -251,7 +253,7 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
         )
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
@@ -339,43 +341,27 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                     }
                 }
 
-                Column {
-                    SectionTitle("自动备份")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column {
-                                Text("定时自动备份", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    if (autoBackupEnabled) "每 ${autoBackupInterval} 分钟执行一次" else "已关闭",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                            Switch(checked = autoBackupEnabled, onCheckedChange = {
-                                autoBackupEnabled = it
-                                if (!it) {
-                                    autoBackupInterval = 0
-                                    settings.backupAutoInterval = 0
-                                } else if (autoBackupInterval <= 0) {
-                                    autoBackupInterval = 60
-                                }
-                                settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
-                            })
-                        }
-                        if (autoBackupEnabled) {
-                            OutlinedButton(
-                                onClick = { showAutoBackupDialog = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Schedule, null, Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("修改间隔时间")
-                            }
+                SplicedColumnGroup(title = "自动备份") {
+                    item {
+                        ConfigToggle("定时自动备份", checked = autoBackupEnabled) {
+                            autoBackupEnabled = it
+                            if (!it) { autoBackupInterval = 0; settings.backupAutoInterval = 0 }
+                            else if (autoBackupInterval <= 0) { autoBackupInterval = 60 }
+                            settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
                         }
                     }
-                }
+                    if (autoBackupEnabled) {
+                        item {
+                            BasePreference(
+                                title = "备份间隔",
+                                description = "每 ${autoBackupInterval} 分钟执行一次",
+                                onClick = { showAutoBackupDialog = true },
+                                trailing = {
+                                    Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.outline)
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(80.dp))

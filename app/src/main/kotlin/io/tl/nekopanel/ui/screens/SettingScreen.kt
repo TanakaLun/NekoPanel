@@ -317,7 +317,7 @@ fun UiSettingsScreen(
 
 
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
