@@ -295,6 +295,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
 fun UiSettingsScreen(
     settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit,
     onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
+    onBackAnimChange: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -312,6 +313,7 @@ fun UiSettingsScreen(
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+    var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
 
 
 
@@ -400,6 +402,14 @@ fun UiSettingsScreen(
                     }
                     item {
                         SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
+                    }
+                    item {
+                        val animNames = listOf("滑动", "缩放", "无")
+                        val curAnim = when (backAnimState) { "scale" -> "缩放"; "none" -> "无"; else -> "滑动" }
+                        SettingsDropdownMenuInline("返回动画", curAnim, animNames) { s ->
+                            backAnimState = when (s) { "缩放" -> "scale"; "无" -> "none"; else -> "slide" }
+                            onBackAnimChange(backAnimState)
+                        }
                     }
                 }
             }

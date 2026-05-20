@@ -1,6 +1,7 @@
 package io.tl.nekopanel.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,7 +44,7 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
     var isBackingUp by remember { mutableStateOf(false) }
     var isRestoring by remember { mutableStateOf(false) }
 
-    var provider by remember { mutableStateOf(if (settings.backupGithubRepo.isNotBlank()) "github" else "webdav") }
+    var provider by remember { mutableStateOf(settings.backupProvider) }
     var showAutoBackupDialog by remember { mutableStateOf(false) }
     var autoBackupInterval by remember { mutableStateOf(settings.backupAutoInterval) }
     var autoBackupEnabled by remember { mutableStateOf(settings.backupAutoInterval > 0) }
@@ -284,7 +285,7 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                             label = "选择备份方式",
                             currentValue = if (provider == "webdav") "WebDAV" else "GitHub",
                             options = listOf("WebDAV", "GitHub"),
-                            onSelected = { provider = if (it == "WebDAV") "webdav" else "github" }
+                            onSelected = { provider = if (it == "WebDAV") "webdav" else "github"; settings.backupProvider = provider }
                         )
                     }
                 }
@@ -294,17 +295,17 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (provider == "webdav") {
-                                OutlinedTextField(value = webdavUrl, onValueChange = { webdavUrl = it }, label = { Text("服务器地址") }, placeholder = { Text("https://example.com/dav") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = webdavUser, onValueChange = { webdavUser = it }, label = { Text("用户名") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = webdavPass, onValueChange = { webdavPass = it }, label = { Text("密码") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                OutlinedTextField(value = webdavUrl, onValueChange = { webdavUrl = it; settings.backupWebdavUrl = it }, label = { Text("服务器地址") }, placeholder = { Text("https://example.com/dav") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = webdavUser, onValueChange = { webdavUser = it; settings.backupWebdavUser = it }, label = { Text("用户名") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = webdavPass, onValueChange = { webdavPass = it; settings.backupWebdavPass = it }, label = { Text("密码") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showWebdavPass = !showWebdavPass }) { Icon(if (showWebdavPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
                             } else {
-                                OutlinedTextField(value = ghRepo, onValueChange = { ghRepo = it }, label = { Text("仓库") }, placeholder = { Text("user/repo") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = ghToken, onValueChange = { ghToken = it }, label = { Text("Token") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                OutlinedTextField(value = ghRepo, onValueChange = { ghRepo = it; settings.backupGithubRepo = it }, label = { Text("仓库") }, placeholder = { Text("user/repo") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = ghToken, onValueChange = { ghToken = it; settings.backupGithubToken = it }, label = { Text("Token") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showGhToken = !showGhToken }) { Icon(if (showGhToken) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
-                                OutlinedTextField(value = ghPath, onValueChange = { ghPath = it }, label = { Text("文件路径") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = ghPath, onValueChange = { ghPath = it; settings.backupGithubPath = it }, label = { Text("文件路径") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                             }
                         }
                     }

@@ -12,16 +12,23 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -69,32 +76,32 @@ class MainActivity : ComponentActivity() {
             var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
             var themeModeState by remember { mutableStateOf(settings.themeMode) }
             var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-            var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
-            val isDark = themeModeState == "dark" || (themeModeState == "follow_system" && isSystemInDarkTheme())
-            ComposeEmptyActivityTheme(
-                darkTheme = isDark,
-                dynamicColor = dynColorState,
-                pureBlackMode = pureBlackMode,
-                customPrimaryKey = customColorState
-            ) {
+    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+    val isDark = themeModeState == "dark" || (themeModeState == "follow_system" && isSystemInDarkTheme())
+    ComposeEmptyActivityTheme(
+        darkTheme = isDark,
+        dynamicColor = dynColorState,
+        pureBlackMode = pureBlackMode,
+        customPrimaryKey = customColorState
+    ) {
+        ApiClient.baseUrl = settings.apiBaseUrl
+        ApiClient.secret = settings.apiSecret
+
+        if (settings.apiBaseUrl.isBlank()) {
+            InitialSetupDialog(settings) {
                 ApiClient.baseUrl = settings.apiBaseUrl
                 ApiClient.secret = settings.apiSecret
-
-                if (settings.apiBaseUrl.isBlank()) {
-                    InitialSetupDialog(settings) {
-                        ApiClient.baseUrl = settings.apiBaseUrl
-                        ApiClient.secret = settings.apiSecret
-                    }
-                } else {
-                    ClashManagerApp(
-                        settings = settings,
-                        onPureBlackToggle = { pureBlackMode = it },
-                        onThemeModeChange = { themeModeState = it; settings.themeMode = it },
-                        onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
-                        onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it }
-                    )
-                }
             }
+        } else {
+            ClashManagerApp(
+                settings = settings,
+                onPureBlackToggle = { pureBlackMode = it },
+                onThemeModeChange = { themeModeState = it; settings.themeMode = it },
+                onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
+                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it }
+            )
+        }
+    }
         }
     }
 
@@ -149,6 +156,8 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
     var currentPage by remember { mutableStateOf(Page.MAIN) }
+    var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
+    val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
@@ -163,8 +172,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
     val memHistory = rememberChartHistory(globalInUse)
     val downHistory = rememberChartHistory(globalDown)
-
-    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         if (settings.backgroundWebSocket || settings.autoStartService) {
@@ -239,6 +246,28 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         }
     }
 
+    var currentPredictiveProgress by remember { mutableFloatStateOf(0f) }
+    var isPredictingBack by remember { mutableStateOf(false) }
+    val isOnSubPage = currentPage != Page.MAIN
+    var predictiveTouchYPx by remember { mutableFloatStateOf(-1f) }
+
+    if (isOnSubPage && backAnimState != "none") {
+        PredictiveBackHandler(enabled = true) { progressFlow ->
+            isPredictingBack = true
+            try {
+                progressFlow.collect { backEvent ->
+                    currentPredictiveProgress = backEvent.progress
+                    if (Build.VERSION.SDK_INT >= 35) predictiveTouchYPx = backEvent.touchY
+                }
+                currentPage = Page.MAIN
+            } catch (_: CancellationException) {
+            } finally {
+                isPredictingBack = false
+                currentPredictiveProgress = 0f
+            }
+        }
+    }
+
     BackHandler(currentPage == Page.UI_SETTINGS || currentPage == Page.BACKUP) {
         currentPage = Page.MAIN
     }
@@ -246,61 +275,69 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     BackHandler(currentPage == Page.MAIN) {
         (context as? Activity)?.moveTaskToBack(true)
     }
+    BackHandler(currentPage == Page.MAIN) {
+        (context as? Activity)?.moveTaskToBack(true)
+    }
 
-    AnimatedContent(
-        targetState = currentPage,
-        modifier = Modifier.background(MaterialTheme.colorScheme.background),
-        transitionSpec = {
-            if (targetState == Page.UI_SETTINGS) {
-                (slideInHorizontally { it } + fadeIn()) togetherWith
-                    (fadeOut(animationSpec = tween(300)))
-            } else {
-                (scaleIn(initialScale = 0.95f) + fadeIn()) togetherWith
-                    (slideOutHorizontally { it / 3 } + scaleOut(targetScale = 0.9f) + fadeOut())
-            }
-        }
-    ) { page ->
-        when (page) {
-            Page.MAIN -> {
-                Scaffold(
-                    topBar = {
-                        CenterAlignedTopAppBar(title = {
-                            if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
-                            else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
-                        })
-                    },
-                    bottomBar = {
-                        NavigationBar {
-                            listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                                NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
-                            }
-                        }
-                    }
-                ) { padding ->
-                    Box(Modifier.padding(padding)) {
-                        when (selectedTab) {
-                            0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
-                            1 -> RulesScreen(globalRefreshTick, settings)
-                            2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                            3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
-                        }
+    Box(Modifier.fillMaxSize()) {
+        // Main page bottom layer — scaled/dimmed when sub-page is above
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                CenterAlignedTopAppBar(title = {
+                    if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
+                    else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
+                })
+            },
+            bottomBar = {
+                NavigationBar {
+                    listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
+                        NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
                     }
                 }
             }
-            Page.UI_SETTINGS -> {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    UiSettingsScreen(
+        ) { padding ->
+            Box(Modifier.padding(padding)) {
+                when (selectedTab) {
+                    0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
+                    1 -> RulesScreen(globalRefreshTick, settings)
+                    2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
+                    3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
+                }
+            }
+        }
+
+        // Sub-page overlay — transforms expose the main page underneath
+        if (isOnSubPage) {
+            val slideXDp = 200.dp * currentPredictiveProgress
+            val sc = 1f - 0.15f * currentPredictiveProgress
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (backAnimState == "scale") Modifier
+                            .graphicsLayer {
+                                scaleX = sc; scaleY = sc
+                                val ty = if (predictiveTouchYPx >= 0f) (predictiveTouchYPx / size.height).coerceIn(0.1f, 0.9f) else 0.5f
+                                transformOrigin = TransformOrigin(0.5f, ty)
+                            }
+                            .background(MaterialTheme.colorScheme.background, RoundedCornerShape(if (sc < 0.98f) 16.dp else 0.dp))
+                        else Modifier
+                            .graphicsLayer { translationX = size.width * 0.3f * currentPredictiveProgress }
+                            .background(MaterialTheme.colorScheme.background)
+                    )
+            ) {
+                when (currentPage) {
+                    Page.UI_SETTINGS -> UiSettingsScreen(
                         settings, onPureBlackToggle,
                         onThemeModeChange = onThemeModeChange,
                         onDynamicColorChange = onDynamicColorChange,
                         onCustomColorChange = onCustomColorChange,
+                        onBackAnimChange = { backAnimState = it; settings.backAnimStyle = it },
                         onBack = { currentPage = Page.MAIN }
                     )
-                }
-            }
-            Page.BACKUP -> {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    BackupScreen(settings, onBack = { currentPage = Page.MAIN })
+                    Page.BACKUP -> BackupScreen(settings, onBack = { currentPage = Page.MAIN })
+                    else -> {}
                 }
             }
         }
