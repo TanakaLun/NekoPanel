@@ -317,7 +317,7 @@ fun UiSettingsScreen(
 
 
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
@@ -370,17 +370,6 @@ fun UiSettingsScreen(
             item {
                 Column {
                     SectionTitle("徽章样式")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Badge 圆角弧度: ${radiusState}dp", style = MaterialTheme.typography.labelSmall)
-                            Slider(
-                                value = radiusState.toFloat(),
-                                onValueChange = { radiusState = it.toInt(); settings.badgeCornerRadius = it.toInt() },
-                                valueRange = 0f..12f, steps = 12
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
                     SplicedColumnGroup {
                         item {
                             SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
@@ -390,6 +379,9 @@ fun UiSettingsScreen(
                         }
                         item {
                             SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
+                        }
+                        item {
+                            SliderPreference("圆角弧度", radiusState) { radiusState = it; settings.badgeCornerRadius = it }
                         }
                     }
                 }

@@ -652,3 +652,28 @@ fun highlightJson(jsonStr: String): AnnotatedString {
 fun SectionTitle(title: String) {
     Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 }
+
+@Composable
+fun SliderPreference(
+    label: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..12f,
+    steps: Int = 12,
+    modifier: Modifier = Modifier,
+) {
+    BasePreference(
+        title = label,
+        description = "${value}dp",
+        modifier = modifier,
+        trailing = {
+            Slider(
+                value = value.toFloat(),
+                onValueChange = { onValueChange(it.toInt()) },
+                valueRange = valueRange,
+                steps = steps,
+                modifier = Modifier.width(160.dp)
+            )
+        }
+    )
+}

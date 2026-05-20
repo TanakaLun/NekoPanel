@@ -328,15 +328,19 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     )
             ) {
                 when (currentPage) {
-                    Page.UI_SETTINGS -> UiSettingsScreen(
-                        settings, onPureBlackToggle,
-                        onThemeModeChange = onThemeModeChange,
-                        onDynamicColorChange = onDynamicColorChange,
-                        onCustomColorChange = onCustomColorChange,
-                        onBackAnimChange = { backAnimState = it; settings.backAnimStyle = it },
-                        onBack = { currentPage = Page.MAIN }
-                    )
-                    Page.BACKUP -> BackupScreen(settings, onBack = { currentPage = Page.MAIN })
+                    Page.UI_SETTINGS -> Surface(Modifier.fillMaxSize()) {
+                        UiSettingsScreen(
+                            settings, onPureBlackToggle,
+                            onThemeModeChange = onThemeModeChange,
+                            onDynamicColorChange = onDynamicColorChange,
+                            onCustomColorChange = onCustomColorChange,
+                            onBackAnimChange = { backAnimState = it; settings.backAnimStyle = it },
+                            onBack = { currentPage = Page.MAIN }
+                        )
+                    }
+                    Page.BACKUP -> Surface(Modifier.fillMaxSize()) {
+                        BackupScreen(settings, onBack = { currentPage = Page.MAIN })
+                    }
                     else -> {}
                 }
             }
