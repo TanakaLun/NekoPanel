@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.CancellationException
@@ -315,16 +316,26 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 modifier = Modifier
                     .fillMaxSize()
                     .then(
-                        if (backAnimState == "scale") Modifier
-                            .graphicsLayer {
-                                scaleX = sc; scaleY = sc
-                                val ty = if (predictiveTouchYPx >= 0f) (predictiveTouchYPx / size.height).coerceIn(0.1f, 0.9f) else 0.5f
-                                transformOrigin = TransformOrigin(0.5f, ty)
-                            }
-                            .background(MaterialTheme.colorScheme.background, RoundedCornerShape(if (sc < 0.98f) 16.dp else 0.dp))
-                        else Modifier
-                            .graphicsLayer { translationX = size.width * 0.3f * currentPredictiveProgress }
-                            .background(MaterialTheme.colorScheme.background)
+                        if (backAnimState == "scale") {
+                            val roundShape = RoundedCornerShape(if (sc < 0.98f) 16.dp else 0.dp)
+                            Modifier
+                                .graphicsLayer {
+                                    scaleX = sc; scaleY = sc
+                                    val ty = if (predictiveTouchYPx >= 0f) (predictiveTouchYPx / size.height).coerceIn(0.1f, 0.9f) else 0.5f
+                                    transformOrigin = TransformOrigin(0.5f, ty)
+                                }
+                                .clip(roundShape)
+                                .background(MaterialTheme.colorScheme.background)
+                        } else {
+                            val sideClip = RoundedCornerShape(
+                                topStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp,
+                                bottomStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp
+                            )
+                            Modifier
+                                .graphicsLayer { translationX = size.width * 0.3f * currentPredictiveProgress }
+                                .clip(sideClip)
+                                .background(MaterialTheme.colorScheme.background)
+                        }
                     )
             ) {
                 when (currentPage) {
