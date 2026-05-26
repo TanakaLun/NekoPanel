@@ -14,10 +14,7 @@ import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.util.formatSize
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import okhttp3.WebSocket
 import org.json.JSONObject
 
@@ -42,6 +39,16 @@ class DataDaemonService : Service() {
                 acquire(10 * 60 * 1000L)
             }
         } catch (_: Exception) {}
+        scope.launch {
+            while (isActive) {
+                delay(4 * 60 * 1000L)
+                try {
+                    wakeLock?.let {
+                        if (!it.isHeld) it.acquire(10 * 60 * 1000L)
+                    }
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -59,25 +66,36 @@ class DataDaemonService : Service() {
     }
 
     private fun startTrafficWebSocket() {
-        trafficWs?.cancel()
-        trafficWs = ApiClient.buildWebSocket(
-            path = "/traffic",
-            onText = { text ->
-                try {
-                    val obj = JSONObject(text)
-                    val d = obj.optLong("down", -1L)
-                    val u = obj.optLong("up", -1L)
-                    val dt = obj.optLong("downTotal", -1L)
-                    val ut = obj.optLong("upTotal", -1L)
-                    if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
-                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                        settings.accumulateTraffic(totalDown, totalUp)
-                        updateNotification()
+        updateNotification("正在连接...")
+        scope.launch {
+            while (isActive) {
+                val fail = CompletableDeferred<Unit>()
+                trafficWs = ApiClient.buildWebSocket(
+                    path = "/traffic",
+                    onText = { text ->
+                        try {
+                            val obj = JSONObject(text)
+                            val d = obj.optLong("down", -1L)
+                            val u = obj.optLong("up", -1L)
+                            val dt = obj.optLong("downTotal", -1L)
+                            val ut = obj.optLong("upTotal", -1L)
+                            if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
+                                globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
+                                settings.accumulateTraffic(totalDown, totalUp)
+                                updateNotification()
+                            }
+                        } catch (_: Exception) {}
+                    },
+                    onError = {
+                        updateNotification("连接中断，等待重连...")
+                        fail.tryComplete(Unit)
                     }
-                } catch (_: Exception) {}
-            },
-            onError = { updateNotification("连接中断，等待重连...") }
-        )
+                )
+                try { fail.await() } catch (_: CancellationException) { trafficWs?.cancel(); break } finally { trafficWs?.cancel(); trafficWs = null }
+                delay(5000)
+                updateNotification("正在重连...")
+            }
+        }
     }
 
     private fun stopTrafficWebSocket() {

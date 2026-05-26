@@ -13,7 +13,10 @@ object ApiClient {
     var secret: String = ""
 
     private val client = OkHttpClient.Builder()
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
         .readTimeout(0, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .pingInterval(30, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     private fun buildHeaders() = if (secret.isNotBlank())

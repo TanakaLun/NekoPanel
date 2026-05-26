@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.background
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -29,7 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
- import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -190,28 +191,48 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     LaunchedEffect(Unit) {
         if (settings.apiBaseUrl.isBlank()) return@LaunchedEffect
 
-        val memWs = ApiClient.buildWebSocket("/memory", onText = { text ->
-            try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
-        })
-        val trafficWs = ApiClient.buildWebSocket("/traffic", onText = { text ->
-            try {
-                val obj = JSONObject(text)
-                globalDown = obj.optLong("down", 0L)
-                globalUp = obj.optLong("up", 0L)
-                totalDown = obj.optLong("downTotal", 0L)
-                totalUp = obj.optLong("upTotal", 0L)
-            } catch (_: Exception) {}
-        })
-        val logWs = ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
-            try {
-                val obj = JSONObject(text)
-                logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
-                if (logs.size > 1000) logs.removeAt(0)
-            } catch (_: Exception) {}
-        })
-        try { delay(Long.MAX_VALUE) } finally {
-            memWs.cancel(); trafficWs.cancel(); logWs.cancel()
+        launch {
+            while (isActive) {
+                val fail = CompletableDeferred<Unit>()
+                val ws = ApiClient.buildWebSocket("/memory", onText = { text ->
+                    try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
+                }, onError = { fail.tryComplete(Unit) })
+                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
+                delay(3000)
+            }
         }
+        launch {
+            while (isActive) {
+                val fail = CompletableDeferred<Unit>()
+                val ws = ApiClient.buildWebSocket("/traffic", onText = { text ->
+                    try {
+                        val obj = JSONObject(text)
+                        globalDown = obj.optLong("down", 0L)
+                        globalUp = obj.optLong("up", 0L)
+                        totalDown = obj.optLong("downTotal", 0L)
+                        totalUp = obj.optLong("upTotal", 0L)
+                    } catch (_: Exception) {}
+                }, onError = { fail.tryComplete(Unit) })
+                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
+                delay(3000)
+            }
+        }
+        launch {
+            while (isActive) {
+                val fail = CompletableDeferred<Unit>()
+                val ws = ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
+                    try {
+                        val obj = JSONObject(text)
+                        logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
+                        if (logs.size > 1000) logs.removeAt(0)
+                    } catch (_: Exception) {}
+                }, onError = { fail.tryComplete(Unit) })
+                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
+                delay(3000)
+            }
+        }
+
+        delay(Long.MAX_VALUE)
     }
 
     LaunchedEffect(selectedTab) {
@@ -310,8 +331,9 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
 
         // Sub-page overlay — transforms expose the main page underneath
         if (isOnSubPage) {
-            val slideXDp = 200.dp * currentPredictiveProgress
-            val sc = 1f - 0.15f * currentPredictiveProgress
+            val eased = CubicBezierEasing(0.2f, 0f, 0f, 1f).transform(currentPredictiveProgress)
+            val slideXDp = 300.dp * eased
+            val sc = 1f - 0.25f * eased
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -332,7 +354,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                                 bottomStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp
                             )
                             Modifier
-                                .graphicsLayer { translationX = size.width * 0.3f * currentPredictiveProgress }
+                                .graphicsLayer { translationX = size.width * 0.4f * eased }
                                 .clip(sideClip)
                                 .background(MaterialTheme.colorScheme.background)
                         }
