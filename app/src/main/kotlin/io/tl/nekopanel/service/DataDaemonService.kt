@@ -88,7 +88,7 @@ class DataDaemonService : Service() {
                     },
                     onError = {
                         updateNotification("连接中断，等待重连...")
-                        fail.tryComplete(Unit)
+                        fail.complete(Unit)
                     }
                 )
                 try { fail.await() } catch (_: CancellationException) { trafficWs?.cancel(); break } finally { trafficWs?.cancel(); trafficWs = null }

@@ -196,7 +196,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 val fail = CompletableDeferred<Unit>()
                 val ws = ApiClient.buildWebSocket("/memory", onText = { text ->
                     try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
-                }, onError = { fail.tryComplete(Unit) })
+                }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
                 delay(3000)
             }
@@ -212,7 +212,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         totalDown = obj.optLong("downTotal", 0L)
                         totalUp = obj.optLong("upTotal", 0L)
                     } catch (_: Exception) {}
-                }, onError = { fail.tryComplete(Unit) })
+                }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
                 delay(3000)
             }
@@ -226,7 +226,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
                         if (logs.size > 1000) logs.removeAt(0)
                     } catch (_: Exception) {}
-                }, onError = { fail.tryComplete(Unit) })
+                }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
                 delay(3000)
             }
