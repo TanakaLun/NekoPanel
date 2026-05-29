@@ -7,6 +7,10 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -27,28 +31,12 @@ class DataDaemonService : Service() {
     private var globalUp = 0L
     private var totalDown = 0L
     private var totalUp = 0L
-    private var wakeLock: PowerManager.WakeLock? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate() {
         super.onCreate()
         settings = SettingsManager(this)
         createNotificationChannel()
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        try {
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "NekoPanel:TrafficMonitor").apply {
-                acquire(10 * 60 * 1000L)
-            }
-        } catch (_: Exception) {}
-        scope.launch {
-            while (isActive) {
-                delay(4 * 60 * 1000L)
-                try {
-                    wakeLock?.let {
-                        if (!it.isHeld) it.acquire(10 * 60 * 1000L)
-                    }
-                } catch (_: Exception) {}
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -67,40 +55,74 @@ class DataDaemonService : Service() {
 
     private fun startTrafficWebSocket() {
         updateNotification("正在连接...")
+        trafficWs?.cancel()
+        if (!isNetworkAvailable()) {
+            updateNotification("等待网络连接...")
+            registerNetworkCallback()
+            return
+        }
         scope.launch {
-            while (isActive) {
-                val fail = CompletableDeferred<Unit>()
-                trafficWs = ApiClient.buildWebSocket(
-                    path = "/traffic",
-                    onText = { text ->
-                        try {
-                            val obj = JSONObject(text)
-                            val d = obj.optLong("down", -1L)
-                            val u = obj.optLong("up", -1L)
-                            val dt = obj.optLong("downTotal", -1L)
-                            val ut = obj.optLong("upTotal", -1L)
-                            if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
-                                globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                                settings.accumulateTraffic(totalDown, totalUp)
-                                updateNotification()
-                            }
-                        } catch (_: Exception) {}
-                    },
-                    onError = {
-                        updateNotification("连接中断，等待重连...")
-                        fail.complete(Unit)
+            trafficWs = ApiClient.buildWebSocket(
+                path = "/traffic",
+                onText = { text ->
+                    try {
+                        val obj = JSONObject(text)
+                        val d = obj.optLong("down", -1L)
+                        val u = obj.optLong("up", -1L)
+                        val dt = obj.optLong("downTotal", -1L)
+                        val ut = obj.optLong("upTotal", -1L)
+                        if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
+                            globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
+                            settings.accumulateTraffic(totalDown, totalUp)
+                            updateNotification()
+                        }
+                    } catch (_: Exception) {}
+                },
+                onError = {
+                    updateNotification("连接中断，5秒后重连...")
+                    if (isActive) scope.launch {
+                        delay(5000)
+                        startTrafficWebSocket()
                     }
-                )
-                try { fail.await() } catch (_: CancellationException) { trafficWs?.cancel(); break } finally { trafficWs?.cancel(); trafficWs = null }
-                delay(5000)
-                updateNotification("正在重连...")
-            }
+                }
+            )
         }
     }
 
     private fun stopTrafficWebSocket() {
         trafficWs?.cancel()
         trafficWs = null
+        unregisterNetworkCallback()
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun registerNetworkCallback() {
+        unregisterNetworkCallback()
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                if (trafficWs == null && ApiClient.baseUrl.isNotBlank()) {
+                    startTrafficWebSocket()
+                }
+            }
+        }
+        cm.registerNetworkCallback(NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(), networkCallback!!)
+    }
+
+    private fun unregisterNetworkCallback() {
+        networkCallback?.let {
+            try { (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager)
+                .unregisterNetworkCallback(it) } catch (_: Exception) {}
+        }
+        networkCallback = null
     }
 
     private fun updateNotification(contentOverride: String? = null) {
@@ -162,7 +184,6 @@ class DataDaemonService : Service() {
         stopTrafficWebSocket()
         scope.cancel()
         try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
-        try { wakeLock?.release() } catch (_: Exception) {}
         super.onDestroy()
     }
 

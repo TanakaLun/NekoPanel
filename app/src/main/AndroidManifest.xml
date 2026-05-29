@@ -28,15 +28,10 @@
         </activity>
 
         <service
-            android:name=".service.TrafficForegroundService"
+            android:name=".service.DataDaemonService"
+            android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-
-        <service
-            android:name=".service.DataDaemonService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync"
-            android:process=":data" />
     </application>
 
 </manifest>
