@@ -207,10 +207,12 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 val ws = ApiClient.buildWebSocket("/traffic", onText = { text ->
                     try {
                         val obj = JSONObject(text)
-                        globalDown = obj.optLong("down", 0L)
-                        globalUp = obj.optLong("up", 0L)
-                        totalDown = obj.optLong("downTotal", 0L)
-                        totalUp = obj.optLong("upTotal", 0L)
+                        val d = obj.optLong("down", 0L)
+                        val u = obj.optLong("up", 0L)
+                        val dt = obj.optLong("downTotal", 0L)
+                        val ut = obj.optLong("upTotal", 0L)
+                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
+                        settings.accumulateTraffic(dt, ut)
                     } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }

@@ -196,7 +196,7 @@ class DataDaemonService : Service() {
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
             .setStyle(Notification.BigTextStyle().bigText(bigText))
-            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .setSmallIcon(io.tl.nekopanel.R.drawable.ic_traffic_mono)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .apply {

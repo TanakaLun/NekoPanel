@@ -13,8 +13,8 @@ android {
         applicationId = "io.tl.nekopanel"
         minSdk = 33
         targetSdk = 37
-        versionCode = 110
-        versionName = "overdrive"
+        versionCode = 111
+        versionName = "floating"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
