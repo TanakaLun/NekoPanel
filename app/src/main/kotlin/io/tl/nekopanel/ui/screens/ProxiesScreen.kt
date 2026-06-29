@@ -1,8 +1,11 @@
 package io.tl.nekopanel.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.overscrollEffect
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
@@ -151,8 +154,14 @@ fun ProxiesScreen(
         }
 
         val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
+        val listState = rememberLazyListState()
+        val gridState = rememberLazyGridState()
+        @OptIn(ExperimentalFoundationApi::class)
+        val osc = rememberOverscrollEffect()
         if (columns == 1) {
             LazyColumn(
+                state = listState,
+                modifier = Modifier.overscrollEffect(osc),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -173,6 +182,8 @@ fun ProxiesScreen(
             }
         } else {
             LazyVerticalGrid(
+                state = gridState,
+                modifier = Modifier.overscrollEffect(osc),
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
