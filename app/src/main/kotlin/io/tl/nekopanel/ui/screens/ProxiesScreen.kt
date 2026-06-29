@@ -1,11 +1,9 @@
 package io.tl.nekopanel.ui.screens
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.overscrollEffect
-import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
@@ -154,54 +152,56 @@ fun ProxiesScreen(
         }
 
         val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
-        val listState = rememberLazyListState()
-        val gridState = rememberLazyGridState()
-        @OptIn(ExperimentalFoundationApi::class)
-        val osc = rememberOverscrollEffect()
-        if (columns == 1) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.overscrollEffect(osc),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(displayKeys.size, key = { displayKeys[it] }) { idx ->
-                    val key = displayKeys[idx]
-                    val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                    val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                    ProxyGroupCard(
-                        name = key,
-                        group = group,
-                        now = currentNow,
-                        delayCache = delayCache,
-                        settings = settings,
-                        onDelayUpdate = updateDelay,
-                        onNodeSelected = { node -> selectNode(key, node) },
-                    )
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val scrollState = rememberScrollState()
+            val minH = maxHeight + 1.dp
+            if (columns == 1) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .heightIn(min = minH)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    displayKeys.forEach { key ->
+                        val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                        val currentNow = groupSelections[key] ?: group.optString("now", "-")
+                        ProxyGroupCard(
+                            name = key, group = group, now = currentNow,
+                            delayCache = delayCache, settings = settings,
+                            onDelayUpdate = updateDelay,
+                            onNodeSelected = { node -> selectNode(key, node) },
+                        )
+                    }
                 }
-            }
-        } else {
-            LazyVerticalGrid(
-                state = gridState,
-                modifier = Modifier.overscrollEffect(osc),
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(displayKeys.size, key = { displayKeys[it] }) { idx ->
-                    val key = displayKeys[idx]
-                    val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                    val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                    ProxyGroupCard(
-                        name = key,
-                        group = group,
-                        now = currentNow,
-                        delayCache = delayCache,
-                        settings = settings,
-                        onDelayUpdate = updateDelay,
-                        onNodeSelected = { node -> selectNode(key, node) },
-                    )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .heightIn(min = minH)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    displayKeys.chunked(2).forEach { chunk ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        chunk.forEach { key ->
+                            val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                            val currentNow = groupSelections[key] ?: group.optString("now", "-")
+                            Box(Modifier.weight(1f)) {
+                                ProxyGroupCard(
+                                    name = key, group = group, now = currentNow,
+                                    delayCache = delayCache, settings = settings,
+                                    onDelayUpdate = updateDelay,
+                                    onNodeSelected = { node -> selectNode(key, node) },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
