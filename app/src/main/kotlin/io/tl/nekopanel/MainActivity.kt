@@ -165,6 +165,14 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
     var currentMode by remember { mutableStateOf("rule") }
 
+    LaunchedEffect(Unit) {
+        try {
+            val cfg = ApiClient.getConfigs()
+            val mode = cfg.optString("mode", "rule")
+            if (mode.isNotBlank()) currentMode = mode
+        } catch (_: Exception) {}
+    }
+
     var globalInUse by remember { mutableLongStateOf(0L) }
     var globalDown by remember { mutableLongStateOf(0L) }
     var globalUp by remember { mutableLongStateOf(0L) }
