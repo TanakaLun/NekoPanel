@@ -41,5 +41,10 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                       android:value="Network Traffic Monitoring" />
         </service>
+
+        <provider
+            android:name=".service.BinderProvider"
+            android:authorities="${applicationId}.binder"
+            android:exported="false" />
     </application>
 </manifest>

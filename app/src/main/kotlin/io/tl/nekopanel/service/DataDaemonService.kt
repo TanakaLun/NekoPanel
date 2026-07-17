@@ -56,6 +56,11 @@ class DataDaemonService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_REFRESH) {
+            updateNotification()
+            return START_STICKY
+        }
+
         val notification = buildNotification("正在连接...")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -180,7 +185,9 @@ class DataDaemonService : Service() {
     }
 
     private fun updateNotification(contentOverride: String? = null) {
-        val content = contentOverride ?: "↓ ${globalDown.formatSize()}/s  ↑ ${globalUp.formatSize()}/s"
+        val speedLine = "↓ ${globalDown.formatSize()}/s  ↑ ${globalUp.formatSize()}/s"
+        val totalLine = "累计 ↓ ${totalDown.formatSize()}  ↑ ${totalUp.formatSize()}"
+        val content = contentOverride ?: if (settings.notificationPriority == "total") totalLine else speedLine
         val notification = buildNotification(content)
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(NOTIFICATION_ID, notification)
@@ -190,8 +197,10 @@ class DataDaemonService : Service() {
         val pendingIntent = PendingIntent.getActivity(this, 0,
             Intent(this, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val totalText = "累计 ↓ ${totalDown.formatSize()}  ↑ ${totalUp.formatSize()}"
-        val bigText = "$content\n$totalText"
+        val priority = settings.notificationPriority
+        val speedLine = "↓ ${globalDown.formatSize()}/s  ↑ ${globalUp.formatSize()}/s"
+        val totalLine = "累计 ↓ ${totalDown.formatSize()}  ↑ ${totalUp.formatSize()}"
+        val bigText = if (priority == "total") "$totalLine\n$speedLine" else "$speedLine\n$totalLine"
         return Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
@@ -230,6 +239,7 @@ class DataDaemonService : Service() {
     companion object {
         const val CHANNEL_ID = "traffic_monitor"
         const val NOTIFICATION_ID = 114514
+        const val ACTION_REFRESH = "io.tl.nekopanel.UPDATE_NOTIFICATION"
 
         fun start(context: Context) {
             val intent = Intent(context, DataDaemonService::class.java)
@@ -239,6 +249,12 @@ class DataDaemonService : Service() {
 
         fun stop(context: Context) {
             context.stopService(Intent(context, DataDaemonService::class.java))
+        }
+
+        fun refreshNotification(context: Context) {
+            val intent = Intent(context, DataDaemonService::class.java).apply { action = ACTION_REFRESH }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
+            else context.startService(intent)
         }
     }
 }
