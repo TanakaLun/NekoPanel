@@ -13,26 +13,10 @@ android {
         applicationId = "io.tl.nekopanel"
         minSdk = 33
         targetSdk = 37
-        versionCode = 115
-        versionName = "Realize"
+        versionCode = 112
+        versionName = "goat"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
-        ndk {
-            abiFilters += "arm64-v8a"
-        }
-        
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++17"
-            }
-        }
-    }
-    
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
     }
     
     packaging {
@@ -57,7 +41,6 @@ android {
 
     buildFeatures {
         compose = true
-        aidl = true
     }
 
     compileOptions {

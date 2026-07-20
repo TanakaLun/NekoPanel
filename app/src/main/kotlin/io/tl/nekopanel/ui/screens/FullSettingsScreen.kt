@@ -22,8 +22,6 @@ import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
-import io.tl.nekopanel.service.RootDaemonManager
-import io.tl.nekopanel.service.Shell
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -231,7 +229,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
         item {
             var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
             var autoStart by remember { mutableStateOf(settings.autoStartService) }
-            var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
             SplicedColumnGroup(title = "流量监控") {
                 item {
                     ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
@@ -252,15 +249,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 item {
                     ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
                 }
-                item {
-                    val notifOpts = listOf("优先实时流量", "优先总流量")
-                    val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
-                    SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
-                        notifPriority = if (s == "优先总流量") "total" else "speed"
-                        settings.notificationPriority = notifPriority
-                        DataDaemonService.refreshNotification(context)
-                    }
-                }
             }
         }
         if (settings.backgroundWebSocket && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -277,50 +265,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
         
-        // --- 服务 (Root) ---
-        item {
-            var rootEnabled by remember { mutableStateOf(settings.rootDaemonEnabled) }
-            var rootInterval by remember { mutableStateOf(settings.rootDaemonInterval) }
-            var showRootDialog by remember { mutableStateOf(false) }
-            SplicedColumnGroup(title = "服务") {
-                item {
-                    ConfigToggle("Root 守护进程", checked = rootEnabled) { en ->
-                        if (en && !Shell.checkRootAccess()) {
-                            showRootDialog = true
-                            return@ConfigToggle
-                        }
-                        rootEnabled = en; settings.rootDaemonEnabled = en
-                        if (en) {
-                            RootDaemonManager.start(context)
-                            Toast.makeText(context, "守护进程已启动", Toast.LENGTH_SHORT).show()
-                        } else {
-                            RootDaemonManager.stop()
-                            Toast.makeText(context, "守护进程已停止", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                if (rootEnabled) {
-                    item {
-                        SettingsDropdownMenuInline("保活间隔", "${rootInterval}秒",
-                            listOf("30秒", "60秒", "120秒", "300秒")) { s ->
-                            rootInterval = s.dropLast(1).toIntOrNull() ?: 60
-                            settings.rootDaemonInterval = rootInterval
-                            RootDaemonManager.stop()
-                            RootDaemonManager.start(context)
-                        }
-                    }
-                }
-            }
-            if (showRootDialog) {
-                AlertDialog(
-                    onDismissRequest = { showRootDialog = false },
-                    title = { Text("无 Root 权限") },
-                    text = { Text("未检测到 Root 权限（su），无法启用守护进程。请确认设备已 Root 并授权。") },
-                    confirmButton = { TextButton(onClick = { showRootDialog = false }) { Text("确定") } }
-                )
-            }
-        }
-
         // --- API 连接设置 ---
         item {
             SectionTitle("连接设置")
