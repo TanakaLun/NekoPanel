@@ -28,7 +28,7 @@ android {
             excludes += "/META-INF/*.kotlin_module"
             excludes += "/kotlin/**"
             excludes += "DebugProbesKt.bin"
-            excludes += "/libs/**"
+            excludes += "/lib/**"
         }
     }
     
