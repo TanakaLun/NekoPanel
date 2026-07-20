@@ -212,16 +212,4 @@ class SettingsManager(context: Context) {
     var backAnimStyle: String
         get() = getString("back_anim_style", "slide")
         set(value) = setString("back_anim_style", value)
-
-    var rootDaemonEnabled: Boolean
-        get() = getBoolean("root_daemon_enabled", false)
-        set(value) = setBoolean("root_daemon_enabled", value)
-
-    var rootDaemonInterval: Int
-        get() = getInt("root_daemon_interval", 60)
-        set(value) = setInt("root_daemon_interval", value)
-
-    var notificationPriority: String
-        get() = getString("notification_priority", "speed")
-        set(value) = setString("notification_priority", value)
 }
