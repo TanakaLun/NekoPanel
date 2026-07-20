@@ -229,6 +229,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
         item {
             var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
             var autoStart by remember { mutableStateOf(settings.autoStartService) }
+            var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
             SplicedColumnGroup(title = "流量监控") {
                 item {
                     ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
@@ -248,6 +249,15 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 }
                 item {
                     ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
+                }
+                item {
+                    val notifOpts = listOf("优先实时流量", "优先总流量")
+                    val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
+                    SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
+                        notifPriority = if (s == "优先总流量") "total" else "speed"
+                        settings.notificationPriority = notifPriority
+                        DataDaemonService.refreshNotification(context)
+                    }
                 }
             }
         }
