@@ -192,6 +192,7 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                 item { ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) } }
                 item { ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) } }
                 item { ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) } }
+                item { ConfigToggle("记录总流量", checked = cfg.optBoolean("traffic-cumulative", false)) { updateRemote("traffic-cumulative", it) } }
             }
         }
 

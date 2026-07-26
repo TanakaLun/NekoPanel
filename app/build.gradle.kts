@@ -28,7 +28,13 @@ android {
             excludes += "/META-INF/*.kotlin_module"
             excludes += "/kotlin/**"
             excludes += "DebugProbesKt.bin"
-            excludes += "/lib/**"
+        }
+        jniLibs {
+            // Module-specific exclusions
+            excludes += setOf(
+                "lib/*/libandroidx.graphics.path.so",
+                "lib/*/libdatastore_shared_counter.so"
+            )
         }
     }
     

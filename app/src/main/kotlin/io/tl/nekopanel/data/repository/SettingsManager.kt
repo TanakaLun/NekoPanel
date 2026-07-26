@@ -124,6 +124,9 @@ class SettingsManager(context: Context) {
         set(value) = setString("api_secret", value)
 
     fun getCumulativeTraffic(): Pair<Long, Long> {
+        val coreDown = getLong("core_cum_down", -1L)
+        val coreUp = getLong("core_cum_up", -1L)
+        if (coreDown >= 0L && coreUp >= 0L) return coreDown to coreUp
         return getLong("cumulative_down", 0L) to getLong("cumulative_up", 0L)
     }
 
@@ -134,6 +137,32 @@ class SettingsManager(context: Context) {
     fun saveLastTraffic(down: Long, up: Long) {
         setLong("last_total_down", down)
         setLong("last_total_up", up)
+    }
+
+    /**
+     * Called from WebSocket handlers. If core cumulative values are present (>=0),
+     * store them directly (they're more reliable). Otherwise fall back to
+     * delta-based app-level accumulation.
+     */
+    @Synchronized
+    fun setTrafficSnapshot(down: Long, up: Long, totalDown: Long, totalUp: Long, coreCumDown: Long, coreCumUp: Long) {
+        val (prevDt, prevUt) = getLastTraffic()
+        val deltaD = totalDown - prevDt; val deltaU = totalUp - prevUt
+        val (appCumD, appCumU) = Pair(getLong("cumulative_down", 0L), getLong("cumulative_up", 0L))
+
+        if (coreCumDown >= 0L && coreCumUp >= 0L) {
+            // Core provides stable cumulative — store directly
+            setLong("core_cum_down", coreCumDown)
+            setLong("core_cum_up", coreCumUp)
+            setLong("last_total_down", totalDown)
+            setLong("last_total_up", totalUp)
+        } else if (deltaD in 0..10_000_000_000_000L && deltaU in 0..10_000_000_000_000L) {
+            // No core data — accumulate at app level
+            setLong("cumulative_down", appCumD + deltaD)
+            setLong("cumulative_up", appCumU + deltaU)
+            setLong("last_total_down", totalDown)
+            setLong("last_total_up", totalUp)
+        }
     }
 
     @Synchronized
@@ -157,6 +186,8 @@ class SettingsManager(context: Context) {
     fun resetCumulativeTraffic() {
         setLong("cumulative_down", 0L)
         setLong("cumulative_up", 0L)
+        setLong("core_cum_down", -1L)
+        setLong("core_cum_up", -1L)
         setLong("last_total_down", 0L)
         setLong("last_total_up", 0L)
     }
