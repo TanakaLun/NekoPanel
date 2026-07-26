@@ -80,7 +80,7 @@ fun OverviewView(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("累计流量 (自记录起)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    Text("累计流量", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text("↓ ${cumulative.first.formatSize()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)

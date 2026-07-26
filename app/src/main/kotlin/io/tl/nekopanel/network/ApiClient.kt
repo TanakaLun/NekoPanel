@@ -61,6 +61,8 @@ object ApiClient {
     }
     suspend fun getMemory(): JSONObject = JSONObject(get("/memory"))
     suspend fun getTraffic(): JSONObject = JSONObject(get("/traffic"))
+    suspend fun getCumulativeTraffic(): JSONObject = JSONObject(get("/traffic/cumulative"))
+    suspend fun resetCumulativeTraffic() { request("DELETE", "/traffic/cumulative") }
 
     suspend fun getConfigs(): JSONObject = JSONObject(get("/configs"))
     suspend fun updateConfigs(body: Map<String, Any>) {

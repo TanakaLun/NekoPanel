@@ -219,8 +219,10 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                         val u = obj.optLong("up", 0L)
                         val dt = obj.optLong("downTotal", 0L)
                         val ut = obj.optLong("upTotal", 0L)
+                        val dc = obj.optLong("downCumulative", -1L)
+                        val uc = obj.optLong("upCumulative", -1L)
                         globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                        settings.accumulateTraffic(dt, ut)
+                        settings.setTrafficSnapshot(d, u, dt, ut, dc, uc)
                     } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }

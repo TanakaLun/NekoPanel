@@ -117,9 +117,11 @@ class DataDaemonService : Service() {
                         val u = obj.optLong("up", -1L)
                         val dt = obj.optLong("downTotal", -1L)
                         val ut = obj.optLong("upTotal", -1L)
+                        val dc = obj.optLong("downCumulative", -1L)
+                        val uc = obj.optLong("upCumulative", -1L)
                         if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
                             globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                            settings.accumulateTraffic(totalDown, totalUp)
+                            settings.setTrafficSnapshot(d, u, dt, ut, dc, uc)
                             updateNotification()
                         }
                     } catch (_: Exception) {}
