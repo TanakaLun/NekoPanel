@@ -16,8 +16,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -39,6 +44,7 @@ import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
+import io.tl.nekopanel.ui.theme.AllThemeSchemes
 import io.tl.nekopanel.ui.theme.NekoPanelTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
@@ -98,13 +104,16 @@ class MainActivity : ComponentActivity() {
 fun NekoPanelApp(settings: SettingsManager) {
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+    var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
     var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
+    val customSeedColor = remember(customColorKey) {
+        AllThemeSchemes.firstOrNull { it.key == customColorKey }?.seedColor
+    }
 
     NekoPanelTheme(
         themeMode = themeModeState,
         dynamicColor = dynColorState,
-        customPrimaryKey = customColorState,
+        customSeedColor = customSeedColor,
     ) {
         ApiClient.baseUrl = settings.apiBaseUrl
         ApiClient.secret = settings.apiSecret
@@ -120,7 +129,7 @@ fun NekoPanelApp(settings: SettingsManager) {
                 settings = settings,
                 onThemeModeChange = { themeModeState = it; settings.themeMode = it },
                 onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
-                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it },
+                onCustomColorChange = { customColorKey = it; settings.customThemeColorKey = it },
             )
         }
     }
@@ -160,6 +169,7 @@ fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Un
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
     var currentPage by remember { mutableStateOf(Page.MAIN) }
+    var backAnimStyle by remember { mutableStateOf(settings.backAnimStyle) }
     val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
@@ -292,7 +302,15 @@ fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Un
         (context as? Activity)?.moveTaskToBack(true)
     }
 
-    AnimatedContent(targetState = currentPage, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "page") { page ->
+    val transitionSpec = when (backAnimStyle) {
+        "scale" -> fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)) togetherWith
+            fadeOut(animationSpec = tween(300)) + scaleOut(animationSpec = tween(300))
+        "none" -> fadeIn() togetherWith fadeOut()
+        else -> slideInHorizontally(animationSpec = tween(300)) { it / 4 } togetherWith
+            slideOutHorizontally(animationSpec = tween(300)) { it / 4 }
+    }
+
+    AnimatedContent(targetState = currentPage, transitionSpec = { transitionSpec }, label = "page") { page ->
         when (page) {
             Page.MAIN -> Scaffold(
                 modifier = Modifier.fillMaxSize(),
@@ -335,6 +353,7 @@ fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Un
                     onThemeModeChange = onThemeModeChange,
                     onDynamicColorChange = onDynamicColorChange,
                     onCustomColorChange = onCustomColorChange,
+                    onBackAnimChange = { backAnimStyle = it; settings.backAnimStyle = it },
                     onBack = { currentPage = Page.MAIN }
                 )
             }
