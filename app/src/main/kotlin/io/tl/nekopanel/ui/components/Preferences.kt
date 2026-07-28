@@ -3,12 +3,10 @@ package io.tl.nekopanel.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -16,12 +14,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Slider
-import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun BasePreference(
@@ -119,63 +115,13 @@ fun SettingsDropdownMenuInline(
     modifier: Modifier = Modifier,
     onSelected: (String) -> Unit,
 ) {
-    OverlayDropdownPreference(
+    WindowDropdownPreference(
         title = label,
         items = options,
         selectedIndex = options.indexOf(currentValue).coerceAtLeast(0),
         modifier = modifier,
         onSelectedIndexChange = { onSelected(options[it]) },
     )
-}
-
-@Composable
-fun DropDownList(
-    label: String,
-    currentValue: String,
-    options: List<String>,
-    modifier: Modifier = Modifier,
-    onSelected: (String) -> Unit,
-    itemContent: @Composable (String, Boolean) -> Unit,
-    displayValue: String? = null,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier.fillMaxWidth()) {
-        BasePreference(
-            title = label,
-            onClick = { expanded = true },
-            trailing = {
-                Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
-                    Text(
-                        text = displayValue ?: currentValue,
-                        style = MiuixTheme.textStyles.footnote1,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MiuixTheme.colorScheme.primary,
-                    )
-                }
-            },
-        )
-
-        if (expanded) {
-            WindowListPopup(
-                show = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
-                    Column(Modifier.padding(8.dp)) {
-                        options.forEach { option ->
-                            val isSelected = currentValue == option
-                            Box(
-                                modifier = Modifier.fillMaxWidth().clickable { onSelected(option); expanded = false }.padding(8.dp)
-                            ) {
-                                itemContent(option, isSelected)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable

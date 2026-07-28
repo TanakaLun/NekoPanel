@@ -36,7 +36,7 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onNavigateToUiSettings: () -> Unit = {}, onNavigateToBackup: () -> Unit = {}) {
+fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> Unit = {}, onNavigateToBackup: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
@@ -168,38 +168,43 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             val tun = cfg.optJSONObject("tun") ?: JSONObject()
             var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
             var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system").lowercase()) }
-            SplicedColumnGroup(title = "TUN 模式") {
-                item {
+            SectionTitle("TUN 模式")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
                     ConfigToggle("启用 TUN", checked = tunEnable) { enabled ->
                         tunEnable = enabled
                         val newTun = tun.also { it.put("enable", enabled); it.put("stack", tunStack) }
                         updateRemote("tun", newTun)
                     }
-                }
-                item(key = "tun_stack", visible = tunEnable) {
-                    SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
-                        tunStack = selected
-                        val newTun = tun.also { it.put("stack", selected) }
-                        updateRemote("tun", newTun)
+                    if (tunEnable) {
+                        SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
+                            tunStack = selected
+                            val newTun = tun.also { it.put("stack", selected) }
+                            updateRemote("tun", newTun)
+                        }
                     }
                 }
             }
         }
 
         item {
-            SplicedColumnGroup(title = "内核设置") {
-                item { ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) } }
-                item { ConfigToggle("IPv6 支持", checked = cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) } }
-                item { ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) } }
-                item { ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) } }
-                item { ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) } }
-                item { ConfigToggle("记录总流量", checked = cfg.optBoolean("traffic-cumulative", false)) { updateRemote("traffic-cumulative", it) } }
+            SectionTitle("内核设置")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) }
+                    ConfigToggle("IPv6 支持", checked = cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) }
+                    ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) }
+                    ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) }
+                    ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) }
+                    ConfigToggle("记录总流量", checked = cfg.optBoolean("traffic-cumulative", false)) { updateRemote("traffic-cumulative", it) }
+                }
             }
         }
 
         item {
-            SplicedColumnGroup(title = "界面设置") {
-                item {
+            SectionTitle("界面设置")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
                     BasePreference(
                         title = "自定义主题、布局与显示偏好",
                         onClick = onNavigateToUiSettings,
@@ -212,8 +217,9 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
         }
 
         item {
-            SplicedColumnGroup(title = "数据备份") {
-                item {
+            SectionTitle("数据备份")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
                     BasePreference(
                         title = "WebDAV / GitHub 远程备份",
                         onClick = onNavigateToBackup,
@@ -229,8 +235,9 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
             var autoStart by remember { mutableStateOf(settings.autoStartService) }
             var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
-            SplicedColumnGroup(title = "流量监控") {
-                item {
+            SectionTitle("流量监控")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
                     ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                         bgWs = enabled; settings.backgroundWebSocket = enabled
                         if (enabled) {
@@ -243,23 +250,18 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                             }
                         } else {
                             DataDaemonService.stop(context)
-                        }
-                    }
-                }
-                item {
-                    ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
-                }
-                item {
-                    val notifOpts = listOf("优先实时流量", "优先总流量")
-                    val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
-                    SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
-                        notifPriority = if (s == "优先总流量") "total" else "speed"
-                        settings.notificationPriority = notifPriority
-                        DataDaemonService.refreshNotification(context)
-                    }
+}
+                ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
+                val notifOpts = listOf("优先实时流量", "优先总流量")
+                val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
+                SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
+                    notifPriority = if (s == "优先总流量") "total" else "speed"
+                    settings.notificationPriority = notifPriority
+                    DataDaemonService.refreshNotification(context)
                 }
             }
         }
+
         if (settings.backgroundWebSocket && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             item {
                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager

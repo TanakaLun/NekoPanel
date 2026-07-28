@@ -30,11 +30,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -48,16 +46,18 @@ import io.tl.nekopanel.ui.screens.*
 import io.tl.nekopanel.ui.theme.NekoPanelTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
@@ -99,16 +99,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NekoPanelApp(settings: SettingsManager) {
-    var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
 
     NekoPanelTheme(
-        pureBlackMode = pureBlackMode,
         themeMode = themeModeState,
         dynamicColor = dynColorState,
-        customPrimaryKey = customColorState,
     ) {
         ApiClient.baseUrl = settings.apiBaseUrl
         ApiClient.secret = settings.apiSecret
@@ -121,10 +117,8 @@ fun NekoPanelApp(settings: SettingsManager) {
         } else {
             ClashManagerApp(
                 settings = settings,
-                onPureBlackToggle = { pureBlackMode = it },
                 onThemeModeChange = { themeModeState = it; settings.themeMode = it },
                 onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
-                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it },
             )
         }
     }
@@ -159,7 +153,7 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
 enum class Page { MAIN, UI_SETTINGS, BACKUP }
 
 @Composable
-fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {}) {
+fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
@@ -329,7 +323,11 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     title = title,
                     bottomContent = {
                         if (selectedTab == 2) {
-                            CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
+                            TabRow(
+                                tabs = listOf("概览", "连接", "日志"),
+                                selectedTabIndex = trafficTab,
+                                onTabSelected = { trafficTab = it },
+                            )
                         }
                     },
                 )
@@ -347,7 +345,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
                     1 -> RulesScreen(globalRefreshTick, settings)
                     2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                    3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
+                    3 -> FullSettingsScreen(settings, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
                 }
             }
         }
@@ -383,17 +381,16 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                     )
             ) {
                 when (currentPage) {
-                    Page.UI_SETTINGS -> top.yukonga.miuix.kmp.basic.Surface(Modifier.fillMaxSize()) {
+                    Page.UI_SETTINGS -> Surface(Modifier.fillMaxSize()) {
                         UiSettingsScreen(
-                            settings, onPureBlackToggle,
+                            settings,
                             onThemeModeChange = onThemeModeChange,
                             onDynamicColorChange = onDynamicColorChange,
-                            onCustomColorChange = onCustomColorChange,
                             onBackAnimChange = { backAnimState = it; settings.backAnimStyle = it },
                             onBack = { currentPage = Page.MAIN }
                         )
                     }
-                    Page.BACKUP -> top.yukonga.miuix.kmp.basic.Surface(Modifier.fillMaxSize()) {
+                    Page.BACKUP -> Surface(Modifier.fillMaxSize()) {
                         BackupScreen(settings, onBack = { currentPage = Page.MAIN })
                     }
                     else -> {}

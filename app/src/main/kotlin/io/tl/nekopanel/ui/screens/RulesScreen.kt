@@ -2,7 +2,7 @@ package io.tl.nekopanel.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,12 +48,12 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
         Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
     } else {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(rules, key = { it.optInt("index") }) { rule ->
+            itemsIndexed(rules, key = { _, rule -> rule.optInt("index") }) { _, rule ->
                 val type = rule.optString("type", "")
                 val payload = rule.optString("payload", "")
                 val proxy = rule.optString("proxy", "")
                 val index = rule.optInt("index")
-                val isDisabled = rule.optJSONObject("extra")?.optBoolean("disabled", false) ?: false
+                var isDisabled by remember(rule) { mutableStateOf(rule.optJSONObject("extra")?.optBoolean("disabled", false) ?: false) }
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -66,8 +66,9 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                             Text("🎯 代理: $proxy", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                         }
                         Switch(checked = !isDisabled, onCheckedChange = { isChecked ->
+                            isDisabled = !isChecked
                             scope.launch(Dispatchers.IO) {
-                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to !isChecked)); fetchRules() } catch (_: Exception) {}
+                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to isChecked)) } catch (_: Exception) {}
                             }
                         })
                     }
