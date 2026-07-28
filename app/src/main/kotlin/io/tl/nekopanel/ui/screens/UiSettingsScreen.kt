@@ -124,7 +124,6 @@ fun UiSettingsScreen(
                         Column {
                             SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
                             SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
-                            SettingsDropdownMenuInline("卡片填充风格", cardFillBy, listOf("默认", "扁平")) { cardFillBy = it; settings.cardFillStyle = it }
                         }
                     }
                 }

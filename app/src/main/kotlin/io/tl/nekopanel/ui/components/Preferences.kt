@@ -142,7 +142,7 @@ fun SliderPreference(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(label, color = MiuixTheme.colorScheme.onSurface, style = MiuixTheme.textStyles.body2, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
-            Text("${value}dp", color = MiuixTheme.colorScheme.onSurfaceVariant, style = MiuixTheme.textStyles.body2)
+            Text("${value}dp", color = MiuixTheme.colorScheme.onSurfaceVariantSummary, style = MiuixTheme.textStyles.body2)
         }
         Slider(
             value = value.toFloat(),

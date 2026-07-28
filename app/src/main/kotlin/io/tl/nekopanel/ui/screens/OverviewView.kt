@@ -62,12 +62,12 @@ fun OverviewView(
                     Spacer(Modifier.height(16.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("内存占用", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariant)
+                            Text("内存占用", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text(memoryInUse.formatSize(), fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
                             MiniLineChart(memHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                         Column(Modifier.weight(1f)) {
-                            Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariant)
+                            Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
                             MiniLineChart(downHistory, MiuixTheme.colorScheme.primaryVariant, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }

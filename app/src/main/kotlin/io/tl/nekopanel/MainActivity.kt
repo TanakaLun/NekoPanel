@@ -14,6 +14,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,7 @@ import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
@@ -151,7 +153,7 @@ fun InitialSetupPage(settings: SettingsManager, onConfigured: () -> Unit) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title2)
-                Text("请配置 Clash API 地址以开始使用", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariant)
+                Text("请配置 Clash API 地址以开始使用", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                 TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true, modifier = Modifier.fillMaxWidth())
                 TextField(value = secret, onValueChange = { secret = it }, label = "密钥 (可选)", singleLine = true, modifier = Modifier.fillMaxWidth())
                 Button(onClick = {
@@ -290,7 +292,7 @@ fun NekoPanelMain(
                     trafficTab = trafficTab,
                     globalRefreshTick = globalRefreshTick,
                     currentMode = currentMode,
-                    logs = logs.toList(),
+                    logs = logs,
                     connections = connections,
                     globalInUse = globalInUse,
                     globalDown = globalDown,
@@ -343,21 +345,21 @@ fun NekoPanelMain(
 }
 
 @Composable
-private fun MainScreenContent(
+internal fun MainScreenContent(
     settings: SettingsManager,
     selectedTab: Int,
     trafficTab: Int,
     globalRefreshTick: Long,
     currentMode: String,
-    logs: List<LogItem>,
+    logs: SnapshotStateList<LogItem>,
     connections: List<ConnectionItem>,
     globalInUse: Long,
     globalDown: Long,
     totalDown: Long,
     totalUp: Long,
     currentLogLevel: String,
-    memHistory: List<Float>,
-    downHistory: List<Float>,
+    memHistory: List<Long>,
+    downHistory: List<Long>,
     onTabSelected: (Int) -> Unit,
     onTrafficTabSelected: (Int) -> Unit,
     onRefresh: () -> Unit,
