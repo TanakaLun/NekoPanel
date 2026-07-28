@@ -14,15 +14,14 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun BasePreference(
@@ -158,10 +157,9 @@ fun DropDownList(
         )
 
         if (expanded) {
-            Popup(
+            WindowListPopup(
+                show = expanded,
                 onDismissRequest = { expanded = false },
-                alignment = Alignment.TopStart,
-                offset = IntOffset(0, 0)
             ) {
                 Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
                     Column(Modifier.padding(8.dp)) {

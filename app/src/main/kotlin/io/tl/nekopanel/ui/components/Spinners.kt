@@ -13,14 +13,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun FilterChipDropdown(
@@ -46,31 +45,29 @@ fun FilterChipDropdown(
                 Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp), tint = MiuixTheme.colorScheme.onPrimaryContainer)
             }
         }
-        if (expanded) {
-            Popup(
-                onDismissRequest = { expanded = false },
-                alignment = Alignment.TopStart,
-                offset = IntOffset(0, 0)
-            ) {
-                Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
-                    Column(Modifier.width(menuWidth).padding(8.dp)) {
-                        options.forEach { (key, displayLabel) ->
-                            val isSelected = selectedKey == key
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) MiuixTheme.colorScheme.primaryContainer.copy(0.5f) else Color.Transparent)
-                                    .clickable { onOptionSelected(key); expanded = false }
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                            ) {
-                                Text(
-                                    displayLabel,
-                                    fontSize = 13.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface,
-                                )
-                            }
+        WindowListPopup(
+            show = expanded,
+            onDismissRequest = { expanded = false },
+            minWidth = menuWidth,
+        ) {
+            Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
+                Column(Modifier.width(menuWidth).padding(8.dp)) {
+                    options.forEach { (key, displayLabel) ->
+                        val isSelected = selectedKey == key
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MiuixTheme.colorScheme.primaryContainer.copy(0.5f) else Color.Transparent)
+                                .clickable { onOptionSelected(key); expanded = false }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            Text(
+                                displayLabel,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface,
+                            )
                         }
                     }
                 }
