@@ -327,7 +327,11 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                 val title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 2 -> "监控"; 3 -> "设置"; else -> "NekoPanel" }
                 SmallTopAppBar(
                     title = title,
-                    bottomContent = if (selectedTab == 2) {{ CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志")) }} else {},
+                    bottomContent = {
+                        if (selectedTab == 2) {
+                            CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
+                        }
+                    },
                 )
             },
             bottomBar = {

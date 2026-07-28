@@ -3,35 +3,22 @@ package io.tl.nekopanel.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.OverlayDropdownMenu
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.menu.OverlayDropdownMenu
+import top.yukonga.miuix.kmp.overlay.OverlayListPopup
+import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -130,47 +117,13 @@ fun SettingsDropdownMenuInline(
     modifier: Modifier = Modifier,
     onSelected: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var tapOffsetX by remember { mutableFloatStateOf(0f) }
-    var parentWidth by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onGloballyPositioned { parentWidth = it.size.width }
-    ) {
-        BasePreference(
-            title = label,
-            modifier = modifier,
-            onClick = { expanded = true },
-            onTapPosition = { tapOffsetX = it },
-            trailing = {
-                Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
-                    Text(
-                        text = currentValue,
-                        style = MiuixTheme.textStyles.footnote1,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MiuixTheme.colorScheme.primary,
-                    )
-                }
-            },
-        )
-
-        OverlayDropdownMenu(
-            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
-                items = options.map { option ->
-                    top.yukonga.miuix.kmp.menu.DropdownItem(
-                        text = option,
-                        selected = currentValue == option,
-                        onClick = { onSelected(option); expanded = false },
-                    )
-                }
-            ),
-            title = label,
-            onExpandedChange = { expanded = it },
-        )
-    }
+    OverlayDropdownPreference(
+        title = label,
+        items = options,
+        selectedIndex = options.indexOf(currentValue).coerceAtLeast(0),
+        modifier = modifier,
+        onSelectedIndexChange = { onSelected(options[it]) },
+    )
 }
 
 @Composable
@@ -184,20 +137,11 @@ fun DropDownList(
     displayValue: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var tapOffsetX by remember { mutableFloatStateOf(0f) }
-    var parentWidth by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onGloballyPositioned { parentWidth = it.size.width }
-    ) {
+    Box(modifier = modifier.fillMaxWidth()) {
         BasePreference(
             title = label,
-            modifier = modifier,
             onClick = { expanded = true },
-            onTapPosition = { tapOffsetX = it },
             trailing = {
                 Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
@@ -210,19 +154,21 @@ fun DropDownList(
             },
         )
 
-        OverlayDropdownMenu(
-            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
-                items = options.map { option ->
-                    top.yukonga.miuix.kmp.menu.DropdownItem(
-                        text = option,
-                        selected = currentValue == option,
-                        onClick = { onSelected(option); expanded = false },
-                    )
+        OverlayListPopup(
+            show = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            Column(Modifier.padding(8.dp)) {
+                options.forEach { option ->
+                    val isSelected = currentValue == option
+                    Box(
+                        modifier = Modifier.fillMaxWidth().clickable { onSelected(option); expanded = false }.padding(8.dp)
+                    ) {
+                        itemContent(option, isSelected)
+                    }
                 }
-            ),
-            title = label,
-            onExpandedChange = { expanded = it },
-        )
+            }
+        }
     }
 }
 

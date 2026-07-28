@@ -1,6 +1,7 @@
 package io.tl.nekopanel.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,16 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.OverlayDropdownMenu
+import top.yukonga.miuix.kmp.basic.OverlayListPopup
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.menu.OverlayDropdownMenu
+import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -34,7 +34,7 @@ fun FilterChipDropdown(
 
     Box(modifier = modifier) {
         Surface(
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).padding(0.dp),
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)),
             onClick = { expanded = true },
             shape = RoundedCornerShape(12.dp),
             color = MiuixTheme.colorScheme.primaryContainer.copy(0.5f),
@@ -45,19 +45,32 @@ fun FilterChipDropdown(
                 Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp), tint = MiuixTheme.colorScheme.onPrimaryContainer)
             }
         }
-        OverlayDropdownMenu(
-            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
-                items = options.map { (key, displayLabel) ->
-                    top.yukonga.miuix.kmp.menu.DropdownItem(
-                        text = displayLabel,
-                        selected = selectedKey == key,
-                        onClick = { onOptionSelected(key); expanded = false },
-                    )
+        OverlayListPopup(
+            show = expanded,
+            onDismissRequest = { expanded = false },
+            minWidth = menuWidth,
+        ) {
+            Column(Modifier.padding(8.dp)) {
+                options.forEach { (key, displayLabel) ->
+                    val isSelected = selectedKey == key
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) MiuixTheme.colorScheme.primaryContainer.copy(0.5f) else androidx.compose.ui.graphics.Color.Transparent)
+                            .clickable { onOptionSelected(key); expanded = false }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    ) {
+                        Text(
+                            displayLabel,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
-            ),
-            title = label,
-            onExpandedChange = { expanded = it },
-        )
+            }
+        }
     }
 }
 
