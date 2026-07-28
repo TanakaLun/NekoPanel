@@ -241,15 +241,15 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                         singleLine = true,
                     )
                     Row(Modifier.fillMaxWidth(), Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        Button(onClick = { showAutoBackupDialog = false }) { Text("取消") }
+                        Button(onClick = { showAutoBackupDialog = false }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("取消") }
                         Spacer(Modifier.width(8.dp))
                         Button(onClick = {
                             val v = intervalText.toIntOrNull() ?: 0
                             autoBackupInterval = v
                             autoBackupEnabled = v > 0
                             showAutoBackupDialog = false
-                            settings.backupAutoInterval = v
-                        }) { Text("确定") }
+settings.backupAutoInterval = v
+                        }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("确定") }
                     }
                 }
             }
@@ -326,6 +326,7 @@ SectionTitle("备份方式")
                                     onClick = { doBackup() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
 if (isBackingUp) CircularProgressIndicator(modifier = Modifier.size(18.dp))
 else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
@@ -334,6 +335,7 @@ else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.w
                                     onClick = { doRestore() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
 if (isRestoring) CircularProgressIndicator(modifier = Modifier.size(18.dp))
 else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
