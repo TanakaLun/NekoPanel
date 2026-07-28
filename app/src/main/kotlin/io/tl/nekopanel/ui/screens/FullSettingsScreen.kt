@@ -78,8 +78,8 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
                     Text("无法连接到核心，请检查地址和密钥是否正确", style = MiuixTheme.textStyles.body2)
                     TextField(value = tmpUrl, onValueChange = { tmpUrl = it }, label = "API 地址", singleLine = true)
                     TextField(value = tmpSecret, onValueChange = { tmpSecret = it }, label = "密钥 (可选)", singleLine = true)
-                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
-Button(onClick = {
+Row(Modifier.fillMaxWidth(), Arrangement.End) {
+                        Button(onClick = {
                             settings.apiBaseUrl = tmpUrl.trimEnd('/')
                             settings.apiSecret = tmpSecret
                             ApiClient.baseUrl = settings.apiBaseUrl
@@ -294,7 +294,7 @@ ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                             ApiClient.baseUrl = settings.apiBaseUrl
                             ApiClient.secret = settings.apiSecret
                             Toast.makeText(context, "已保存，重启应用后生效", Toast.LENGTH_SHORT).show()
-                        }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("保存并应用") }
+                        }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) { Text("保存并应用") }
                     }
                 }
             }

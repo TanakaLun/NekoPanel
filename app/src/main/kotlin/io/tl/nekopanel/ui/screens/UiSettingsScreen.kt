@@ -1,29 +1,36 @@
 package io.tl.nekopanel.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.ui.components.*
+import io.tl.nekopanel.ui.theme.JapaneseThemeSchemes
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun UiSettingsScreen(
     settings: SettingsManager,
-    onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {},
-    onBackAnimChange: (String) -> Unit = {},
+    onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
     var groupColBy by remember { mutableStateOf(if(settings.groupColumnCount == 1) "1 列" else "2 列") }
@@ -37,7 +44,21 @@ fun UiSettingsScreen(
     var radiusState by remember { mutableIntStateOf(settings.badgeCornerRadius) }
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-    var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
+    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+
+    val schemeItems = remember {
+        JapaneseThemeSchemes.map { tc ->
+            DropdownItem(
+                text = tc.name,
+                icon = { modifier ->
+                    Box(modifier.clip(CircleShape).size(20.dp).background(if (isSystemInDarkTheme()) tc.darkPrimary else tc.lightPrimary))
+                },
+            )
+        }
+    }
+    val selectedSchemeIndex = remember(customColorState) {
+        JapaneseThemeSchemes.indexOfFirst { it.key == customColorState }.coerceAtLeast(0)
+    }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -103,12 +124,6 @@ fun UiSettingsScreen(
                         Column {
                             SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
                             SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
-                            val animNames = listOf("滑动", "缩放", "无")
-                            val curAnim = when (backAnimState) { "scale" -> "缩放"; "none" -> "无"; else -> "滑动" }
-                            SettingsDropdownMenuInline("返回动画", curAnim, animNames) { s ->
-                                backAnimState = when (s) { "缩放" -> "scale"; "无" -> "none"; else -> "slide" }
-                                onBackAnimChange(backAnimState)
-                            }
                         }
                     }
                 }
@@ -125,6 +140,17 @@ fun UiSettingsScreen(
                             }
                             ConfigToggle("动态取色", checked = dynColorState) {
                                 dynColorState = it; onDynamicColorChange(it)
+                            }
+                            if (!dynColorState) {
+                                WindowSpinnerPreference(
+                                    items = schemeItems,
+                                    selectedIndex = selectedSchemeIndex,
+                                    title = "自定义主题色",
+                                    onSelectedIndexChange = { idx ->
+                                        val key = JapaneseThemeSchemes[idx].key
+                                        customColorState = key; onCustomColorChange(key)
+                                    },
+                                )
                             }
                         }
                     }

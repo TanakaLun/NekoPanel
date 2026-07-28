@@ -69,7 +69,7 @@ fun OverviewView(
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                             Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            MiniLineChart(downHistory, MiuixTheme.colorScheme.secondaryVariant, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            MiniLineChart(downHistory, MiuixTheme.colorScheme.onPrimary.copy(alpha = 0.8f), Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine)
@@ -87,7 +87,7 @@ fun OverviewView(
                     Text("累计流量", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text("↓ ${cumulative.first.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.primary)
-                        Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.secondaryVariant)
+                        Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.primaryVariant)
                     }
                 }
             }

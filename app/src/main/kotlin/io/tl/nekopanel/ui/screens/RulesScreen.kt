@@ -26,6 +26,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
     var rules by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var disabledState by remember { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
     fun fetchRules() {
@@ -37,6 +38,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                 val list = mutableListOf<JSONObject>()
                 for (i in 0 until arr.length()) list.add(arr.getJSONObject(i))
                 rules = list
+                disabledState = list.associate { it.optInt("index") to (it.optJSONObject("extra")?.optBoolean("disabled", false) ?: false) }
             } catch (_: Exception) {}
             isLoading = false
         }
@@ -53,7 +55,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                 val payload = rule.optString("payload", "")
                 val proxy = rule.optString("proxy", "")
                 val index = rule.optInt("index")
-                var isDisabled by remember(rule) { mutableStateOf(rule.optJSONObject("extra")?.optBoolean("disabled", false) ?: false) }
+                val isDisabled = disabledState[index] ?: false
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).padding(end = 12.dp)) {
@@ -66,7 +68,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                             Text("🎯 代理: $proxy", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                         }
                         Switch(checked = !isDisabled, onCheckedChange = { isChecked ->
-                            isDisabled = !isChecked
+                            disabledState = disabledState + (index to !isChecked)
                             scope.launch(Dispatchers.IO) {
                                 try { ApiClient.updateRulesDisable(mapOf(index.toString() to isChecked)) } catch (_: Exception) {}
                             }

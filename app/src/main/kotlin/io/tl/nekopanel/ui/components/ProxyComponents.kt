@@ -1,6 +1,8 @@
 package io.tl.nekopanel.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -56,10 +58,13 @@ fun NodeCard(
     val containerColor = when {
         isSelected -> MiuixTheme.colorScheme.primaryContainer
         settings.cardFillStyle -> MiuixTheme.colorScheme.surfaceVariant.copy(0.4f)
-        else -> MiuixTheme.colorScheme.surfaceContainer
+        else -> MiuixTheme.colorScheme.surface
     }
+    val cardBorder = if (!isSelected && !settings.cardFillStyle) BorderStroke(0.5.dp, MiuixTheme.colorScheme.dividerLine.copy(0.5f)) else null
     Card(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).then(
+            if (cardBorder != null) Modifier.border(cardBorder, RoundedCornerShape(14.dp)) else Modifier
+        ),
     ) {
         Box(Modifier.padding(10.dp).fillMaxWidth().height(54.dp)) {
             Text(
