@@ -9,7 +9,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +23,11 @@ import io.tl.nekopanel.ui.components.ConnectionCard
 import io.tl.nekopanel.ui.components.highlightJson
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun ConnectionsView(
@@ -49,7 +53,7 @@ fun ConnectionsView(
             ) {
                 Text(
                     "活跃连接: ${connections.size}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MiuixTheme.textStyles.title4,
                     fontWeight = FontWeight.Black
                 )
                 IconButton(onClick = {
@@ -58,7 +62,7 @@ fun ConnectionsView(
                         onClearConnections()
                     }
                 }) {
-                    Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.DeleteSweep, null, tint = MiuixTheme.colorScheme.error)
                 }
             }
         }
@@ -75,14 +79,10 @@ fun ConnectionsView(
             )
         }
     }
-    
+
     if (selectedJson != null) {
         Dialog(onDismissRequest = { selectedJson = null }) {
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                ),
-                shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.8f)
@@ -90,12 +90,12 @@ fun ConnectionsView(
                 Column(Modifier.padding(20.dp)) {
                     Text(
                         text = "元数据明细",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MiuixTheme.textStyles.title4,
+                        color = MiuixTheme.colorScheme.onSurface
                     )
-                    
+
                     Spacer(Modifier.height(12.dp))
-    
+
                     val formatted = remember(selectedJson) {
                         try {
                             JSONObject(selectedJson!!).toString(4)
@@ -103,9 +103,9 @@ fun ConnectionsView(
                             selectedJson ?: ""
                         }
                     }
-                    
+
                     val annotated = highlightJson(formatted)
-    
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

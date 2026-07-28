@@ -1,16 +1,9 @@
 package io.tl.nekopanel.ui.theme
 
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
-
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+import top.yukonga.miuix.kmp.theme.Colors
+import top.yukonga.miuix.kmp.theme.darkColorScheme
+import top.yukonga.miuix.kmp.theme.lightColorScheme
 
 data class ThemeScheme(
     val name: String, val key: String,
@@ -53,3 +46,17 @@ val JapaneseThemeSchemes = listOf(
         Color(0xFF9B1B30), Color.White, Color(0xFFFFDAD6), Color(0xFF7A4B4B), Color(0xFFB35E5E),
         Color(0xFFFFB4A7), Color(0xFF5E0000), Color(0xFF93000F), Color(0xFFD5BDBD), Color(0xFFE5BDBD)),
 )
+
+fun resolveThemeColors(customKey: String, dark: Boolean, pureBlack: Boolean): Colors? {
+    val scheme = JapaneseThemeSchemes.firstOrNull { it.key == customKey } ?: return null
+    val base = if (dark) scheme.darkScheme() else scheme.lightScheme()
+    if (dark && pureBlack) {
+        return base.copy(
+            background = Color.Black, surface = Color.Black,
+            surfaceVariant = Color(0xFF121212),
+            surfaceContainer = Color.Black, surfaceContainerHigh = Color.Black, surfaceContainerHighest = Color.Black,
+            surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
+        )
+    }
+    return base
+}

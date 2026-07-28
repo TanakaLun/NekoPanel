@@ -2,13 +2,13 @@ package io.tl.nekopanel.ui.screens
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +18,12 @@ import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.theme.JapaneseThemeSchemes
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun UiSettingsScreen(
@@ -41,8 +47,6 @@ fun UiSettingsScreen(
     var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
     var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
 
-
-
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Row(
@@ -53,36 +57,36 @@ fun UiSettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.width(8.dp))
-                Text("界面设置", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
+                Text("界面设置", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title3)
             }
 
             LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
             item {
                 Column {
                     SectionTitle("实时预览")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                    Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(60.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f),
+                                color = MiuixTheme.colorScheme.surfaceVariant.copy(0.3f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("代理组", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Text("代理组", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                                         Spacer(Modifier.height(4.dp))
                                         TypeBadge("URL-TEST", gBadgeStyle, radiusState, false)
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("延迟", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Text("延迟", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                                         Spacer(Modifier.height(4.dp))
                                         DelayBadge(120, false, dBadgeStyle, radiusState, false) {}
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("规则", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                        Text("规则", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                                         Spacer(Modifier.height(4.dp))
                                         TypeBadge("FINAL", rBadgeStyle, radiusState, false)
                                     }
@@ -166,8 +170,8 @@ fun UiSettingsScreen(
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(if (isSystemInDarkTheme()) tc.darkPrimary else tc.lightPrimary))
                                         Spacer(Modifier.width(12.dp))
-                                        Text(tc.name, fontWeight = FontWeight.Normal, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                        if (selected) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                        Text(tc.name, fontWeight = FontWeight.Normal, style = MiuixTheme.textStyles.body2, modifier = Modifier.weight(1f))
+                                        if (selected) Icon(Icons.Default.Check, null, tint = MiuixTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                     }
                                 }
                             )

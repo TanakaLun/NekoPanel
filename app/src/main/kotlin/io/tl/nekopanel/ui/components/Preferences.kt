@@ -1,25 +1,9 @@
 package io.tl.nekopanel.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -42,6 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.OverlayDropdownMenu
+import top.yukonga.miuix.kmp.basic.Slider
+import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun BasePreference(
@@ -59,6 +49,8 @@ fun BasePreference(
     val baseModifier = modifier
         .fillMaxWidth()
         .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
             enabled = enabled,
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
@@ -86,15 +78,15 @@ fun BasePreference(
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-                style = MaterialTheme.typography.bodyMedium,
+                color = MiuixTheme.colorScheme.onSurface.copy(alpha = alpha),
+                style = MiuixTheme.textStyles.body2,
                 fontWeight = FontWeight.Bold,
             )
             if (description != null) {
                 Text(
                     text = description,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-                    style = MaterialTheme.typography.bodySmall,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = alpha),
+                    style = MiuixTheme.textStyles.footnote1,
                 )
             }
         }
@@ -156,48 +148,25 @@ fun SettingsDropdownMenuInline(
                 Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
                         text = currentValue,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MiuixTheme.textStyles.footnote1,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                     )
                 }
             },
         )
 
-        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .widthIn(min = 120.dp)
-                    .background(MaterialTheme.colorScheme.surface),
-                offset = DpOffset(
-                    x = with(density) {
-                        val tapXDp = tapOffsetX.toDp()
-                        val estimatedMenuWidth = 200.dp
-                        val parentDp = parentWidth.toDp()
-                        val rightEdge = tapXDp + estimatedMenuWidth + 8.dp
-                        if (rightEdge > parentDp) {
-                            (parentDp - estimatedMenuWidth - 8.dp).coerceAtLeast(4.dp)
-                        } else tapXDp
-                    },
-                    y = 0.dp
-                ),
-            ) {
-                options.forEach { option ->
-                    val isSelected = currentValue == option
-                    DropdownMenuItem(
-                        text = { Text(option, fontSize = 13.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        onClick = { onSelected(option); expanded = false },
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f) else Color.Transparent),
-                        colors = MenuDefaults.itemColors(
-                            textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-                        ),
-                    )
-                }
+        OverlayDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { option ->
+                val isSelected = currentValue == option
+                top.yukonga.miuix.kmp.basic.DropdownEntry(
+                    title = option,
+                    selected = isSelected,
+                    onClick = { onSelected(option); expanded = false },
+                )
             }
         }
     }
@@ -232,48 +201,25 @@ fun DropDownList(
                 Box(Modifier.height(32.dp), contentAlignment = Alignment.CenterStart) {
                     Text(
                         text = displayValue ?: currentValue,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MiuixTheme.textStyles.footnote1,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MiuixTheme.colorScheme.primary,
                     )
                 }
             },
         )
 
-        MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(16.dp))) {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier
-                    .widthIn(min = 120.dp)
-                    .background(MaterialTheme.colorScheme.surface),
-                offset = DpOffset(
-                    x = with(density) {
-                        val tapXDp = tapOffsetX.toDp()
-                        val estimatedMenuWidth = 200.dp
-                        val parentDp = parentWidth.toDp()
-                        val rightEdge = tapXDp + estimatedMenuWidth + 8.dp
-                        if (rightEdge > parentDp) {
-                            (parentDp - estimatedMenuWidth - 8.dp).coerceAtLeast(4.dp)
-                        } else tapXDp
-                    },
-                    y = 0.dp
-                ),
-            ) {
-                options.forEach { option ->
-                    val isSelected = currentValue == option
-                    DropdownMenuItem(
-                        text = { itemContent(option, isSelected) },
-                        onClick = { onSelected(option); expanded = false },
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.Transparent),
-                        colors = MenuDefaults.itemColors(
-                            textColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
-                        ),
-                    )
-                }
+        OverlayDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { option ->
+                val isSelected = currentValue == option
+                top.yukonga.miuix.kmp.basic.DropdownEntry(
+                    title = option,
+                    selected = isSelected,
+                    onClick = { onSelected(option); expanded = false },
+                )
             }
         }
     }
@@ -281,7 +227,7 @@ fun DropDownList(
 
 @Composable
 fun SectionTitle(title: String) {
-    Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+    Text(title, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp), fontWeight = FontWeight.SemiBold, style = MiuixTheme.textStyles.subtitle, color = MiuixTheme.colorScheme.primary)
 }
 
 @Composable

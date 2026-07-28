@@ -16,28 +16,25 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.background
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -47,15 +44,21 @@ import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
-import io.tl.nekopanel.ui.screens.BackupScreen
-import io.tl.nekopanel.ui.screens.FullSettingsScreen
-import io.tl.nekopanel.ui.screens.UiSettingsScreen
-import io.tl.nekopanel.ui.screens.ProxiesScreen
-import io.tl.nekopanel.ui.screens.RulesScreen
-import io.tl.nekopanel.ui.screens.TrafficScreen
-import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
+import io.tl.nekopanel.ui.screens.*
+import io.tl.nekopanel.ui.theme.NekoPanelTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermission = registerForActivityResult(
@@ -75,35 +78,7 @@ class MainActivity : ComponentActivity() {
         val settings = SettingsManager(this)
 
         setContent {
-            var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
-            var themeModeState by remember { mutableStateOf(settings.themeMode) }
-            var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
-    val isDark = themeModeState == "dark" || (themeModeState == "follow_system" && isSystemInDarkTheme())
-    ComposeEmptyActivityTheme(
-        darkTheme = isDark,
-        dynamicColor = dynColorState,
-        pureBlackMode = pureBlackMode,
-        customPrimaryKey = customColorState
-    ) {
-        ApiClient.baseUrl = settings.apiBaseUrl
-        ApiClient.secret = settings.apiSecret
-
-        if (settings.apiBaseUrl.isBlank()) {
-            InitialSetupDialog(settings) {
-                ApiClient.baseUrl = settings.apiBaseUrl
-                ApiClient.secret = settings.apiSecret
-            }
-        } else {
-            ClashManagerApp(
-                settings = settings,
-                onPureBlackToggle = { pureBlackMode = it },
-                onThemeModeChange = { themeModeState = it; settings.themeMode = it },
-                onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
-                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it }
-            )
-        }
-    }
+            NekoPanelApp(settings = settings)
         }
     }
 
@@ -123,17 +98,50 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun NekoPanelApp(settings: SettingsManager) {
+    var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
+    var themeModeState by remember { mutableStateOf(settings.themeMode) }
+    var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
+    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
+
+    NekoPanelTheme(
+        pureBlackMode = pureBlackMode,
+        themeMode = themeModeState,
+        dynamicColor = dynColorState,
+        customPrimaryKey = customColorState,
+    ) {
+        ApiClient.baseUrl = settings.apiBaseUrl
+        ApiClient.secret = settings.apiSecret
+
+        if (settings.apiBaseUrl.isBlank()) {
+            InitialSetupDialog(settings) {
+                ApiClient.baseUrl = settings.apiBaseUrl
+                ApiClient.secret = settings.apiSecret
+            }
+        } else {
+            ClashManagerApp(
+                settings = settings,
+                onPureBlackToggle = { pureBlackMode = it },
+                onThemeModeChange = { themeModeState = it; settings.themeMode = it },
+                onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
+                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it },
+            )
+        }
+    }
+}
+
+@Composable
 fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     var url by remember { mutableStateOf("http://127.0.0.1:9090") }
     var secret by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     Dialog(onDismissRequest = {}) {
-        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
-                OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true)
-                OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥 (可选)") }, singleLine = true)
+                Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title2)
+                TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true)
+                TextField(value = secret, onValueChange = { secret = it }, label = "密钥 (可选)", singleLine = true)
                 Row(Modifier.fillMaxWidth(), Arrangement.End) {
                     Button(onClick = {
                         if (url.isNotBlank()) {
@@ -150,7 +158,6 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
 
 enum class Page { MAIN, UI_SETTINGS, BACKUP }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {}) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -314,11 +321,10 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
     }
 
     Box(Modifier.fillMaxSize()) {
-        // Main page bottom layer — scaled/dimmed when sub-page is above
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                CenterAlignedTopAppBar(title = {
+                SmallTopAppBar(title = {
                     if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
                     else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
                 })
@@ -341,7 +347,6 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
             }
         }
 
-        // Sub-page overlay — transforms expose the main page underneath
         if (isOnSubPage) {
             val eased = CubicBezierEasing(0.2f, 0f, 0f, 1f).transform(currentPredictiveProgress)
             val slideXDp = 300.dp * eased
@@ -359,7 +364,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                                     transformOrigin = TransformOrigin(0.5f, ty)
                                 }
                                 .clip(roundShape)
-                                .background(MaterialTheme.colorScheme.background)
+                                .background(MiuixTheme.colorScheme.background)
                         } else {
                             val sideClip = RoundedCornerShape(
                                 topStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp,
@@ -368,12 +373,12 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                             Modifier
                                 .graphicsLayer { translationX = size.width * 0.4f * eased }
                                 .clip(sideClip)
-                                .background(MaterialTheme.colorScheme.background)
+                                .background(MiuixTheme.colorScheme.background)
                         }
                     )
             ) {
                 when (currentPage) {
-                    Page.UI_SETTINGS -> Surface(Modifier.fillMaxSize()) {
+                    Page.UI_SETTINGS -> top.yukonga.miuix.kmp.basic.Surface(Modifier.fillMaxSize()) {
                         UiSettingsScreen(
                             settings, onPureBlackToggle,
                             onThemeModeChange = onThemeModeChange,
@@ -383,7 +388,7 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
                             onBack = { currentPage = Page.MAIN }
                         )
                     }
-                    Page.BACKUP -> Surface(Modifier.fillMaxSize()) {
+                    Page.BACKUP -> top.yukonga.miuix.kmp.basic.Surface(Modifier.fillMaxSize()) {
                         BackupScreen(settings, onBack = { currentPage = Page.MAIN })
                     }
                     else -> {}

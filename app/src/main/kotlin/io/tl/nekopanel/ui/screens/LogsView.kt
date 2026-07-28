@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -19,6 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.ui.components.LevelSpinner
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelChange: (String) -> Unit) {
@@ -28,20 +33,20 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             LevelSpinner(currentLogLevel) { onLevelChange(it) }
             Spacer(Modifier.weight(1f))
-            IconButton(onClick = { logs.clear() }) { Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = { logs.clear() }) { Icon(Icons.Default.DeleteSweep, null, tint = MiuixTheme.colorScheme.error) }
         }
         Spacer(Modifier.height(8.dp))
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MiuixTheme.colorScheme.surfaceVariant)) {
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
                 itemsIndexed(logs) { index, log ->
                     Column {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text(text = log.type.uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, modifier = Modifier.width(60.dp), color = when (log.type.lowercase()) {
-                                "info" -> MaterialTheme.colorScheme.primary; "warning" -> Color(0xFFF57C00); "error" -> MaterialTheme.colorScheme.error; "debug" -> MaterialTheme.colorScheme.tertiary; else -> MaterialTheme.colorScheme.secondary
+                            Text(text = log.type.uppercase(), style = MiuixTheme.textStyles.footnote2, fontWeight = FontWeight.Black, modifier = Modifier.width(60.dp), color = when (log.type.lowercase()) {
+                                "info" -> MiuixTheme.colorScheme.primary; "warning" -> Color(0xFFF57C00); "error" -> MiuixTheme.colorScheme.error; "debug" -> MiuixTheme.colorScheme.tertiary; else -> MiuixTheme.colorScheme.secondary
                             })
-                            Text(text = log.payload, style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 14.sp), color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = log.payload, style = MiuixTheme.textStyles.footnote1.copy(fontSize = 11.sp, lineHeight = 14.sp), color = MiuixTheme.colorScheme.onSurface)
                         }
-                        if (index < logs.size - 1) HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        if (index < logs.size - 1) HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine.copy(alpha = 0.5f))
                     }
                 }
             }

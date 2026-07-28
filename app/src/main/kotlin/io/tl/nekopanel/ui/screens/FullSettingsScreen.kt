@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
@@ -27,6 +27,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.ProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onNavigateToUiSettings: () -> Unit = {}, onNavigateToBackup: () -> Unit = {}) {
@@ -63,80 +70,77 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
     if (reconfigDialog) {
         var tmpUrl by remember { mutableStateOf(settings.apiBaseUrl) }
         var tmpSecret by remember { mutableStateOf(settings.apiSecret) }
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("连接失败") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("无法连接到核心，请检查地址和密钥是否正确", style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(value = tmpUrl, onValueChange = { tmpUrl = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = tmpSecret, onValueChange = { tmpSecret = it }, label = { Text("密钥 (可选)") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    settings.apiBaseUrl = tmpUrl.trimEnd('/')
-                    settings.apiSecret = tmpSecret
-                    ApiClient.baseUrl = settings.apiBaseUrl
-                    ApiClient.secret = settings.apiSecret
-                    reconfigDialog = false
-                    connectFailed = false
-                    config = null; coreVersion = "正在获取..."
-                    scope.launch {
-                        try {
-                            coreVersion = ApiClient.getVersion().optString("version", "Unknown")
-                            config = ApiClient.getConfigs()
-                        } catch (_: Exception) { coreVersion = "获取失败"; connectFailed = true }
+        Dialog(onDismissRequest = {}) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("连接失败", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title3)
+                    Text("无法连接到核心，请检查地址和密钥是否正确", style = MiuixTheme.textStyles.body2)
+                    TextField(value = tmpUrl, onValueChange = { tmpUrl = it }, label = "API 地址", singleLine = true)
+                    TextField(value = tmpSecret, onValueChange = { tmpSecret = it }, label = "密钥 (可选)", singleLine = true)
+                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
+                        Button(onClick = {
+                            settings.apiBaseUrl = tmpUrl.trimEnd('/')
+                            settings.apiSecret = tmpSecret
+                            ApiClient.baseUrl = settings.apiBaseUrl
+                            ApiClient.secret = settings.apiSecret
+                            reconfigDialog = false
+                            connectFailed = false
+                            config = null; coreVersion = "正在获取..."
+                            scope.launch {
+                                try {
+                                    coreVersion = ApiClient.getVersion().optString("version", "Unknown")
+                                    config = ApiClient.getConfigs()
+                                } catch (_: Exception) { coreVersion = "获取失败"; connectFailed = true }
+                            }
+                        }) { Text("重新连接") }
                     }
-                }) { Text("重新连接") }
+                }
             }
-        )
+        }
     }
 
     if (config == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize(), Alignment.Center) { ProgressIndicator() }
         return
     }
     val cfg = config!!
 
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
-        // --- 内核版本 ---
         item {
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(0.2f))) {
+            Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Info, null, tint = MiuixTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("内核版本", fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(coreVersion, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text("内核版本", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                        Text(coreVersion, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
                     }
                 }
             }
         }
 
-        // --- 核心控制 ---
         item {
             SectionTitle("核心控制")
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); Toast.makeText(context, "配置已重载", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
+                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); Toast.makeText(context, "配置已重载", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重载配置")
                         }
-                        Button(onClick = { scope.launch { ApiClient.restartCore(); Toast.makeText(context, "核心已重启", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                        Button(onClick = { scope.launch { ApiClient.restartCore(); Toast.makeText(context, "核心已重启", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Default.PowerSettingsNew, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重启核心")
                         }
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 DNS 缓存")
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 FakeIP 池")
@@ -145,23 +149,21 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
 
-        // --- 网络端口 ---
         item {
             SectionTitle("网络端口")
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     val ports = listOf("mixed-port" to "混合端口", "port" to "HTTP 端口", "socks-port" to "Socks 端口", "redir-port" to "Redir 端口", "tproxy-port" to "Tproxy 端口")
                     ports.forEach { (key, label) ->
                         var txt by remember(cfg) { mutableStateOf(cfg.optInt(key, 0).toString()) }
-                        OutlinedTextField(value = txt, onValueChange = { txt = it; it.toIntOrNull()?.let { v -> updateRemote(key, v) } }, label = { Text(label) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(12.dp))
+                        TextField(value = txt, onValueChange = { txt = it; it.toIntOrNull()?.let { v -> updateRemote(key, v) } }, label = label, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                     }
                     var bindAddr by remember(cfg) { mutableStateOf(cfg.optString("bind-address", "*")) }
-                    OutlinedTextField(value = bindAddr, onValueChange = { bindAddr = it; updateRemote("bind-address", it) }, label = { Text("绑定地址") }, shape = RoundedCornerShape(12.dp))
+                    TextField(value = bindAddr, onValueChange = { bindAddr = it; updateRemote("bind-address", it) }, label = "绑定地址")
                 }
             }
         }
 
-        // --- TUN 模式 ---
         item {
             val tun = cfg.optJSONObject("tun") ?: JSONObject()
             var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
@@ -184,7 +186,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
 
-        // --- 内核设置 ---
         item {
             SplicedColumnGroup(title = "内核设置") {
                 item { ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) } }
@@ -196,7 +197,6 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             }
         }
 
-        // --- 界面设置 (导航) ---
         item {
             SplicedColumnGroup(title = "界面设置") {
                 item {
@@ -204,14 +204,13 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                         title = "自定义主题、布局与显示偏好",
                         onClick = onNavigateToUiSettings,
                         trailing = {
-                            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                            Icon(Icons.Default.ChevronRight, null, tint = MiuixTheme.colorScheme.outline)
                         }
                     )
                 }
             }
         }
-        
-        // --- 数据备份 ---
+
         item {
             SplicedColumnGroup(title = "数据备份") {
                 item {
@@ -219,14 +218,13 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
                         title = "WebDAV / GitHub 远程备份",
                         onClick = onNavigateToBackup,
                         trailing = {
-                            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
+                            Icon(Icons.Default.ChevronRight, null, tint = MiuixTheme.colorScheme.outline)
                         }
                     )
                 }
             }
         }
-        
-        // --- 流量监控 ---
+
         item {
             var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
             var autoStart by remember { mutableStateOf(settings.autoStartService) }
@@ -266,25 +264,24 @@ fun FullSettingsScreen(settings: SettingsManager, onPureBlackToggle: (Boolean) -
             item {
                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
                 val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                Card(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning, null, tint = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                        Icon(if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning, null, tint = if (isExempt) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text(if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = if (isExempt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error, modifier = Modifier.clickable { if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity) })
+                        Text(if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请", style = MiuixTheme.textStyles.body2, fontWeight = FontWeight.Bold, color = if (isExempt) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error, modifier = Modifier.clickable { if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity) })
                     }
                 }
             }
         }
-        
-        // --- API 连接设置 ---
+
         item {
             SectionTitle("连接设置")
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+            Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var url by remember { mutableStateOf(settings.apiBaseUrl) }
                     var secret by remember { mutableStateOf(settings.apiSecret) }
-                    OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true, shape = RoundedCornerShape(12.dp))
-                    OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥") }, singleLine = true, shape = RoundedCornerShape(12.dp))
+                    TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true)
+                    TextField(value = secret, onValueChange = { secret = it }, label = "密钥", singleLine = true)
                     Row(Modifier.fillMaxWidth(), Arrangement.End) {
                         Button(onClick = {
                             settings.apiBaseUrl = url.trimEnd('/')

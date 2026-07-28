@@ -2,82 +2,73 @@ package io.tl.nekopanel.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
-
-fun resolveThemeScheme(customKey: String, dark: Boolean, pureBlack: Boolean) =
-    JapaneseThemeSchemes.firstOrNull { it.key == customKey }?.let { scheme ->
-        val base = if (dark) scheme.darkScheme() else scheme.lightScheme()
-        if (dark && pureBlack) base.copy(
-            background = Color.Black, surface = Color.Black,
-            surfaceVariant = Color(0xFF121212),
-            surfaceContainer = Color.Black, surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
-        ) else base
-    }
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.darkColorScheme
+import top.yukonga.miuix.kmp.theme.lightColorScheme
+import top.yukonga.miuix.kmp.theme.platformDynamicColors
 
 @Composable
-fun ComposeEmptyActivityTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+fun NekoPanelTheme(
     pureBlackMode: Boolean = false,
+    themeMode: String = "follow_system",
+    dynamicColor: Boolean = true,
     customPrimaryKey: String = "",
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
+    val isDark = themeMode == "dark" || (themeMode == "follow_system" && isSystemInDarkTheme())
     val context = LocalContext.current
-    
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val dynamicScheme = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            if (darkTheme && pureBlackMode) {
-                dynamicScheme.copy(
-                    background = Color.Black,
-                    surface = Color.Black,
-                    surfaceVariant = Color(0xFF121212),
-                    surfaceContainer = Color.Black,
-                    surfaceContainerLow = Color.Black,
-                    surfaceContainerLowest = Color.Black
-                )
-            } else {
-                dynamicScheme
-            }
-        }
-        customPrimaryKey.isNotBlank() ->
-            resolveThemeScheme(customPrimaryKey, darkTheme, pureBlackMode) ?: if (darkTheme) DarkColorScheme else LightColorScheme
-        darkTheme -> {
-            if (pureBlackMode) {
-                DarkColorScheme.copy(
-                    background = Color.Black,
-                    surface = Color.Black,
-                    surfaceVariant = Color(0xFF121212)
-                )
-            } else {
-                DarkColorScheme
-            }
-        }
-        else -> LightColorScheme
+
+    val dynamicLight = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) platformDynamicColors(false)
+        else null
+    }
+    val dynamicDark = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) platformDynamicColors(true)
+        else null
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    val colorSchemeMode = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && dynamicLight != null && dynamicDark != null ->
+            if (isDark) ColorSchemeMode.MonetDark else ColorSchemeMode.MonetLight
+        customPrimaryKey.isNotBlank() -> ColorSchemeMode.Light
+        else -> if (isDark) ColorSchemeMode.Dark else ColorSchemeMode.Light
+    }
+
+    val customLight = if (customPrimaryKey.isNotBlank()) {
+        resolveThemeColors(customPrimaryKey, dark = false, pureBlack = false)
+    } else null
+
+    var customDark = if (customPrimaryKey.isNotBlank()) {
+        resolveThemeColors(customPrimaryKey, dark = true, pureBlack = pureBlackMode)
+    } else if (pureBlackMode) {
+        darkColorScheme().copy(
+            background = Color.Black, surface = Color.Black,
+            surfaceVariant = Color(0xFF121212),
+            surfaceContainer = Color.Black, surfaceContainerHigh = Color.Black, surfaceContainerHighest = Color.Black,
+            surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
+        )
+    } else null
+
+    val controller = remember(colorSchemeMode, customLight, customDark) {
+        ThemeController(
+            colorSchemeMode = colorSchemeMode,
+            lightColors = customLight ?: lightColorScheme(),
+            darkColors = customDark ?: darkColorScheme(),
+        )
+    }
+
+    MiuixTheme(controller = controller) {
+        content()
+    }
 }
