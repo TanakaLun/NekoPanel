@@ -17,7 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.ProgressIndicator
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -45,7 +45,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
     LaunchedEffect(refreshTick) { fetchRules() }
 
     if (isLoading) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { ProgressIndicator() }
+        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
     } else {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(rules, key = { it.optInt("index") }) { rule ->

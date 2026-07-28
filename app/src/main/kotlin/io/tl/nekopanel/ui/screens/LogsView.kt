@@ -42,7 +42,7 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
                     Column {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                             Text(text = log.type.uppercase(), style = MiuixTheme.textStyles.footnote2, fontWeight = FontWeight.Black, modifier = Modifier.width(60.dp), color = when (log.type.lowercase()) {
-                                "info" -> MiuixTheme.colorScheme.primary; "warning" -> Color(0xFFF57C00); "error" -> MiuixTheme.colorScheme.error; "debug" -> MiuixTheme.colorScheme.tertiary; else -> MiuixTheme.colorScheme.secondary
+                                "info" -> MiuixTheme.colorScheme.primary; "warning" -> Color(0xFFF57C00); "error" -> MiuixTheme.colorScheme.error; "debug" -> MiuixTheme.colorScheme.secondary; else -> MiuixTheme.colorScheme.secondary
                             })
                             Text(text = log.payload, style = MiuixTheme.textStyles.footnote1.copy(fontSize = 11.sp, lineHeight = 14.sp), color = MiuixTheme.colorScheme.onSurface)
                         }

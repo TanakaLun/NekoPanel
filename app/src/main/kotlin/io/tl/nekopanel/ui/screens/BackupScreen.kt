@@ -38,7 +38,7 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ProgressIndicator
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -299,13 +299,13 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (provider == "webdav") {
-                                TextField(value = webdavUrl, onValueChange = { webdavUrl = it; settings.backupWebdavUrl = it }, label = "服务器地址", placeholder = "https://example.com/dav", singleLine = true, modifier = Modifier.fillMaxWidth())
+                                TextField(value = webdavUrl, onValueChange = { webdavUrl = it; settings.backupWebdavUrl = it }, label = "服务器地址", singleLine = true, modifier = Modifier.fillMaxWidth())
                                 TextField(value = webdavUser, onValueChange = { webdavUser = it; settings.backupWebdavUser = it }, label = "用户名", singleLine = true, modifier = Modifier.fillMaxWidth())
                                 TextField(value = webdavPass, onValueChange = { webdavPass = it; settings.backupWebdavPass = it }, label = "密码", singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showWebdavPass = !showWebdavPass }) { Icon(if (showWebdavPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
                             } else {
-                                TextField(value = ghRepo, onValueChange = { ghRepo = it; settings.backupGithubRepo = it }, label = "仓库", placeholder = "user/repo", singleLine = true, modifier = Modifier.fillMaxWidth())
+                                TextField(value = ghRepo, onValueChange = { ghRepo = it; settings.backupGithubRepo = it }, label = "仓库", singleLine = true, modifier = Modifier.fillMaxWidth())
                                 TextField(value = ghToken, onValueChange = { ghToken = it; settings.backupGithubToken = it }, label = "Token", singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showGhToken = !showGhToken }) { Icon(if (showGhToken) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
@@ -325,16 +325,16 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
                                 ) {
-                                    if (isBackingUp) ProgressIndicator(Modifier.size(18.dp))
-                                    else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
+if (isBackingUp) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
                                 }
                                 Button(
                                     onClick = { doRestore() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
                                 ) {
-                                    if (isRestoring) ProgressIndicator(Modifier.size(18.dp))
-                                    else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
+if (isRestoring) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
                                 }
                             }
                         }

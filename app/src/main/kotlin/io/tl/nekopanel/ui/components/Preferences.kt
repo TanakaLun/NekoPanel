@@ -31,6 +31,7 @@ import top.yukonga.miuix.kmp.basic.OverlayDropdownMenu
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.menu.OverlayDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -157,18 +158,18 @@ fun SettingsDropdownMenuInline(
         )
 
         OverlayDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                val isSelected = currentValue == option
-                top.yukonga.miuix.kmp.basic.DropdownEntry(
-                    title = option,
-                    selected = isSelected,
-                    onClick = { onSelected(option); expanded = false },
-                )
-            }
-        }
+            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
+                items = options.map { option ->
+                    top.yukonga.miuix.kmp.menu.DropdownItem(
+                        text = option,
+                        selected = currentValue == option,
+                        onClick = { onSelected(option); expanded = false },
+                    )
+                }
+            ),
+            title = label,
+            onExpandedChange = { expanded = it },
+        )
     }
 }
 
@@ -210,18 +211,18 @@ fun DropDownList(
         )
 
         OverlayDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                val isSelected = currentValue == option
-                top.yukonga.miuix.kmp.basic.DropdownEntry(
-                    title = option,
-                    selected = isSelected,
-                    onClick = { onSelected(option); expanded = false },
-                )
-            }
-        }
+            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
+                items = options.map { option ->
+                    top.yukonga.miuix.kmp.menu.DropdownItem(
+                        text = option,
+                        selected = currentValue == option,
+                        onClick = { onSelected(option); expanded = false },
+                    )
+                }
+            ),
+            title = label,
+            onExpandedChange = { expanded = it },
+        )
     }
 }
 

@@ -70,7 +70,6 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -87,7 +86,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 Text(text = detail.process, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).basicMarquee(iterations = Int.MAX_VALUE))
                 Spacer(Modifier.width(6.dp))
-                Text(text = detail.routeNode, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.tertiary,
+                Text(text = detail.routeNode, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.secondaryVariant,
                     modifier = Modifier.padding(start = 2.dp).widthIn(max = 100.dp).basicMarquee(iterations = Int.MAX_VALUE), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(10.dp))

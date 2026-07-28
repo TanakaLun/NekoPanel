@@ -29,14 +29,12 @@ fun NekoPanelTheme(
     val isDark = themeMode == "dark" || (themeMode == "follow_system" && isSystemInDarkTheme())
     val context = LocalContext.current
 
-    val dynamicLight = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) platformDynamicColors(false)
-        else null
-    }
-    val dynamicDark = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) platformDynamicColors(true)
-        else null
-    }
+    val dynamicLight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        platformDynamicColors(false)
+    } else null
+    val dynamicDark = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        platformDynamicColors(true)
+    } else null
 
     val colorSchemeMode = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && dynamicLight != null && dynamicDark != null ->
@@ -56,7 +54,6 @@ fun NekoPanelTheme(
             background = Color.Black, surface = Color.Black,
             surfaceVariant = Color(0xFF121212),
             surfaceContainer = Color.Black, surfaceContainerHigh = Color.Black, surfaceContainerHighest = Color.Black,
-            surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
         )
     } else null
 

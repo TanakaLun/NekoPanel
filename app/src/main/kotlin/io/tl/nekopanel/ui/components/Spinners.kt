@@ -18,6 +18,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.OverlayDropdownMenu
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.menu.OverlayDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -45,18 +46,18 @@ fun FilterChipDropdown(
             }
         }
         OverlayDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { (key, displayLabel) ->
-                val isSelected = selectedKey == key
-                top.yukonga.miuix.kmp.basic.DropdownEntry(
-                    title = displayLabel,
-                    selected = isSelected,
-                    onClick = { onOptionSelected(key); expanded = false },
-                )
-            }
-        }
+            entry = top.yukonga.miuix.kmp.menu.DropdownEntry(
+                items = options.map { (key, displayLabel) ->
+                    top.yukonga.miuix.kmp.menu.DropdownItem(
+                        text = displayLabel,
+                        selected = selectedKey == key,
+                        onClick = { onOptionSelected(key); expanded = false },
+                    )
+                }
+            ),
+            title = label,
+            onExpandedChange = { expanded = it },
+        )
     }
 }
 

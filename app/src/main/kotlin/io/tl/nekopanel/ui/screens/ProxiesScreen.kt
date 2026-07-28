@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.ProgressIndicator
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -80,7 +80,7 @@ fun ProxiesScreen(
     }
 
     if (isLoading || allProxies == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { ProgressIndicator() }
+        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         return
     }
 

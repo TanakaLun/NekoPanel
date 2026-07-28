@@ -188,7 +188,7 @@ fun ProxyGroupCard(
 
     if (usePopup && isExpanded) {
         if (settings.useSheetMode) {
-            top.yukonga.miuix.kmp.overlay.OverlayBottomSheet(onDismissRequest = { isExpanded = false }) {
+            top.yukonga.miuix.kmp.overlay.OverlayBottomSheet(show = isExpanded, onDismissRequest = { isExpanded = false }) {
                 Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) {
                     NodeGridSection(
                         groupName = name, nodes = allNodes, currentNode = now,

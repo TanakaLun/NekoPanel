@@ -324,15 +324,16 @@ fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> U
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                SmallTopAppBar(title = {
-                    if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
-                    else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
-                })
+                val title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 2 -> "监控"; 3 -> "设置"; else -> "NekoPanel" }
+                SmallTopAppBar(
+                    title = title,
+                    bottomContent = if (selectedTab == 2) {{ CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志")) }} else {},
+                )
             },
             bottomBar = {
                 NavigationBar {
                     listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                        NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
+                        NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = icon, label = label)
                     }
                 }
             }

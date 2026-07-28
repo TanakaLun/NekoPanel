@@ -12,11 +12,11 @@ data class ThemeScheme(
 ) {
     fun lightScheme() = lightColorScheme(
         primary = lightPrimary, onPrimary = lightOnPrimary, primaryContainer = lightPrimaryContainer,
-        secondary = lightSecondary, tertiary = lightTertiary,
+        secondary = lightSecondary,
     )
     fun darkScheme() = darkColorScheme(
         primary = darkPrimary, onPrimary = darkOnPrimary, primaryContainer = darkPrimaryContainer,
-        secondary = darkSecondary, tertiary = darkTertiary,
+        secondary = darkSecondary,
     )
 }
 
@@ -55,7 +55,6 @@ fun resolveThemeColors(customKey: String, dark: Boolean, pureBlack: Boolean): Co
             background = Color.Black, surface = Color.Black,
             surfaceVariant = Color(0xFF121212),
             surfaceContainer = Color.Black, surfaceContainerHigh = Color.Black, surfaceContainerHighest = Color.Black,
-            surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
         )
     }
     return base
