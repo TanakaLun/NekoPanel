@@ -369,7 +369,7 @@ internal fun MainScreenContent(
     onClearConnections: () -> Unit,
     onNavi: (NavKey) -> Unit,
 ) {
-    val scrollBehavior = remember { MiuixScrollBehavior() }
+    val scrollBehavior = MiuixScrollBehavior()
     val surfaceColor = MiuixTheme.colorScheme.surface
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
