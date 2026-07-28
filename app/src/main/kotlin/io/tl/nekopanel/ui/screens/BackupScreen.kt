@@ -35,6 +35,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -283,16 +284,17 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
                     }
                 }
 
-                SplicedColumnGroup(title = "备份方式") {
-                    item {
-                        SettingsDropdownMenuInline(
-                            label = "选择备份方式",
-                            currentValue = if (provider == "webdav") "WebDAV" else "GitHub",
-                            options = listOf("WebDAV", "GitHub"),
-                            onSelected = { provider = if (it == "WebDAV") "webdav" else "github"; settings.backupProvider = provider }
-                        )
-                    }
+SectionTitle("备份方式")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    SettingsDropdownMenuInline(
+                        label = "选择备份方式",
+                        currentValue = if (provider == "webdav") "WebDAV" else "GitHub",
+                        options = listOf("WebDAV", "GitHub"),
+                        onSelected = { provider = if (it == "WebDAV") "webdav" else "github"; settings.backupProvider = provider }
+                    )
                 }
+            }
 
                 Column {
                     SectionTitle(if (provider == "webdav") "WebDAV 配置" else "GitHub 配置")
@@ -341,28 +343,27 @@ else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier
                     }
                 }
 
-                SplicedColumnGroup(title = "自动备份") {
-                    item {
-                        ConfigToggle("定时自动备份", checked = autoBackupEnabled) {
-                            autoBackupEnabled = it
-                            if (!it) { autoBackupInterval = 0; settings.backupAutoInterval = 0 }
-                            else if (autoBackupInterval <= 0) { autoBackupInterval = 60 }
-                            settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
-                        }
+SectionTitle("自动备份")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    ConfigToggle("定时自动备份", checked = autoBackupEnabled) {
+                        autoBackupEnabled = it
+                        if (!it) { autoBackupInterval = 0; settings.backupAutoInterval = 0 }
+                        else if (autoBackupInterval <= 0) { autoBackupInterval = 60 }
+                        settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
                     }
                     if (autoBackupEnabled) {
-                        item {
-                            BasePreference(
-                                title = "备份间隔",
-                                description = "每 ${autoBackupInterval} 分钟执行一次",
-                                onClick = { showAutoBackupDialog = true },
-                                trailing = {
-                                    Icon(Icons.Default.Schedule, null, tint = MiuixTheme.colorScheme.outline)
-                                }
-                            )
-                        }
+                        BasePreference(
+                            title = "备份间隔",
+                            description = "每 ${autoBackupInterval} 分钟执行一次",
+                            onClick = { showAutoBackupDialog = true },
+                            trailing = {
+                                Icon(Icons.Default.Schedule, null, tint = MiuixTheme.colorScheme.outline)
+                            }
+                        )
                     }
                 }
+            }
 
                 Spacer(Modifier.height(80.dp))
             }

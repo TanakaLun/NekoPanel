@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -78,7 +79,7 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
                     TextField(value = tmpUrl, onValueChange = { tmpUrl = it }, label = "API 地址", singleLine = true)
                     TextField(value = tmpSecret, onValueChange = { tmpSecret = it }, label = "密钥 (可选)", singleLine = true)
                     Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                        Button(onClick = {
+Button(onClick = {
                             settings.apiBaseUrl = tmpUrl.trimEnd('/')
                             settings.apiSecret = tmpSecret
                             ApiClient.baseUrl = settings.apiBaseUrl
@@ -92,7 +93,7 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
                                     config = ApiClient.getConfigs()
                                 } catch (_: Exception) { coreVersion = "获取失败"; connectFailed = true }
                             }
-                        }) { Text("重新连接") }
+                        }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("重新连接") }
                     }
                 }
             }
@@ -124,23 +125,23 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); Toast.makeText(context, "配置已重载", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f)) {
+                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); Toast.makeText(context, "配置已重载", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
                             Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重载配置")
                         }
-                        Button(onClick = { scope.launch { ApiClient.restartCore(); Toast.makeText(context, "核心已重启", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f)) {
+                        Button(onClick = { scope.launch { ApiClient.restartCore(); Toast.makeText(context, "核心已重启", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
                             Icon(Icons.Default.PowerSettingsNew, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重启核心")
                         }
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 DNS 缓存")
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 FakeIP 池")
@@ -238,7 +239,7 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
             SectionTitle("流量监控")
             Card(Modifier.fillMaxWidth()) {
                 Column {
-                    ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
+ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                         bgWs = enabled; settings.backgroundWebSocket = enabled
                         if (enabled) {
                             DataDaemonService.start(context)
@@ -250,14 +251,16 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
                             }
                         } else {
                             DataDaemonService.stop(context)
-}
-                ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
-                val notifOpts = listOf("优先实时流量", "优先总流量")
-                val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
-                SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
-                    notifPriority = if (s == "优先总流量") "total" else "speed"
-                    settings.notificationPriority = notifPriority
-                    DataDaemonService.refreshNotification(context)
+                        }
+                    }
+                    ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
+                    val notifOpts = listOf("优先实时流量", "优先总流量")
+                    val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
+                    SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
+                        notifPriority = if (s == "优先总流量") "total" else "speed"
+                        settings.notificationPriority = notifPriority
+                        DataDaemonService.refreshNotification(context)
+                    }
                 }
             }
         }
@@ -291,7 +294,7 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
                             ApiClient.baseUrl = settings.apiBaseUrl
                             ApiClient.secret = settings.apiSecret
                             Toast.makeText(context, "已保存，重启应用后生效", Toast.LENGTH_SHORT).show()
-                        }) { Text("保存并应用") }
+                        }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("保存并应用") }
                     }
                 }
             }

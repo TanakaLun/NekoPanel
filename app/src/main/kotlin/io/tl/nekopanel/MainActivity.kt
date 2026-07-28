@@ -47,6 +47,7 @@ import io.tl.nekopanel.ui.theme.NekoPanelTheme
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -101,6 +102,7 @@ class MainActivity : ComponentActivity() {
 fun NekoPanelApp(settings: SettingsManager) {
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
+    var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
 
     NekoPanelTheme(
         themeMode = themeModeState,
@@ -109,10 +111,9 @@ fun NekoPanelApp(settings: SettingsManager) {
         ApiClient.baseUrl = settings.apiBaseUrl
         ApiClient.secret = settings.apiSecret
 
-        if (settings.apiBaseUrl.isBlank()) {
+        if (!isConfigured) {
             InitialSetupDialog(settings) {
-                ApiClient.baseUrl = settings.apiBaseUrl
-                ApiClient.secret = settings.apiSecret
+                isConfigured = true
             }
         } else {
             ClashManagerApp(
@@ -131,7 +132,7 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
     val context = LocalContext.current
 
     Dialog(onDismissRequest = {}) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Surface(color = MiuixTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title2)
                 TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true)
@@ -141,9 +142,11 @@ fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
                         if (url.isNotBlank()) {
                             settings.apiBaseUrl = url.trimEnd('/')
                             settings.apiSecret = secret
+                            ApiClient.baseUrl = settings.apiBaseUrl
+                            ApiClient.secret = settings.apiSecret
                             onConfigured()
                         } else Toast.makeText(context, "地址不能为空", Toast.LENGTH_SHORT).show()
-                    }) { Text("连接") }
+                    }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("连接") }
                 }
             }
         }
