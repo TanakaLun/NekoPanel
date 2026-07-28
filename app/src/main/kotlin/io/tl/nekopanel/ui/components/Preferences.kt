@@ -3,21 +3,24 @@ package io.tl.nekopanel.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.BasicComponent
+import androidx.compose.ui.window.Popup
 import top.yukonga.miuix.kmp.basic.Slider
+import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.overlay.OverlayListPopup
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -154,17 +157,22 @@ fun DropDownList(
             },
         )
 
-        OverlayListPopup(
-            show = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                options.forEach { option ->
-                    val isSelected = currentValue == option
-                    Box(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelected(option); expanded = false }.padding(8.dp)
-                    ) {
-                        itemContent(option, isSelected)
+        if (expanded) {
+            Popup(
+                onDismissRequest = { expanded = false },
+                alignment = Alignment.TopStart,
+                offset = IntOffset(0, 0)
+            ) {
+                Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
+                    Column(Modifier.padding(8.dp)) {
+                        options.forEach { option ->
+                            val isSelected = currentValue == option
+                            Box(
+                                modifier = Modifier.fillMaxWidth().clickable { onSelected(option); expanded = false }.padding(8.dp)
+                            ) {
+                                itemContent(option, isSelected)
+                            }
+                        }
                     }
                 }
             }
