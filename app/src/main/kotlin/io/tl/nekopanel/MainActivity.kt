@@ -370,6 +370,7 @@ internal fun MainScreenContent(
     onNavi: (NavKey) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    val effectiveScrollBehavior = if (selectedTab == 2) null else scrollBehavior
     val surfaceColor = MiuixTheme.colorScheme.surface
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
@@ -393,8 +394,8 @@ internal fun MainScreenContent(
                     ) else Modifier
                 ) {
                     TopAppBar(
-                        title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
-                        scrollBehavior = scrollBehavior,
+                        title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 2 -> "监控"; 3 -> "设置"; else -> "" },
+                        scrollBehavior = effectiveScrollBehavior,
                         color = barColor,
                         bottomContent = {
                             if (selectedTab == 2) {
