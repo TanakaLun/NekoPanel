@@ -370,7 +370,8 @@ internal fun MainScreenContent(
     onNavi: (NavKey) -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val effectiveScrollBehavior = if (selectedTab == 2) null else scrollBehavior
+    val isTrafficTab = selectedTab == 2
+    val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
     val surfaceColor = MiuixTheme.colorScheme.surface
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
@@ -383,32 +384,23 @@ internal fun MainScreenContent(
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                Box(
-                    modifier = if (showBlur) Modifier.textureBlur(
-                        backdrop = backdrop,
-                        shape = RectangleShape,
-                        blurRadius = 25f,
-                        colors = BlurDefaults.blurColors(
-                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
-                        ),
-                    ) else Modifier
-                ) {
-                    TopAppBar(
-                        title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 2 -> "监控"; 3 -> "设置"; else -> "" },
-                        scrollBehavior = effectiveScrollBehavior,
-                        color = barColor,
-                        bottomContent = {
-                            if (selectedTab == 2) {
-                                Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                    TabRow(
-                                        tabs = listOf("概览", "连接", "日志"),
-                                        selectedTabIndex = trafficTab,
-                                        onTabSelected = { onTrafficTabSelected(it) },
-                                    )
-                                }
-                            }
-                        },
-                    )
+                if (!isTrafficTab) {
+                    Box(
+                        modifier = if (showBlur) Modifier.textureBlur(
+                            backdrop = backdrop,
+                            shape = RectangleShape,
+                            blurRadius = 25f,
+                            colors = BlurDefaults.blurColors(
+                                blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                            ),
+                        ) else Modifier
+                    ) {
+                        TopAppBar(
+                            title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
+                            scrollBehavior = effectiveScrollBehavior,
+                            color = barColor,
+                        )
+                    }
                 }
             },
             bottomBar = {
@@ -430,8 +422,16 @@ internal fun MainScreenContent(
                 }
             }
         ) { padding ->
-            Box(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop).nestedScroll(scrollBehavior.nestedScrollConnection)) {
-                when (selectedTab) {
+            Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
+                if (isTrafficTab) {
+                    TabRow(
+                        tabs = listOf("概览", "连接", "日志"),
+                        selectedTabIndex = trafficTab,
+                        onTabSelected = { onTrafficTabSelected(it) },
+                    )
+                }
+                Box(Modifier.weight(1f).nestedScroll(scrollBehavior.nestedScrollConnection)) {
+                    when (selectedTab) {
                     0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
                     1 -> RulesScreen(globalRefreshTick, settings)
                     2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = onLevelChange, onRemoveConnection = onRemoveConnection, onClearConnections = onClearConnections)
