@@ -7,6 +7,8 @@ kotlinCoroutines = "1.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 miuix = "0.9.3"
+navigation3 = "1.1.4"
+navigationevent = "1.1.2"
 coil = "2.7.0"
 okhttp = "5.4.0"
 room = "2.8.4"
@@ -38,3 +40,9 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 miuix-ui = { group = "top.yukonga.miuix.kmp", name = "miuix-ui-android", version.ref = "miuix" }
 miuix-preference = { group = "top.yukonga.miuix.kmp", name = "miuix-preference-android", version.ref = "miuix" }
 miuix-icons = { group = "top.yukonga.miuix.kmp", name = "miuix-icons-android", version.ref = "miuix" }
+miuix-nav-ui = { group = "top.yukonga.miuix.kmp", name = "miuix-navigation3-ui-android", version.ref = "miuix" }
+miuix-blur = { group = "top.yukonga.miuix.kmp", name = "miuix-blur-android", version.ref = "miuix" }
+navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
+navigation3-runtime-android = { group = "androidx.navigation3", name = "navigation3-runtime-android", version.ref = "navigation3" }
+navigationevent-compose = { group = "androidx.navigationevent", name = "navigationevent-compose", version.ref = "navigationevent" }
+navigationevent-compose-android = { group = "androidx.navigationevent", name = "navigationevent-compose-android", version.ref = "navigationevent" }

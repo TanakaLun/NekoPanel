@@ -1,0 +1,22 @@
+package io.tl.nekopanel.navigation
+
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.navigation3.runtime.NavKey
+
+class Navigator {
+    val backStack = androidx.compose.runtime.mutableStateListOf<NavKey>(Route.Main)
+
+    fun push(key: NavKey) { backStack.add(key) }
+    fun replace(key: NavKey) {
+        if (backStack.isNotEmpty()) backStack[backStack.lastIndex] = key
+        else backStack.add(key)
+    }
+    fun pop() { if (backStack.size > 1) backStack.removeLastOrNull() }
+    fun popUntil(predicate: (NavKey) -> Boolean) {
+        while (backStack.size > 1 && !predicate(backStack.last())) backStack.removeAt(backStack.lastIndex)
+    }
+    fun current() = backStack.lastOrNull()
+    fun backStackSize() = backStack.size
+}
+
+val LocalNavigator = staticCompositionLocalOf<Navigator> { error("No navigator provided") }

@@ -59,7 +59,7 @@ fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> 
         scope.launch(Dispatchers.IO) {
             try {
                 ApiClient.updateConfigs(mapOf(key to value))
-                config = config?.apply { put(key, value) }
+                config = JSONObject(config.toString()).also { it.put(key, value) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { Toast.makeText(context, "更新失败", Toast.LENGTH_SHORT).show() }
             }

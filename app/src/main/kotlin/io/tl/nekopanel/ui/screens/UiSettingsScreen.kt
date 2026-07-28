@@ -45,7 +45,6 @@ fun UiSettingsScreen(
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
-    var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
 
     val schemeItems = remember {
         AllThemeSchemes.map { tc ->
@@ -120,17 +119,12 @@ fun UiSettingsScreen(
                 }
 
                 item {
-                    SectionTitle("布局设置")
+                    SectionTitle("代理组显示")
                     Card(Modifier.fillMaxWidth()) {
                         Column {
                             SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
                             SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
-                            val animNames = listOf("滑动", "缩放", "无")
-                            val curAnim = when (backAnimState) { "scale" -> "缩放"; "none" -> "无"; else -> "滑动" }
-                            SettingsDropdownMenuInline("返回动画", curAnim, animNames) { s ->
-                                backAnimState = when (s) { "缩放" -> "scale"; "无" -> "none"; else -> "slide" }
-                                onBackAnimChange(backAnimState)
-                            }
+                            SettingsDropdownMenuInline("卡片填充风格", cardFillBy, listOf("默认", "扁平")) { cardFillBy = it; settings.cardFillStyle = it }
                         }
                     }
                 }

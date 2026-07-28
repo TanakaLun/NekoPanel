@@ -138,18 +138,18 @@ fun SliderPreference(
     valueRange: ClosedFloatingPointRange<Float> = 0f..12f,
     steps: Int = 12,
 ) {
-    BasePreference(
-        title = label,
-        description = "${value}dp",
-        modifier = modifier,
-        trailing = {
-            Slider(
-                value = value.toFloat(),
-                onValueChange = { onValueChange(it.toInt()) },
-                valueRange = valueRange,
-                steps = steps,
-                modifier = Modifier.width(160.dp)
-            )
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = MiuixTheme.colorScheme.onSurface, style = MiuixTheme.textStyles.body2, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            Text("${value}dp", color = MiuixTheme.colorScheme.onSurfaceVariant, style = MiuixTheme.textStyles.body2)
         }
-    )
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.toInt()) },
+            valueRange = valueRange,
+            steps = steps,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
+    }
 }

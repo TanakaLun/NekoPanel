@@ -11,19 +11,9 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,12 +24,23 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
+import io.tl.nekopanel.navigation.LocalNavigator
+import io.tl.nekopanel.navigation.Navigator
+import io.tl.nekopanel.navigation.Route
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.components.*
@@ -53,14 +54,20 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
@@ -71,18 +78,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
-
         val settings = SettingsManager(this)
-
-        setContent {
-            NekoPanelApp(settings = settings)
-        }
+        setContent { NekoPanelApp(settings = settings) }
     }
 
     companion object {
@@ -106,26 +108,30 @@ fun NekoPanelApp(settings: SettingsManager) {
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
     var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
-    val customSeedColor = remember(customColorKey) {
-        AllThemeSchemes.firstOrNull { it.key == customColorKey }?.seedColor
+
+    val effectiveSeedColor = remember(customColorKey, dynColorState) {
+        if (dynColorState) null
+        else AllThemeSchemes.firstOrNull { it.key == customColorKey }?.seedColor
     }
 
     NekoPanelTheme(
         themeMode = themeModeState,
         dynamicColor = dynColorState,
-        customSeedColor = customSeedColor,
+        customSeedColor = effectiveSeedColor,
     ) {
         ApiClient.baseUrl = settings.apiBaseUrl
         ApiClient.secret = settings.apiSecret
 
         if (!isConfigured) {
-            InitialSetupPage(settings) {
-                isConfigured = true
-                ApiClient.baseUrl = settings.apiBaseUrl
-                ApiClient.secret = settings.apiSecret
+            Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
+                InitialSetupPage(settings) {
+                    isConfigured = true
+                    ApiClient.baseUrl = settings.apiBaseUrl
+                    ApiClient.secret = settings.apiSecret
+                }
             }
         } else {
-            ClashManagerApp(
+            NekoPanelMain(
                 settings = settings,
                 onThemeModeChange = { themeModeState = it; settings.themeMode = it },
                 onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
@@ -145,7 +151,7 @@ fun InitialSetupPage(settings: SettingsManager, onConfigured: () -> Unit) {
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title2)
-                Text("请配置 Clash API 地址以开始使用", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                Text("请配置 Clash API 地址以开始使用", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariant)
                 TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true, modifier = Modifier.fillMaxWidth())
                 TextField(value = secret, onValueChange = { secret = it }, label = "密钥 (可选)", singleLine = true, modifier = Modifier.fillMaxWidth())
                 Button(onClick = {
@@ -160,16 +166,17 @@ fun InitialSetupPage(settings: SettingsManager, onConfigured: () -> Unit) {
     }
 }
 
-enum class Page { MAIN, UI_SETTINGS, BACKUP }
-
 @Composable
-fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {}) {
+fun NekoPanelMain(
+    settings: SettingsManager,
+    onThemeModeChange: (String) -> Unit,
+    onDynamicColorChange: (Boolean) -> Unit,
+    onCustomColorChange: (String) -> Unit,
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
-    var currentPage by remember { mutableStateOf(Page.MAIN) }
-    var backAnimStyle by remember { mutableStateOf(settings.backAnimStyle) }
     val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
@@ -177,11 +184,7 @@ fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Un
     var currentMode by remember { mutableStateOf("rule") }
 
     LaunchedEffect(Unit) {
-        try {
-            val cfg = ApiClient.getConfigs()
-            val mode = cfg.optString("mode", "rule")
-            if (mode.isNotBlank()) currentMode = mode
-        } catch (_: Exception) {}
+        try { val cfg = ApiClient.getConfigs(); currentMode = cfg.optString("mode", "rule") } catch (_: Exception) {}
     }
 
     var globalInUse by remember { mutableLongStateOf(0L) }
@@ -195,170 +198,242 @@ fun ClashManagerApp(settings: SettingsManager, onThemeModeChange: (String) -> Un
     val downHistory = rememberChartHistory(globalDown)
 
     LaunchedEffect(Unit) {
-        if (settings.backgroundWebSocket || settings.autoStartService) {
-            DataDaemonService.start(context)
-        }
+        if (settings.backgroundWebSocket || settings.autoStartService) DataDaemonService.start(context)
     }
 
-    val removeConnection: (String) -> Unit = { id ->
-        connections = connections.filter { it.id != id }
-    }
-    val clearConnections: () -> Unit = {
-        connections = emptyList()
-    }
+    val removeConnection: (String) -> Unit = { id -> connections = connections.filter { it.id != id } }
+    val clearConnections: () -> Unit = { connections = emptyList() }
 
     LaunchedEffect(Unit) {
         if (settings.apiBaseUrl.isBlank()) return@LaunchedEffect
-
         launch {
             while (isActive) {
                 val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/memory", onText = { text ->
+                ApiClient.buildWebSocket("/memory", onText = { text ->
                     try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
+                try { fail.await() } catch (_: CancellationException) { break } finally { delay(3000) }
             }
         }
         launch {
             while (isActive) {
                 val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/traffic", onText = { text ->
+                ApiClient.buildWebSocket("/traffic", onText = { text ->
                     try {
                         val obj = JSONObject(text)
-                        val d = obj.optLong("down", 0L)
-                        val u = obj.optLong("up", 0L)
-                        val dt = obj.optLong("downTotal", 0L)
-                        val ut = obj.optLong("upTotal", 0L)
-                        val dc = obj.optLong("downCumulative", -1L)
-                        val uc = obj.optLong("upCumulative", -1L)
-                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                        settings.setTrafficSnapshot(d, u, dt, ut, dc, uc)
+                        globalDown = obj.optLong("down", 0L)
+                        globalUp = obj.optLong("up", 0L)
+                        totalDown = obj.optLong("downTotal", 0L)
+                        totalUp = obj.optLong("upTotal", 0L)
+                        settings.setTrafficSnapshot(
+                            obj.optLong("down", 0L), obj.optLong("up", 0L),
+                            obj.optLong("downTotal", 0L), obj.optLong("upTotal", 0L),
+                            obj.optLong("downCumulative", -1L), obj.optLong("upCumulative", -1L)
+                        )
                     } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
+                try { fail.await() } catch (_: CancellationException) { break } finally { delay(3000) }
             }
         }
         launch {
             while (isActive) {
                 val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
+                ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
                     try {
                         val obj = JSONObject(text)
                         logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
                         if (logs.size > 1000) logs.removeAt(0)
                     } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
+                try { fail.await() } catch (_: CancellationException) { break } finally { delay(3000) }
             }
         }
-
         delay(Long.MAX_VALUE)
     }
 
     LaunchedEffect(selectedTab) {
         if (settings.apiBaseUrl.isNotBlank() && selectedTab == 2) {
-            val connWs = ApiClient.buildWebSocket(
-                "/connections?interval=1000",
-                onText = { text ->
-                    try {
-                        val arr = JSONObject(text).getJSONArray("connections")
-                        val list = mutableListOf<ConnectionItem>()
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            val meta = obj.getJSONObject("metadata")
-                            val chains = obj.getJSONArray("chains")
-                            val proxy = if (chains.length() > 0) chains.getString(chains.length() - 1) else "Direct"
-                            list.add(ConnectionItem(
-                                id = obj.getString("id"),
-                                host = meta.optString("host").ifBlank { meta.optString("destinationIP") },
-                                network = meta.optString("network"),
-                                proxy = proxy,
-                                upload = obj.optLong("upload", 0L),
-                                download = obj.optLong("download", 0L),
-                                rawJson = obj.toString()
-                            ))
-                        }
-                        connections = list
-                    } catch (_: Exception) {}
+            val connWs = ApiClient.buildWebSocket("/connections?interval=1000", onText = { text ->
+                try {
+                    val arr = JSONObject(text).getJSONArray("connections")
+                    val list = mutableListOf<ConnectionItem>()
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        val meta = obj.getJSONObject("metadata")
+                        val chains = obj.getJSONArray("chains")
+                        val proxy = if (chains.length() > 0) chains.getString(chains.length() - 1) else "Direct"
+                        list.add(ConnectionItem(
+                            id = obj.getString("id"),
+                            host = meta.optString("host").ifBlank { meta.optString("destinationIP") },
+                            network = meta.optString("network"),
+                            proxy = proxy,
+                            upload = obj.optLong("upload", 0L),
+                            download = obj.optLong("download", 0L),
+                            rawJson = obj.toString()
+                        ))
+                    }
+                    connections = list
+                } catch (_: Exception) {}
+            })
+            try { delay(Long.MAX_VALUE) } finally { connWs.cancel() }
+        }
+    }
+
+    val navigator = remember { Navigator() }
+    val backStack = navigator.backStack
+    val entryProvider = remember(backStack) {
+        entryProvider<NavKey> {
+            entry(Route.Main) {
+                MainScreenContent(
+                    settings = settings,
+                    selectedTab = selectedTab,
+                    trafficTab = trafficTab,
+                    globalRefreshTick = globalRefreshTick,
+                    currentMode = currentMode,
+                    logs = logs.toList(),
+                    connections = connections,
+                    globalInUse = globalInUse,
+                    globalDown = globalDown,
+                    totalDown = totalDown,
+                    totalUp = totalUp,
+                    currentLogLevel = currentLogLevel,
+                    memHistory = memHistory,
+                    downHistory = downHistory,
+                    onTabSelected = { selectedTab = it },
+                    onTrafficTabSelected = { trafficTab = it },
+                    onRefresh = { globalRefreshTick = System.currentTimeMillis() },
+                    onModeChange = { currentMode = it; configUpdateTrigger++ },
+                    onLevelChange = { currentLogLevel = it; settings.logLevel = it },
+                    onRemoveConnection = removeConnection,
+                    onClearConnections = clearConnections,
+                    onNavi = { navigator.push(it) },
+                )
+            }
+            entry(Route.UiSettings) {
+                Surface(Modifier.fillMaxSize()) {
+                    UiSettingsScreen(
+                        settings,
+                        onThemeModeChange = onThemeModeChange,
+                        onDynamicColorChange = onDynamicColorChange,
+                        onCustomColorChange = onCustomColorChange,
+                        onBack = { navigator.pop() },
+                    )
                 }
-            )
-            try { delay(Long.MAX_VALUE) } finally {
-                connWs.cancel()
+            }
+            entry(Route.Backup) {
+                Surface(Modifier.fillMaxSize()) {
+                    BackupScreen(settings, onBack = { navigator.pop() })
+                }
             }
         }
     }
 
-    BackHandler(currentPage == Page.UI_SETTINGS || currentPage == Page.BACKUP) {
-        currentPage = Page.MAIN
-    }
+    val entries = rememberDecoratedNavEntries(
+        backStack = backStack,
+        entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator()),
+        entryProvider = entryProvider,
+    )
 
-    BackHandler(currentPage == Page.MAIN) {
-        (context as? Activity)?.moveTaskToBack(true)
+    CompositionLocalProvider(LocalNavigator provides navigator) {
+        NavDisplay(
+            entries = entries,
+            onBack = { navigator.pop() },
+        )
     }
-    BackHandler(currentPage == Page.MAIN) {
-        (context as? Activity)?.moveTaskToBack(true)
-    }
+}
 
-    val transitionSpec = when (backAnimStyle) {
-        "scale" -> fadeIn(animationSpec = tween(300)) + scaleIn(animationSpec = tween(300)) togetherWith
-            fadeOut(animationSpec = tween(300)) + scaleOut(animationSpec = tween(300))
-        "none" -> fadeIn() togetherWith fadeOut()
-        else -> slideInHorizontally(animationSpec = tween(300)) { it / 4 } togetherWith
-            slideOutHorizontally(animationSpec = tween(300)) { it / 4 }
+@Composable
+private fun MainScreenContent(
+    settings: SettingsManager,
+    selectedTab: Int,
+    trafficTab: Int,
+    globalRefreshTick: Long,
+    currentMode: String,
+    logs: List<LogItem>,
+    connections: List<ConnectionItem>,
+    globalInUse: Long,
+    globalDown: Long,
+    totalDown: Long,
+    totalUp: Long,
+    currentLogLevel: String,
+    memHistory: List<Float>,
+    downHistory: List<Float>,
+    onTabSelected: (Int) -> Unit,
+    onTrafficTabSelected: (Int) -> Unit,
+    onRefresh: () -> Unit,
+    onModeChange: (String) -> Unit,
+    onLevelChange: (String) -> Unit,
+    onRemoveConnection: (String) -> Unit,
+    onClearConnections: () -> Unit,
+    onNavi: (NavKey) -> Unit,
+) {
+    val scrollBehavior = remember { MiuixScrollBehavior() }
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val backdrop = rememberLayerBackdrop {
+        drawRect(surfaceColor)
+        drawContent()
     }
+    val showBlur = backdrop != null
+    val barColor = if (showBlur) Color.Transparent else surfaceColor
 
-    AnimatedContent(targetState = currentPage, transitionSpec = { transitionSpec }, label = "page") { page ->
-        when (page) {
-            Page.MAIN -> Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = {
-                    SmallTopAppBar(
+    Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                Box(
+                    modifier = if (showBlur) Modifier.textureBlur(
+                        backdrop = backdrop,
+                        shape = RectangleShape,
+                        blurRadius = 25f,
+                        colors = BlurDefaults.blurColors(
+                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                        ),
+                    ) else Modifier
+                ) {
+                    TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
+                        scrollBehavior = scrollBehavior,
+                        color = barColor,
                         bottomContent = {
                             if (selectedTab == 2) {
-                                Box(Modifier.padding(horizontal = 12.dp)) {
+                                Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                                     TabRow(
                                         tabs = listOf("概览", "连接", "日志"),
                                         selectedTabIndex = trafficTab,
-                                        onTabSelected = { trafficTab = it },
+                                        onTabSelected = { onTrafficTabSelected(it) },
                                     )
                                 }
                             }
                         },
                     )
-                },
-                bottomBar = {
-                    NavigationBar {
+                }
+            },
+            bottomBar = {
+                Box(
+                    modifier = if (showBlur) Modifier.textureBlur(
+                        backdrop = backdrop,
+                        shape = RectangleShape,
+                        blurRadius = 25f,
+                        colors = BlurDefaults.blurColors(
+                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                        ),
+                    ) else Modifier
+                ) {
+                    NavigationBar(color = barColor) {
                         listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                            NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = icon, label = label)
+                            NavigationBarItem(selected = selectedTab == index, onClick = { onTabSelected(index) }, icon = icon, label = label)
                         }
                     }
                 }
-            ) { padding ->
-                Box(Modifier.padding(padding)) {
-                    when (selectedTab) {
-                        0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
-                        1 -> RulesScreen(globalRefreshTick, settings)
-                        2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                        3 -> FullSettingsScreen(settings, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
-                    }
+            }
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop).nestedScroll(scrollBehavior.nestedScrollConnection)) {
+                when (selectedTab) {
+                    0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
+                    1 -> RulesScreen(globalRefreshTick, settings)
+                    2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = onLevelChange, onRemoveConnection = onRemoveConnection, onClearConnections = onClearConnections)
+                    3 -> FullSettingsScreen(settings, onNavigateToUiSettings = { onNavi(Route.UiSettings) }, onNavigateToBackup = { onNavi(Route.Backup) })
                 }
-            }
-            Page.UI_SETTINGS -> Surface(Modifier.fillMaxSize()) {
-                UiSettingsScreen(
-                    settings,
-                    onThemeModeChange = onThemeModeChange,
-                    onDynamicColorChange = onDynamicColorChange,
-                    onCustomColorChange = onCustomColorChange,
-                    onBackAnimChange = { backAnimStyle = it; settings.backAnimStyle = it },
-                    onBack = { currentPage = Page.MAIN }
-                )
-            }
-            Page.BACKUP -> Surface(Modifier.fillMaxSize()) {
-                BackupScreen(settings, onBack = { currentPage = Page.MAIN })
             }
         }
     }

@@ -26,7 +26,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
     var rules by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var disabledState by remember { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
+    var disabledState by rememberSaveable { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
     fun fetchRules() {
