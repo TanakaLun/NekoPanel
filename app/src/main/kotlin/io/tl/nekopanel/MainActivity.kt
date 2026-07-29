@@ -357,6 +357,12 @@ fun NekoPanelMain(
     )
 
     val animEnabled = transitionStyle == 1
+    val miuixSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
+    }
+    val miuixPop: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
+    }
     val fadeSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
         fadeIn(tween(200)) togetherWith fadeOut(tween(200))
     }
@@ -365,9 +371,9 @@ fun NekoPanelMain(
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
             NavDisplay(
                 entries = entries,
-                transitionSpec = if (animEnabled) { fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 } } else fadeSpec,
-                popTransitionSpec = if (animEnabled) { fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 } } else fadeSpec,
-                predictivePopTransitionSpec = if (animEnabled) { _ -> fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 } } else { _ -> fadeSpec() },
+                transitionSpec = if (animEnabled) miuixSpec else fadeSpec,
+                popTransitionSpec = if (animEnabled) miuixPop else fadeSpec,
+                predictivePopTransitionSpec = if (animEnabled) { _ -> miuixPop() } else { _ -> fadeSpec() },
                 onBack = { navigator.pop() },
             )
         }
