@@ -423,8 +423,7 @@ internal fun MainScreenContent(
                     ) {
                         if (showBlur) {
                             Box(
-                                modifier = Modifier
-                                    .matchParentSize()
+                                modifier = matchParentSize()
                                     .graphicsLayer {
                                         alpha = scrollBehavior.state
                                             ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
