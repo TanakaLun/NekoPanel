@@ -41,7 +41,7 @@ jobs:
         sed -i -E "s/versionName[[:space:]]*=[[:space:]]*['\"][^'\"]*['\"]/versionName = \"${{ steps.version_info.outputs.version_name }}\"/g" "$GRADLE_FILE"
           
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleDebug
 
     - name: Upload apk
       uses: actions/upload-artifact@v4
