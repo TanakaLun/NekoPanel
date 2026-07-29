@@ -354,26 +354,30 @@ fun NekoPanelMain(
     )
 
     val isAosp = transitionStyle == 1
+    val transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = if (isAosp) {
+        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
+    } else {
+        { fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 } }
+    }
+    val popSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = if (isAosp) {
+        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
+    } else {
+        { fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 } }
+    }
+    val predictiveSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
+        if (isAosp) fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
+        else fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
+    }
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
-            if (isAosp) {
-                val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-                    fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
-                }
-                NavDisplay(
-                    entries = entries,
-                    transitionSpec = aospSpec,
-                    popTransitionSpec = aospSpec,
-                    predictivePopTransitionSpec = { _ -> fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) },
-                    onBack = { navigator.pop() },
-                )
-            } else {
-                NavDisplay(
-                    entries = entries,
-                    onBack = { navigator.pop() },
-                )
-            }
+            NavDisplay(
+                entries = entries,
+                transitionSpec = transitionSpec,
+                popTransitionSpec = popSpec,
+                predictivePopTransitionSpec = predictiveSpec,
+                onBack = { navigator.pop() },
+            )
         }
     }
 }
