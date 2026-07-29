@@ -81,6 +81,8 @@ import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -418,16 +420,26 @@ internal fun MainScreenContent(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 if (!isTrafficTab) {
-                    Box(
-                        modifier = if (showBlur) Modifier.textureBlur(
-                            backdrop = backdrop,
-                            shape = RectangleShape,
-                            blurRadius = 25f,
-                            colors = BlurDefaults.blurColors(
-                                blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
-                            ),
-                        ) else Modifier
-                    ) {
+                    Box {
+                        Box(
+                            modifier = if (showBlur) Modifier
+                                .matchParentSize()
+                                .graphicsLayer {
+                                    alpha = scrollBehavior.state
+                                        ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
+                                        ?: 1f
+                                }
+                                .progressiveTextureBlur(
+                                    backdrop = backdrop,
+                                    shape = RectangleShape,
+                                    gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
+                                    blurRadius = 10f,
+                                    colors = BlurDefaults.blurColors(
+                                        blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.3f))),
+                                    ),
+                                )
+                            else Modifier
+                        )
                         TopAppBar(
                             title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                             scrollBehavior = effectiveScrollBehavior,
