@@ -359,14 +359,23 @@ fun NekoPanelMain(
     val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
         fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
     }
+    val pushSpec = if (!isAosp) miuixSpec else aospSpec
+    val popSpec = if (!isAosp) miuixSpec else aospSpec
+    val predictivePopSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
+        if (!isAosp) fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
+        else fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
+    }
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
-        NavDisplay(
-            entries = entries,
-            transitionSpec = if (!isAosp) miuixSpec else aospSpec,
-            popTransitionSpec = if (!isAosp) miuixSpec else aospSpec,
-            onBack = { navigator.pop() },
-        )
+        Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
+            NavDisplay(
+                entries = entries,
+                transitionSpec = pushSpec,
+                popTransitionSpec = popSpec,
+                predictivePopTransitionSpec = predictivePopSpec,
+                onBack = { navigator.pop() },
+            )
+        }
     }
 }
 
@@ -406,7 +415,7 @@ internal fun MainScreenContent(
     val showBlur = backdrop != null
     val barColor = if (showBlur) Color.Transparent else surfaceColor
 
-    Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
+    Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background).layerBackdrop(backdrop)) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
@@ -421,29 +430,29 @@ internal fun MainScreenContent(
                             ),
                         ) else Modifier
                     ) {
-                        if (showBlur) {
-                            Box(
-                                modifier = Modifier.matchParentSize()
-                                    .graphicsLayer {
-                                        alpha = scrollBehavior.state
-                                            ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
-                                            ?: 1f
-                                    }
-                                    .progressiveTextureBlur(
-                                        backdrop = backdrop,
-                                        shape = RectangleShape,
-                                        gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
-                                        blurRadius = 10f,
-                                        colors = BlurDefaults.blurColors(
-                                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.3f))),
-                                        ),
+                        Box(
+                            modifier = if (showBlur) Modifier
+                                .matchParentSize()
+                                .graphicsLayer {
+                                    alpha = scrollBehavior.state
+                                        ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
+                                        ?: 1f
+                                }
+                                .progressiveTextureBlur(
+                                    backdrop = backdrop,
+                                    shape = RectangleShape,
+                                    gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
+                                    blurRadius = 10f,
+                                    colors = BlurDefaults.blurColors(
+                                        blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.3f))),
                                     ),
-                            )
-                        }
+                                )
+                            else Modifier
+                        )
                         TopAppBar(
                             title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                             scrollBehavior = effectiveScrollBehavior,
-                            color = barColor,
+                            color = if (showBlur) Color.Transparent else surfaceColor,
                         )
                     }
                 }
@@ -470,11 +479,13 @@ internal fun MainScreenContent(
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
                 if (isTrafficTab) {
-                    TabRow(
-                        tabs = listOf("概览", "连接", "日志"),
-                        selectedTabIndex = trafficTab,
-                        onTabSelected = { onTrafficTabSelected(it) },
-                    )
+                    Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        TabRow(
+                            tabs = listOf("概览", "连接", "日志"),
+                            selectedTabIndex = trafficTab,
+                            onTabSelected = { onTrafficTabSelected(it) },
+                        )
+                    }
                 }
                 Box(Modifier.weight(1f).nestedScroll(scrollBehavior.nestedScrollConnection)) {
                     when (selectedTab) {
