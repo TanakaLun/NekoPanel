@@ -462,10 +462,9 @@ internal fun MainScreenContent(
                     NavigationBar(color = barColor) {
                         listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
                             NavigationBarItem(selected = selectedTab == index, onClick = { onTabSelected(index) }, icon = icon, label = label)
-        }
-    }
-}
-}
+                        }
+                    }
+                }
 
             }
         ) { padding ->
