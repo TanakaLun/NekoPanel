@@ -353,26 +353,29 @@ fun NekoPanelMain(
     )
 
     val isAosp = transitionStyle == 1
-    val miuixSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    val miuixPush: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
         fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
+    }
+    val miuixPop: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
     }
     val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
         fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
     }
-    val pushSpec = if (!isAosp) miuixSpec else aospSpec
-    val popSpec = if (!isAosp) miuixSpec else aospSpec
-    val predictivePopSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
-        if (!isAosp) fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
-        else fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
+    val predictiveMiuix: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
+        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
+    }
+    val predictiveAosp: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
+        fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
     }
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
             NavDisplay(
                 entries = entries,
-                transitionSpec = pushSpec,
-                popTransitionSpec = popSpec,
-                predictivePopTransitionSpec = predictivePopSpec,
+                transitionSpec = if (!isAosp) miuixPush else aospSpec,
+                popTransitionSpec = if (!isAosp) miuixPop else aospSpec,
+                predictivePopTransitionSpec = if (!isAosp) predictiveMiuix else predictiveAosp,
                 onBack = { navigator.pop() },
             )
         }
