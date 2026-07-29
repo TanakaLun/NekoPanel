@@ -69,7 +69,7 @@ dependencies {
     implementation(libs.miuix.ui)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
-    implementation(files("libs/miuix-blur-android-0.9.3-a0808ddb-20260720.153705-1.aar"))
+    implementation(libs.miuix.blur)
     implementation(files("libs/miuix-navigation3-ui-android-0.9.3-ddf27802-20260724.093510-1.aar"))
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.runtime.android)
