@@ -357,25 +357,26 @@ fun NekoPanelMain(
     )
 
     val animEnabled = transitionStyle == 1
-    val miuixSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
-    }
-    val miuixPop: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
-    }
-    val fadeSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(200)) togetherWith fadeOut(tween(200))
-    }
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
-            NavDisplay(
-                entries = entries,
-                transitionSpec = if (animEnabled) miuixSpec else fadeSpec,
-                popTransitionSpec = if (animEnabled) miuixPop else fadeSpec,
-                predictivePopTransitionSpec = if (animEnabled) { _ -> miuixPop() } else { _ -> fadeSpec() },
-                onBack = { navigator.pop() },
-            )
+            if (animEnabled) {
+                NavDisplay(
+                    entries = entries,
+                    onBack = { navigator.pop() },
+                )
+            } else {
+                val fadeSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+                    fadeIn(tween(200)) togetherWith fadeOut(tween(200))
+                }
+                NavDisplay(
+                    entries = entries,
+                    transitionSpec = fadeSpec,
+                    popTransitionSpec = fadeSpec,
+                    predictivePopTransitionSpec = { _ -> fadeSpec() },
+                    onBack = { navigator.pop() },
+                )
+            }
         }
     }
 }
@@ -425,14 +426,18 @@ internal fun MainScreenContent(
             topBar = {
                 if (!isTrafficTab) {
                     Box(
-                        modifier = if (blurActive && !isProgressive) Modifier.textureBlur(
-                            backdrop = backdrop,
-                            shape = RectangleShape,
-                            blurRadius = 25f,
-                            colors = BlurDefaults.blurColors(
-                                blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
-                            ),
-                        ) else Modifier
+                        modifier = Modifier
+                            .then(
+                                if (blurActive && !isProgressive) Modifier.textureBlur(
+                                    backdrop = backdrop,
+                                    shape = RectangleShape,
+                                    blurRadius = 25f,
+                                    colors = BlurDefaults.blurColors(
+                                        blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                                    ),
+                                ) else Modifier
+                            )
+                            .background(barColor)
                     ) {
                         if (blurActive && isProgressive) {
                             Box(
@@ -464,14 +469,18 @@ internal fun MainScreenContent(
             },
             bottomBar = {
                 Box(
-                    modifier = if (blurActive) Modifier.textureBlur(
-                        backdrop = backdrop,
-                        shape = RectangleShape,
-                        blurRadius = 25f,
-                        colors = BlurDefaults.blurColors(
-                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
-                        ),
-                    ) else Modifier
+                    modifier = Modifier
+                        .then(
+                            if (blurActive) Modifier.textureBlur(
+                                backdrop = backdrop,
+                                shape = RectangleShape,
+                                blurRadius = 25f,
+                                colors = BlurDefaults.blurColors(
+                                    blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                                ),
+                            ) else Modifier
+                        )
+                        .background(barColor)
                 ) {
                     NavigationBar(color = barColor) {
                         listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
