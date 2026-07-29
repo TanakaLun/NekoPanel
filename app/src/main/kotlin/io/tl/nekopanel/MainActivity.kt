@@ -420,16 +420,7 @@ internal fun MainScreenContent(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 if (!isTrafficTab) {
-                    Box(
-                        modifier = if (showBlur) Modifier.textureBlur(
-                            backdrop = backdrop,
-                            shape = RectangleShape,
-                            blurRadius = 25f,
-                            colors = BlurDefaults.blurColors(
-                                blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
-                            ),
-                        ) else Modifier
-                    ) {
+                    Box {
                         Box(
                             modifier = if (showBlur) Modifier
                                 .matchParentSize()
@@ -452,7 +443,7 @@ internal fun MainScreenContent(
                         TopAppBar(
                             title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                             scrollBehavior = effectiveScrollBehavior,
-                            color = if (showBlur) Color.Transparent else surfaceColor,
+                            color = barColor,
                         )
                     }
                 }
