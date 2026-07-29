@@ -31,6 +31,7 @@ fun UiSettingsScreen(
     settings: SettingsManager,
     onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
     onBackAnimEnabledChange: (Boolean) -> Unit = {},
+    onBlurStyleChange: (Int) -> Unit = {},
     onBack: () -> Unit
 ) {
     var groupColBy by remember { mutableStateOf(if(settings.groupColumnCount == 1) "1 列" else "2 列") }
@@ -46,6 +47,7 @@ fun UiSettingsScreen(
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
     var backAnimEnabled by remember { mutableStateOf(settings.backAnimStyle != "none") }
+    var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
 
     val schemeItems = remember {
         AllThemeSchemes.map { tc ->
@@ -163,6 +165,10 @@ fun UiSettingsScreen(
                         Column {
                             ConfigToggle("开启返回动画", checked = backAnimEnabled) {
                                 backAnimEnabled = it; onBackAnimEnabledChange(it)
+                            }
+                            SettingsDropdownMenuInline("TopAppBar 模糊风格", if (blurStyle == 1) "Progressive" else "Gaussian", listOf("Gaussian", "Progressive")) { s ->
+                                val newVal = if (s == "Progressive") 1 else 0
+                                blurStyle = newVal; onBlurStyleChange(newVal)
                             }
                         }
                     }

@@ -195,6 +195,7 @@ fun NekoPanelMain(
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
     var transitionStyle by remember { mutableStateOf(if (settings.backAnimStyle == "none") 0 else 1) }
+    var topBarBlurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
     val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
@@ -325,6 +326,7 @@ fun NekoPanelMain(
                     onRemoveConnection = removeConnection,
                     onClearConnections = clearConnections,
                     onNavi = { navigator.push(it) },
+                    topBarBlurStyle = topBarBlurStyle,
                 )
             }
             entry(Route.UiSettings) {
@@ -335,6 +337,7 @@ fun NekoPanelMain(
                         onDynamicColorChange = onDynamicColorChange,
                         onCustomColorChange = onCustomColorChange,
                         onBackAnimEnabledChange = { transitionStyle = if (it) 1 else 0; settings.backAnimStyle = if (it) "miuix" else "none" },
+                        onBlurStyleChange = { topBarBlurStyle = it; settings.topBarBlurStyle = it },
                         onBack = { navigator.pop() },
                     )
                 }
@@ -395,6 +398,7 @@ internal fun MainScreenContent(
     onRemoveConnection: (String) -> Unit,
     onClearConnections: () -> Unit,
     onNavi: (NavKey) -> Unit,
+    topBarBlurStyle: Int = 0,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val isTrafficTab = selectedTab == 2
@@ -406,6 +410,7 @@ internal fun MainScreenContent(
         drawContent()
     }
     val blurActive = shaderSupported
+    val isProgressive = topBarBlurStyle == 1
     val barColor = if (blurActive) Color.Transparent else surfaceColor
 
     Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
@@ -414,7 +419,7 @@ internal fun MainScreenContent(
             topBar = {
                 if (!isTrafficTab) {
                     Box(
-                        modifier = if (blurActive) Modifier.textureBlur(
+                        modifier = if (blurActive && !isProgressive) Modifier.textureBlur(
                             backdrop = backdrop,
                             shape = RectangleShape,
                             blurRadius = 25f,
@@ -423,7 +428,7 @@ internal fun MainScreenContent(
                             ),
                         ) else Modifier
                     ) {
-                        if (blurActive) {
+                        if (blurActive && isProgressive) {
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
