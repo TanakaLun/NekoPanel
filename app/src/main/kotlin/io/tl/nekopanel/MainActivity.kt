@@ -74,7 +74,7 @@ import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.Surface
-import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
@@ -493,11 +493,11 @@ internal fun MainScreenContent(
             Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
                 if (isTrafficTab) {
                     Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        TabRow(
-                            tabs = listOf("概览", "连接", "日志"),
-                            selectedTabIndex = trafficTab,
-                            onTabSelected = { onTrafficTabSelected(it) },
-                        )
+                    TabRowWithContour(
+                        tabs = listOf("概览", "连接", "日志"),
+                        selectedTabIndex = trafficTab,
+                        onTabSelected = { onTrafficTabSelected(it) },
+                    )
                     }
                 }
                 Box(Modifier.weight(1f).nestedScroll(scrollBehavior.nestedScrollConnection)) {

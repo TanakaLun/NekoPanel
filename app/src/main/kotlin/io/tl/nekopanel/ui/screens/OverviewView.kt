@@ -69,7 +69,7 @@ fun OverviewView(
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            MiniLineChart(downHistory, MiuixTheme.colorScheme.primaryVariant, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            MiniLineChart(downHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine)
