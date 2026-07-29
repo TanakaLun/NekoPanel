@@ -36,6 +36,7 @@ import io.tl.nekopanel.navigation.Navigator
 import io.tl.nekopanel.navigation.Route
 import io.tl.nekopanel.navigation.WebSocketState
 import io.tl.nekopanel.navigation.rememberWebSocketState
+import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.ui.BlurredBar
@@ -177,6 +178,8 @@ fun NekoPanelMain(
     var currentMode by remember { mutableStateOf("rule") }
     var currentLogLevel by remember { mutableStateOf(settings.logLevel) }
     var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
+    var enableBlur by remember { mutableStateOf(settings.enableBlur) }
+    var transitionStyle by remember { mutableIntStateOf(settings.transitionStyle) }
 
     LaunchedEffect(Unit) {
         try { currentMode = ApiClient.getConfigs().optString("mode", "rule") } catch (_: Exception) {}
@@ -198,8 +201,10 @@ fun NekoPanelMain(
     val memHistory = rememberChartHistory(wsState.globalInUse)
     val downHistory = rememberChartHistory(wsState.globalDown)
 
-    val appState = remember(selectedTab, trafficTab, currentMode, currentLogLevel, blurStyle) {
+    val appState = remember(enableBlur, transitionStyle, selectedTab, trafficTab, currentMode, currentLogLevel, blurStyle) {
         AppState(
+            enableBlur = enableBlur,
+            transitionStyle = transitionStyle,
             selectedTab = selectedTab,
             trafficTab = trafficTab,
             currentMode = currentMode,
@@ -223,8 +228,9 @@ fun NekoPanelMain(
             backdropColor = surfaceColor,
         )
     }
-    val navTransition = NavTransitions.MiuixDefault
-    val swipeBackDirection = NavSwipeDirection.LeftToRight
+    val isCrossActivityStyle = transitionStyle == 1
+    val navTransition = if (isCrossActivityStyle) CrossActivityTransition else NavTransitions.MiuixDefault
+    val swipeBackDirection = if (isCrossActivityStyle) NavSwipeDirection.None else NavSwipeDirection.LeftToRight
 
     CompositionLocalProvider(
         LocalNavigator provides navigator,
@@ -248,7 +254,6 @@ fun NekoPanelMain(
                     wsState = wsState,
                     memHistory = memHistory,
                     downHistory = downHistory,
-                    blurStyle = blurStyle,
                     onTabSelected = { selectedTab = it },
                     onTrafficTabSelected = { trafficTab = it },
                     onModeChange = { currentMode = it },
@@ -265,6 +270,8 @@ fun NekoPanelMain(
                         onDynamicColorChange = onDynamicColorChange,
                         onCustomColorChange = onCustomColorChange,
                         onBlurStyleChange = { blurStyle = it; settings.topBarBlurStyle = it },
+                        onTransitionStyleChange = { transitionStyle = it; settings.transitionStyle = it },
+                        onEnableBlurChange = { enableBlur = it; settings.enableBlur = it },
                         onBack = { navigator.pop() },
                     )
                 }
@@ -289,7 +296,6 @@ internal fun MainScreenContent(
     wsState: WebSocketState,
     memHistory: List<Long>,
     downHistory: List<Long>,
-    blurStyle: Int,
     onTabSelected: (Int) -> Unit,
     onTrafficTabSelected: (Int) -> Unit,
     onModeChange: (String) -> Unit,
@@ -302,7 +308,6 @@ internal fun MainScreenContent(
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
     val backdrop = rememberBlurBackdrop()
     val blurActive = backdrop != null
-    val isProgressive = blurStyle == 1
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
@@ -311,9 +316,8 @@ internal fun MainScreenContent(
             if (!isTrafficTab) {
                 BlurredBar(
                     backdrop = backdrop,
-                    blurActive = blurActive,
+                    blurEnabled = blurActive,
                     scrollBehavior = effectiveScrollBehavior,
-                    isProgressive = isProgressive,
                 ) {
                     TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
@@ -324,7 +328,7 @@ internal fun MainScreenContent(
             }
         },
         bottomBar = {
-            BlurredBar(backdrop = backdrop, blurActive = blurActive) {
+            BlurredBar(backdrop = backdrop, blurEnabled = blurActive) {
                 NavigationBar(color = barColor) {
                     listOf(
                         "代理" to Icons.AutoMirrored.Filled.List,
@@ -343,7 +347,12 @@ internal fun MainScreenContent(
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier).padding(padding)) {
+        Column(
+            Modifier.fillMaxSize()
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+                .padding(padding)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+        ) {
             if (isTrafficTab) {
                 Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                     TabRowWithContour(
@@ -353,7 +362,7 @@ internal fun MainScreenContent(
                     )
                 }
             }
-            Box(Modifier.weight(1f).nestedScroll(scrollBehavior.nestedScrollConnection)) {
+            Box(Modifier.weight(1f)) {
                 when (selectedTab) {
                     0 -> ProxiesScreen(settings, refreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
                     1 -> RulesScreen(refreshTick, settings)

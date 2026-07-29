@@ -30,8 +30,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun UiSettingsScreen(
     settings: SettingsManager,
     onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
-    onBackAnimEnabledChange: (Boolean) -> Unit = {},
     onBlurStyleChange: (Int) -> Unit = {},
+    onTransitionStyleChange: (Int) -> Unit = {},
+    onEnableBlurChange: (Boolean) -> Unit = {},
     onBack: () -> Unit
 ) {
     var groupColBy by remember { mutableStateOf(if(settings.groupColumnCount == 1) "1 列" else "2 列") }
@@ -46,7 +47,8 @@ fun UiSettingsScreen(
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
-    var backAnimEnabled by remember { mutableStateOf(settings.backAnimStyle != "none") }
+    var enableBlur by remember { mutableStateOf(settings.enableBlur) }
+    var transitionStyle by remember { mutableIntStateOf(settings.transitionStyle) }
     var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
 
     val schemeItems = remember {
@@ -160,11 +162,23 @@ fun UiSettingsScreen(
                 }
 
                 item {
-                    SectionTitle("导航")
+                    SectionTitle("导航与转场")
                     Card(Modifier.fillMaxWidth()) {
                         Column {
-                            ConfigToggle("开启返回动画", checked = backAnimEnabled) {
-                                backAnimEnabled = it; onBackAnimEnabledChange(it)
+                            SettingsDropdownMenuInline("Transition Style", if (transitionStyle == 1) "AOSP" else "Miuix", listOf("Miuix", "AOSP")) { s ->
+                                val newVal = if (s == "AOSP") 1 else 0
+                                transitionStyle = newVal; onTransitionStyleChange(newVal)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    SectionTitle("模糊效果")
+                    Card(Modifier.fillMaxWidth()) {
+                        Column {
+                            ConfigToggle("启用模糊效果", checked = enableBlur) {
+                                enableBlur = it; onEnableBlurChange(it)
                             }
                             SettingsDropdownMenuInline("TopAppBar 模糊风格", if (blurStyle == 1) "Progressive" else "Gaussian", listOf("Gaussian", "Progressive")) { s ->
                                 val newVal = if (s == "Progressive") 1 else 0
