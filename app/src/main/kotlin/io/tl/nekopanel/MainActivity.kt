@@ -263,10 +263,11 @@ fun NekoPanelMain(
                     } catch (_: Exception) {}
                 }, onError = { fail.complete(Unit) })
                 try { fail.await() } catch (_: CancellationException) { break } finally { delay(3000) }
-            }
         }
-        delay(Long.MAX_VALUE)
     }
+}
+}
+
 
     LaunchedEffect(selectedTab) {
         if (settings.apiBaseUrl.isNotBlank() && selectedTab == 2) {
@@ -465,6 +466,7 @@ internal fun MainScreenContent(
                         }
                     }
                 }
+
             }
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
