@@ -87,7 +87,7 @@ fun OverviewView(
                     Text("累计流量", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text("↓ ${cumulative.first.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.primary)
-                        Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.primaryVariant)
+                        Text("↑ ${cumulative.second.formatSize()}", fontWeight = FontWeight.Bold, color = MiuixTheme.colorScheme.primary)
                     }
                 }
             }

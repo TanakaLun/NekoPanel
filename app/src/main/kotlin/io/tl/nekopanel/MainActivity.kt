@@ -325,27 +325,25 @@ internal fun MainScreenContent(
         },
         bottomBar = {
             BlurredBar(backdrop = backdrop, blurActive = blurActive) {
-                Box(Modifier.background(barColor)) {
-                    NavigationBar(color = barColor) {
-                        listOf(
-                            "代理" to Icons.AutoMirrored.Filled.List,
-                            "规则" to Icons.Default.CheckCircle,
-                            "监控" to Icons.Default.SwapCalls,
-                            "设置" to Icons.Default.Settings,
-                        ).forEachIndexed { index, (label, icon) ->
-                            NavigationBarItem(
-                                selected = selectedTab == index,
-                                onClick = { onTabSelected(index) },
-                                icon = icon,
-                                label = label,
-                            )
-                        }
+                NavigationBar(color = barColor) {
+                    listOf(
+                        "代理" to Icons.AutoMirrored.Filled.List,
+                        "规则" to Icons.Default.CheckCircle,
+                        "监控" to Icons.Default.SwapCalls,
+                        "设置" to Icons.Default.Settings,
+                    ).forEachIndexed { index, (label, icon) ->
+                        NavigationBarItem(
+                            selected = selectedTab == index,
+                            onClick = { onTabSelected(index) },
+                            icon = icon,
+                            label = label,
+                        )
                     }
                 }
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
+        Column(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier).padding(padding)) {
             if (isTrafficTab) {
                 Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                     TabRowWithContour(
