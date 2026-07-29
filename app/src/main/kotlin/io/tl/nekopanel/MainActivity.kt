@@ -77,6 +77,7 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
@@ -352,32 +353,25 @@ fun NekoPanelMain(
         entryProvider = entryProvider,
     )
 
-    val isAosp = transitionStyle == 1
-    val miuixPush: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
-    }
-    val miuixPop: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
-    }
-    val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-        fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
-    }
-    val predictiveMiuix: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
-        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { -it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { -it / 4 }
-    }
-    val predictiveAosp: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = { _ ->
-        fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
-    }
-
     CompositionLocalProvider(LocalNavigator provides navigator) {
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
-            NavDisplay(
-                entries = entries,
-                transitionSpec = if (!isAosp) miuixPush else aospSpec,
-                popTransitionSpec = if (!isAosp) miuixPop else aospSpec,
-                predictivePopTransitionSpec = if (!isAosp) predictiveMiuix else predictiveAosp,
-                onBack = { navigator.pop() },
-            )
+            if (isAosp) {
+                val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+                    fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
+                }
+                NavDisplay(
+                    entries = entries,
+                    transitionSpec = aospSpec,
+                    popTransitionSpec = aospSpec,
+                    predictivePopTransitionSpec = { _ -> fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) },
+                    onBack = { navigator.pop() },
+                )
+            } else {
+                NavDisplay(
+                    entries = entries,
+                    onBack = { navigator.pop() },
+                )
+            }
         }
     }
 }
@@ -411,11 +405,12 @@ internal fun MainScreenContent(
     val isTrafficTab = selectedTab == 2
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
     val surfaceColor = MiuixTheme.colorScheme.surface
+    val shaderSupported = isRuntimeShaderSupported()
     val backdrop = rememberLayerBackdrop {
         drawRect(surfaceColor)
         drawContent()
     }
-    val blurActive = backdrop != null
+    val blurActive = shaderSupported && backdrop != null
     val barColor = if (blurActive) Color.Transparent else surfaceColor
 
     Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
