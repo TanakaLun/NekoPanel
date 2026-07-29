@@ -306,7 +306,8 @@ internal fun MainScreenContent(
     val scrollBehavior = MiuixScrollBehavior()
     val isTrafficTab = selectedTab == 2
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
-    val backdrop = rememberBlurBackdrop()
+    val enableBlur = LocalAppState.current.enableBlur
+    val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
@@ -314,11 +315,7 @@ internal fun MainScreenContent(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!isTrafficTab) {
-                BlurredBar(
-                    backdrop = backdrop,
-                    blurEnabled = blurActive,
-                    scrollBehavior = effectiveScrollBehavior,
-                ) {
+                BlurredBar(backdrop, blurActive) {
                     TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                         scrollBehavior = effectiveScrollBehavior,
@@ -328,7 +325,7 @@ internal fun MainScreenContent(
             }
         },
         bottomBar = {
-            BlurredBar(backdrop = backdrop, blurEnabled = blurActive) {
+            BlurredBar(backdrop, blurActive) {
                 NavigationBar(color = barColor) {
                     listOf(
                         "代理" to Icons.AutoMirrored.Filled.List,
@@ -347,38 +344,39 @@ internal fun MainScreenContent(
             }
         },
     ) { padding ->
-        Column(
-            Modifier.fillMaxSize()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-                .padding(padding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-        ) {
-            if (isTrafficTab) {
-                Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                    TabRowWithContour(
-                        tabs = listOf("概览", "连接", "日志"),
-                        selectedTabIndex = trafficTab,
-                        onTabSelected = { onTrafficTabSelected(it) },
-                    )
+        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+            Column(
+                Modifier.fillMaxSize()
+                    .padding(padding)
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+            ) {
+                if (isTrafficTab) {
+                    Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        TabRowWithContour(
+                            tabs = listOf("概览", "连接", "日志"),
+                            selectedTabIndex = trafficTab,
+                            onTabSelected = { onTrafficTabSelected(it) },
+                        )
+                    }
                 }
-            }
-            Box(Modifier.weight(1f)) {
-                when (selectedTab) {
-                    0 -> ProxiesScreen(settings, refreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
-                    1 -> RulesScreen(refreshTick, settings)
-                    2 -> TrafficScreen(
-                        trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
-                        wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
-                        memHistory, downHistory,
-                        onLevelChange = onLevelChange,
-                        onRemoveConnection = { wsState.removeConnection(it) },
-                        onClearConnections = { wsState.clearConnections() },
-                    )
-                    3 -> FullSettingsScreen(
-                        settings,
-                        onNavigateToUiSettings = { onNavi(Route.UiSettings) },
-                        onNavigateToBackup = { onNavi(Route.Backup) },
-                    )
+                Box(Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
+                        1 -> RulesScreen(refreshTick, settings)
+                        2 -> TrafficScreen(
+                            trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
+                            wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
+                            memHistory, downHistory,
+                            onLevelChange = onLevelChange,
+                            onRemoveConnection = { wsState.removeConnection(it) },
+                            onClearConnections = { wsState.clearConnections() },
+                        )
+                        3 -> FullSettingsScreen(
+                            settings,
+                            onNavigateToUiSettings = { onNavi(Route.UiSettings) },
+                            onNavigateToBackup = { onNavi(Route.Backup) },
+                        )
+                    }
                 }
             }
         }
