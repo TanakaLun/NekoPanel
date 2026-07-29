@@ -13,11 +13,13 @@ coil = "2.7.0"
 okhttp = "5.4.0"
 room = "2.8.4"
 ksp = "2.3.10"
+kotlinxSerialization = "1.8.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 [libraries]
@@ -32,6 +34,7 @@ androidx-material-icons-extended = { group = "androidx.compose.material", name =
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinCoroutines" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 androidx-coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
@@ -40,9 +43,6 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 miuix-ui = { group = "top.yukonga.miuix.kmp", name = "miuix-ui-android", version.ref = "miuix" }
 miuix-preference = { group = "top.yukonga.miuix.kmp", name = "miuix-preference-android", version.ref = "miuix" }
 miuix-icons = { group = "top.yukonga.miuix.kmp", name = "miuix-icons-android", version.ref = "miuix" }
-miuix-nav-ui = { group = "top.yukonga.miuix.kmp", name = "miuix-navigation3-ui-android", version.ref = "miuix" }
 miuix-blur = { group = "top.yukonga.miuix.kmp", name = "miuix-blur-android", version.ref = "miuix" }
-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
-navigation3-runtime-android = { group = "androidx.navigation3", name = "navigation3-runtime-android", version.ref = "navigation3" }
 navigationevent-compose = { group = "androidx.navigationevent", name = "navigationevent-compose", version.ref = "navigationevent" }
 navigationevent-compose-android = { group = "androidx.navigationevent", name = "navigationevent-compose-android", version.ref = "navigationevent" }

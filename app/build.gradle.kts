@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -70,12 +71,11 @@ dependencies {
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
     implementation(files("libs/miuix-blur-android-0.9.3-9686db2b-20260728.164854-1.aar"))
-    implementation(files("libs/miuix-navigation3-ui-android-0.9.3-ddf27802-20260724.093510-1.aar"))
-    implementation(libs.navigation3.runtime)
-    implementation(libs.navigation3.runtime.android)
+    implementation(files("libs/miuix-nav-android-0.9.3-9686db2b-20260728.164854-1.aar"))
     implementation(libs.navigationevent.compose)
     implementation(libs.navigationevent.compose.android)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.okhttp)

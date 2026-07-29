@@ -1,9 +1,16 @@
 package io.tl.nekopanel.navigation
 
-import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+import top.yukonga.miuix.kmp.nav.core.NavKey
 
+@Serializable
 sealed interface Route : NavKey {
+    @Serializable
     data object Main : Route
+
+    @Serializable
     data object UiSettings : Route
+
+    @Serializable
     data object Backup : Route
 }
