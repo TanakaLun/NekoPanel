@@ -353,6 +353,8 @@ fun NekoPanelMain(
         entryProvider = entryProvider,
     )
 
+    val isAosp = transitionStyle == 1
+
     CompositionLocalProvider(LocalNavigator provides navigator) {
         Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
             if (isAosp) {
