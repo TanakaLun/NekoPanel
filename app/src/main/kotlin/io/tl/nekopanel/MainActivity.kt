@@ -193,7 +193,7 @@ fun NekoPanelMain(
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
-    var transitionStyle by remember { mutableStateOf(settings.navTransitionStyle) }
+    var transitionStyle by remember { mutableStateOf(if (settings.backAnimStyle == "scale" || settings.backAnimStyle == "aosp") 1 else 0) }
     val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
@@ -333,7 +333,7 @@ fun NekoPanelMain(
                         onThemeModeChange = onThemeModeChange,
                         onDynamicColorChange = onDynamicColorChange,
                         onCustomColorChange = onCustomColorChange,
-                        onTransitionStyleChange = { transitionStyle = it; settings.navTransitionStyle = it },
+                        onTransitionStyleChange = { transitionStyle = it; settings.backAnimStyle = if (it == 1) "aosp" else "miuix" },
                         onBack = { navigator.pop() },
                     )
                 }
@@ -353,18 +353,18 @@ fun NekoPanelMain(
     )
 
     val isAosp = transitionStyle == 1
-    val pushTransition: ((AnimatedContentTransitionScope<Scene<NavKey>>) -> ContentTransform)? = if (isAosp)
-        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
-    else null
-    val popTransition: ((AnimatedContentTransitionScope<Scene<NavKey>>) -> ContentTransform)? = if (isAosp)
-        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
-    else null
+    val miuixSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+        fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 } togetherWith fadeOut(tween(300)) + slideOutHorizontally(tween(300)) { it / 4 }
+    }
+    val aospSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+        fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300))
+    }
 
     CompositionLocalProvider(LocalNavigator provides navigator) {
         NavDisplay(
             entries = entries,
-            pushTransition = pushTransition,
-            popTransition = popTransition,
+            transitionSpec = if (!isAosp) miuixSpec else aospSpec,
+            popTransitionSpec = if (!isAosp) miuixSpec else aospSpec,
             onBack = { navigator.pop() },
         )
     }
