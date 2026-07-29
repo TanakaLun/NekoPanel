@@ -182,8 +182,9 @@ fun NekoPanelMain(
         try { currentMode = ApiClient.getConfigs().optString("mode", "rule") } catch (_: Exception) {}
     }
 
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
-        if (settings.backgroundWebSocket || settings.autoStartService) DataDaemonService.start(LocalContext.current)
+        if (settings.backgroundWebSocket || settings.autoStartService) DataDaemonService.start(context)
     }
 
     val wsState = rememberWebSocketState(
@@ -212,13 +213,14 @@ fun NekoPanelMain(
     val navigator = remember { Navigator(backStack) }
 
     val navCornerRadius = rememberNavSystemCornerRadius()
-    val effects = remember(navCornerRadius) {
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val effects = remember(navCornerRadius, surfaceColor) {
         NavDisplayEffects(
             enableCornerClip = true,
             cornerClipRadius = navCornerRadius,
             cornerClipMode = NavCornerClipMode.Leading,
             dimAmount = 0.5f,
-            backdropColor = MiuixTheme.colorScheme.surface,
+            backdropColor = surfaceColor,
         )
     }
     val navTransition = NavTransitions.MiuixDefault
@@ -240,6 +242,7 @@ fun NekoPanelMain(
                     settings = settings,
                     selectedTab = selectedTab,
                     trafficTab = trafficTab,
+                    refreshTick = refreshTick,
                     currentMode = currentMode,
                     currentLogLevel = currentLogLevel,
                     wsState = wsState,
@@ -280,6 +283,7 @@ internal fun MainScreenContent(
     settings: SettingsManager,
     selectedTab: Int,
     trafficTab: Int,
+    refreshTick: Long,
     currentMode: String,
     currentLogLevel: String,
     wsState: WebSocketState,
@@ -341,7 +345,7 @@ internal fun MainScreenContent(
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
+        Column(Modifier.fillMaxSize().padding(padding).then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
             if (isTrafficTab) {
                 Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                     TabRowWithContour(
