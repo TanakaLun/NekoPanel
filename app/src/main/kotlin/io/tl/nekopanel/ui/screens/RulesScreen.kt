@@ -71,7 +71,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                         Switch(checked = !isDisabled, onCheckedChange = { isChecked ->
                             disabledState = disabledState + (index to !isChecked)
                             scope.launch(Dispatchers.IO) {
-                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to isChecked)) } catch (_: Exception) {}
+                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to !isChecked)) } catch (_: Exception) {}
                             }
                         })
                     }
