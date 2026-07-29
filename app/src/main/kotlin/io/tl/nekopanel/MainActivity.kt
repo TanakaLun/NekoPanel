@@ -77,6 +77,13 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
@@ -401,28 +408,69 @@ internal fun MainScreenContent(
     val isTrafficTab = selectedTab == 2
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
     val surfaceColor = MiuixTheme.colorScheme.surface
+    val backdrop = rememberLayerBackdrop {
+        drawRect(surfaceColor)
+        drawContent()
+    }
+    val blurActive = backdrop != null
+    val barColor = if (blurActive) Color.Transparent else surfaceColor
 
     Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 if (!isTrafficTab) {
-                    TopAppBar(
-                        title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
-                        scrollBehavior = effectiveScrollBehavior,
-                        color = surfaceColor,
-                    )
+                    Box {
+                        if (blurActive) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .graphicsLayer {
+                                        alpha = scrollBehavior.state
+                                            ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
+                                            ?: 1f
+                                    }
+                                    .progressiveTextureBlur(
+                                        backdrop = backdrop,
+                                        shape = RectangleShape,
+                                        gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
+                                        blurRadius = 10f,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.3f))),
+                                        ),
+                                    ),
+                            )
+                        }
+                        TopAppBar(
+                            title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
+                            scrollBehavior = effectiveScrollBehavior,
+                            color = barColor,
+                        )
+                    }
                 }
             },
             bottomBar = {
-                NavigationBar(color = surfaceColor) {
-                    listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                        NavigationBarItem(selected = selectedTab == index, onClick = { onTabSelected(index) }, icon = icon, label = label)
+                Box(
+                    modifier = if (blurActive) Modifier
+                        .textureBlur(
+                            backdrop = backdrop,
+                            shape = RectangleShape,
+                            blurRadius = 25f,
+                            colors = BlurDefaults.blurColors(
+                                blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.8f))),
+                            ),
+                        )
+                    else Modifier
+                ) {
+                    NavigationBar(color = barColor) {
+                        listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
+                            NavigationBarItem(selected = selectedTab == index, onClick = { onTabSelected(index) }, icon = icon, label = label)
+                        }
                     }
                 }
             }
         ) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {
                 if (isTrafficTab) {
                     Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
                         TabRow(
