@@ -487,3 +487,4 @@ internal fun MainScreenContent(
         }
     }
 }
+}
