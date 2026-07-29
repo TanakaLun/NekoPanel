@@ -14,6 +14,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -27,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,6 +45,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -69,6 +81,8 @@ import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -179,6 +193,7 @@ fun NekoPanelMain(
     var trafficTab by remember { mutableIntStateOf(0) }
     var globalRefreshTick by remember { mutableLongStateOf(0L) }
     var configUpdateTrigger by remember { mutableIntStateOf(0) }
+    var transitionStyle by remember { mutableStateOf(settings.navTransitionStyle) }
     val context = LocalContext.current
 
     val logs = remember { mutableStateListOf<LogItem>() }
@@ -318,6 +333,7 @@ fun NekoPanelMain(
                         onThemeModeChange = onThemeModeChange,
                         onDynamicColorChange = onDynamicColorChange,
                         onCustomColorChange = onCustomColorChange,
+                        onTransitionStyleChange = { transitionStyle = it; settings.navTransitionStyle = it },
                         onBack = { navigator.pop() },
                     )
                 }
@@ -336,9 +352,19 @@ fun NekoPanelMain(
         entryProvider = entryProvider,
     )
 
+    val isAosp = transitionStyle == 1
+    val pushTransition: ((AnimatedContentTransitionScope<Scene<NavKey>>) -> ContentTransform)? = if (isAosp)
+        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
+    else null
+    val popTransition: ((AnimatedContentTransitionScope<Scene<NavKey>>) -> ContentTransform)? = if (isAosp)
+        { fadeIn(tween(300)) + scaleIn(tween(300)) togetherWith fadeOut(tween(300)) + scaleOut(tween(300)) }
+    else null
+
     CompositionLocalProvider(LocalNavigator provides navigator) {
         NavDisplay(
             entries = entries,
+            pushTransition = pushTransition,
+            popTransition = popTransition,
             onBack = { navigator.pop() },
         )
     }
@@ -395,6 +421,26 @@ internal fun MainScreenContent(
                             ),
                         ) else Modifier
                     ) {
+                        if (showBlur) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .graphicsLayer {
+                                        alpha = scrollBehavior.state
+                                            ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
+                                            ?: 1f
+                                    }
+                                    .progressiveTextureBlur(
+                                        backdrop = backdrop,
+                                        shape = RectangleShape,
+                                        gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
+                                        blurRadius = 10f,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = listOf(BlendColorEntry(color = surfaceColor.copy(0.3f))),
+                                        ),
+                                    ),
+                            )
+                        }
                         TopAppBar(
                             title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                             scrollBehavior = effectiveScrollBehavior,
@@ -417,9 +463,10 @@ internal fun MainScreenContent(
                     NavigationBar(color = barColor) {
                         listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
                             NavigationBarItem(selected = selectedTab == index, onClick = { onTabSelected(index) }, icon = icon, label = label)
-                        }
-                    }
-                }
+        }
+    }
+}
+}
             }
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).layerBackdrop(backdrop)) {

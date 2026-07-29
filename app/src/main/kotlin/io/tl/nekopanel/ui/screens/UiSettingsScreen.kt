@@ -30,7 +30,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun UiSettingsScreen(
     settings: SettingsManager,
     onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {},
-    onBackAnimChange: (String) -> Unit = {},
+    onTransitionStyleChange: (Int) -> Unit = {},
     onBack: () -> Unit
 ) {
     var groupColBy by remember { mutableStateOf(if(settings.groupColumnCount == 1) "1 列" else "2 列") }
@@ -45,6 +45,7 @@ fun UiSettingsScreen(
     var themeModeState by remember { mutableStateOf(settings.themeMode) }
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
+    val transitionStyleState by remember { mutableStateOf(settings.backAnimStyle.let { if (it == "scale" || it == "aosp") 1 else 0 }) }
 
     val schemeItems = remember {
         AllThemeSchemes.map { tc ->
@@ -151,6 +152,20 @@ fun UiSettingsScreen(
                                         customColorKey = key; onCustomColorChange(key)
                                     },
                                 )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    SectionTitle("导航")
+                    Card(Modifier.fillMaxWidth()) {
+                        Column {
+                            val transitionNames = listOf("Miuix", "AOSP")
+                            val curTransition = if (transitionStyleState == 1) "AOSP" else "Miuix"
+                            SettingsDropdownMenuInline("过渡动画风格", curTransition, transitionNames) { s ->
+                                val newVal = if (s == "AOSP") 1 else 0
+                                onTransitionStyleChange(newVal)
                             }
                         }
                     }
