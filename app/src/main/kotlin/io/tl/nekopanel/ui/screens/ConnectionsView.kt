@@ -9,10 +9,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,18 +24,32 @@ import io.tl.nekopanel.ui.components.ConnectionCard
 import io.tl.nekopanel.ui.components.highlightJson
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun ConnectionsView(
     connections: List<ConnectionItem>,
     onRemoveConnection: (String) -> Unit,
-    onClearConnections: () -> Unit
+    onClearConnections: () -> Unit,
+    scaffoldPadding: PaddingValues = PaddingValues(),
 ) {
+    val layoutDirection = LocalLayoutDirection.current
     var selectedJson by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        modifier = Modifier.scrollEndHaptic(),
+        contentPadding = PaddingValues(
+            start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = 16.dp,
+            end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -49,7 +63,7 @@ fun ConnectionsView(
             ) {
                 Text(
                     "活跃连接: ${connections.size}",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MiuixTheme.textStyles.title4,
                     fontWeight = FontWeight.Black
                 )
                 IconButton(onClick = {
@@ -58,7 +72,7 @@ fun ConnectionsView(
                         onClearConnections()
                     }
                 }) {
-                    Icon(Icons.Default.DeleteSweep, null, tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.DeleteSweep, null, tint = MiuixTheme.colorScheme.error)
                 }
             }
         }
@@ -75,14 +89,10 @@ fun ConnectionsView(
             )
         }
     }
-    
+
     if (selectedJson != null) {
         Dialog(onDismissRequest = { selectedJson = null }) {
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                ),
-                shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.8f)
@@ -90,12 +100,12 @@ fun ConnectionsView(
                 Column(Modifier.padding(20.dp)) {
                     Text(
                         text = "元数据明细",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MiuixTheme.textStyles.title4,
+                        color = MiuixTheme.colorScheme.onSurface
                     )
-                    
+
                     Spacer(Modifier.height(12.dp))
-    
+
                     val formatted = remember(selectedJson) {
                         try {
                             JSONObject(selectedJson!!).toString(4)
@@ -103,9 +113,9 @@ fun ConnectionsView(
                             selectedJson ?: ""
                         }
                     }
-                    
+
                     val annotated = highlightJson(formatted)
-    
+
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

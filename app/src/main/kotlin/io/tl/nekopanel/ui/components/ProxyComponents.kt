@@ -1,58 +1,40 @@
 package io.tl.nekopanel.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import androidx.compose.animation.AnimatedVisibility
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun ProxyIconContainer(url: String?, fallbackText: String) {
     Box(
         modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
-            .background(if (url.isNullOrBlank()) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
+            .background(if (url.isNullOrBlank()) MiuixTheme.colorScheme.primaryContainer else Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
         if (!url.isNullOrBlank()) {
@@ -60,9 +42,9 @@ fun ProxyIconContainer(url: String?, fallbackText: String) {
         } else {
             Text(
                 fallbackText.take(1).uppercase(),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MiuixTheme.textStyles.body2,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MiuixTheme.colorScheme.onPrimaryContainer
             )
         }
     }
@@ -74,21 +56,23 @@ fun NodeCard(
     settings: SettingsManager, onClick: () -> Unit, onRefreshDelay: () -> Unit
 ) {
     val containerColor = when {
-        isSelected -> MaterialTheme.colorScheme.primaryContainer
-        settings.cardFillStyle -> MaterialTheme.colorScheme.surfaceVariant.copy(0.4f)
-        else -> MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+        isSelected -> MiuixTheme.colorScheme.primaryContainer
+        settings.cardFillStyle -> MiuixTheme.colorScheme.surfaceVariant.copy(0.4f)
+        else -> MiuixTheme.colorScheme.surface
     }
+    val cardBorder = if (!isSelected && !settings.cardFillStyle) BorderStroke(0.5.dp, MiuixTheme.colorScheme.dividerLine.copy(0.5f)) else null
     Card(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).then(
+            if (cardBorder != null) Modifier.border(cardBorder, RoundedCornerShape(14.dp)) else Modifier
+        ),
     ) {
         Box(Modifier.padding(10.dp).fillMaxWidth().height(54.dp)) {
             Text(
                 name, Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
-                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1
+                style = MiuixTheme.textStyles.footnote1, fontWeight = FontWeight.Bold, maxLines = 1
             )
             Row(Modifier.align(Alignment.BottomStart).fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
-                Text(type, fontSize = 9.sp, color = MaterialTheme.colorScheme.outline)
+                Text(type, fontSize = 9.sp, color = MiuixTheme.colorScheme.outline)
                 DelayBadge(lastDelay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false, onRefreshDelay)
             }
         }
@@ -132,7 +116,6 @@ fun NodeGridSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProxyGroupCard(
     name: String, group: JSONObject, now: String,
@@ -155,18 +138,14 @@ fun ProxyGroupCard(
     Card(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
         onClick = { if (usePopup) isExpanded = true else isExpanded = !isExpanded },
-        colors = CardDefaults.cardColors(
-            containerColor = if (settings.cardFillStyle) MaterialTheme.colorScheme.surfaceVariant.copy(0.3f)
-            else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-        )
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ProxyIconContainer(url = icon, fallbackText = name)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, maxLines = 1)
-                    Text(now, modifier = Modifier.basicMarquee(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, maxLines = 1)
+                    Text(name, style = MiuixTheme.textStyles.subtitle, fontWeight = FontWeight.Black, maxLines = 1)
+                    Text(now, modifier = Modifier.basicMarquee(), style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline, maxLines = 1)
                 }
                 if (settings.groupColumnCount == 1) {
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -214,7 +193,7 @@ fun ProxyGroupCard(
 
     if (usePopup && isExpanded) {
         if (settings.useSheetMode) {
-            ModalBottomSheet(onDismissRequest = { isExpanded = false }) {
+            top.yukonga.miuix.kmp.overlay.OverlayBottomSheet(show = isExpanded, onDismissRequest = { isExpanded = false }) {
                 Box(Modifier.padding(16.dp).fillMaxHeight(0.7f)) {
                     NodeGridSection(
                         groupName = name, nodes = allNodes, currentNode = now,
@@ -225,9 +204,9 @@ fun ProxyGroupCard(
             }
         } else {
             Dialog(onDismissRequest = { isExpanded = false }) {
-                Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
+                Card(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f)) {
                     Column(Modifier.padding(16.dp)) {
-                        Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        Text(name, style = MiuixTheme.textStyles.title3, fontWeight = FontWeight.Black)
                         Spacer(Modifier.height(12.dp))
                         NodeGridSection(
                             groupName = name, nodes = allNodes, currentNode = now,

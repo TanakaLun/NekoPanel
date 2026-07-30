@@ -3,12 +3,24 @@ name: Android CI/CD
 on:
   push:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: '选择编译类型'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+          - both
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: set up JDK 25
       uses: actions/setup-java@v4
@@ -22,29 +34,42 @@ jobs:
     
     - name: Calculate Version Info
       id: version_info
-      env:
-        COMMIT_ID: ${{ github.sha }}
       run: |
-        COMMIT_ID_SHORT=${COMMIT_ID::7}
-        echo "commit_short=$COMMIT_ID_SHORT" >> $GITHUB_OUTPUT
-
         COMMIT_COUNT=$(git rev-list --count HEAD)
-        VERSION_CODE=$((COMMIT_COUNT + 1))
+        VERSION_CODE=$((COMMIT_COUNT))
         echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-        VERSION_NAME="$COMMIT_ID_SHORT"
+        
+        BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+        COMMIT_SHORT=$(git rev-parse --short HEAD)
+        VERSION_NAME="${BRANCH_NAME}-${COMMIT_SHORT}"
         echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+        
+        echo "Version Code: $VERSION_CODE"
+        echo "Version Name: $VERSION_NAME"
 
     - name: Modify Gradle Build File
       run: |
         GRADLE_FILE="app/build.gradle.kts"
+        
         sed -i -E "s/versionCode[[:space:]]*=[[:space:]]*[0-9]+/versionCode = ${{ steps.version_info.outputs.version_code }}/g" "$GRADLE_FILE"
+        
         sed -i -E "s/versionName[[:space:]]*=[[:space:]]*['\"][^'\"]*['\"]/versionName = \"${{ steps.version_info.outputs.version_name }}\"/g" "$GRADLE_FILE"
+        
+        echo "Modified gradle file:"
+        grep -E "versionCode|versionName" "$GRADLE_FILE"
           
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" == "both" ]; then
+          ./gradlew assembleDebug assembleRelease
+        elif [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          ./gradlew assembleRelease
+        else
+          ./gradlew assembleDebug
+        fi
 
-    - name: Upload apk
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: release
+        name: apk-${{ github.event.inputs.build_type || 'debug' }}
         path: ${{ github.workspace }}/app/build/outputs/apk/**/*.apk

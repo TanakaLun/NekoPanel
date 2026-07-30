@@ -244,6 +244,18 @@ class SettingsManager(context: Context) {
         get() = getString("back_anim_style", "slide")
         set(value) = setString("back_anim_style", value)
 
+    var enableBlur: Boolean
+        get() = getBoolean("enable_blur", true)
+        set(value) = setBoolean("enable_blur", value)
+
+    var transitionStyle: Int
+        get() = getInt("transition_style", 0)
+        set(value) = setInt("transition_style", value)
+
+    var topBarBlurStyle: Int
+        get() = getInt("top_bar_blur_style", 0)
+        set(value) = setInt("top_bar_blur_style", value)
+
     var notificationPriority: String
         get() = getString("notification_priority", "speed")
         set(value) = setString("notification_priority", value)

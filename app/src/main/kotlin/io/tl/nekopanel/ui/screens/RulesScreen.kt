@@ -2,12 +2,13 @@ package io.tl.nekopanel.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -17,11 +18,23 @@ import io.tl.nekopanel.ui.components.TypeBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Switch
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
-fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
+fun RulesScreen(
+    refreshTick: Long,
+    settings: SettingsManager,
+    scaffoldPadding: PaddingValues = PaddingValues(),
+) {
+    val layoutDirection = LocalLayoutDirection.current
     var rules by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var disabledState by rememberSaveable { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     val scope = rememberCoroutineScope()
 
     fun fetchRules() {
@@ -33,6 +46,7 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
                 val list = mutableListOf<JSONObject>()
                 for (i in 0 until arr.length()) list.add(arr.getJSONObject(i))
                 rules = list
+                disabledState = list.associate { it.optInt("index") to (it.optJSONObject("extra")?.optBoolean("disabled", false) ?: false) }
             } catch (_: Exception) {}
             isLoading = false
         }
@@ -41,29 +55,39 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
     LaunchedEffect(refreshTick) { fetchRules() }
 
     if (isLoading) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize().padding(scaffoldPadding), Alignment.Center) { CircularProgressIndicator() }
     } else {
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(rules, key = { it.optInt("index") }) { rule ->
+        LazyColumn(
+            modifier = Modifier.scrollEndHaptic(),
+            contentPadding = PaddingValues(
+                start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+                top = scaffoldPadding.calculateTopPadding() + 16.dp,
+                end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            itemsIndexed(rules, key = { _, rule -> rule.optInt("index") }) { _, rule ->
                 val type = rule.optString("type", "")
                 val payload = rule.optString("payload", "")
                 val proxy = rule.optString("proxy", "")
                 val index = rule.optInt("index")
-                val isDisabled = rule.optJSONObject("extra")?.optBoolean("disabled", false) ?: false
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                val isDisabled = disabledState[index] ?: false
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f).padding(end = 12.dp)) {
                             Row(verticalAlignment = Alignment.Top) {
                                 TypeBadge(type, settings.ruleBadgeStyle, settings.badgeCornerRadius, false)
                                 Spacer(Modifier.width(8.dp))
-                                Text(payload, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, lineHeight = 18.sp)
+                                Text(payload, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.body2, lineHeight = 18.sp)
                             }
                             Spacer(Modifier.height(6.dp))
-                            Text("🎯 代理: $proxy", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text("🎯 代理: $proxy", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                         }
                         Switch(checked = !isDisabled, onCheckedChange = { isChecked ->
+                            disabledState = disabledState + (index to !isChecked)
                             scope.launch(Dispatchers.IO) {
-                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to !isChecked)); fetchRules() } catch (_: Exception) {}
+                                try { ApiClient.updateRulesDisable(mapOf(index.toString() to !isChecked)) } catch (_: Exception) {}
                             }
                         })
                     }

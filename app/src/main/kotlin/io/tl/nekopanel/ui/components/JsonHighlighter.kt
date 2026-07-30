@@ -1,6 +1,5 @@
 package io.tl.nekopanel.ui.components
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -9,18 +8,19 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun highlightJson(jsonStr: String): AnnotatedString {
-    val colorScheme = MaterialTheme.colorScheme
+    val colorScheme = MiuixTheme.colorScheme
     return remember(jsonStr, colorScheme) {
         buildAnnotatedString {
             val keyColor = colorScheme.primary
-            val stringColor = colorScheme.tertiary
+            val stringColor = colorScheme.secondaryVariant
             val numberColor = colorScheme.secondary
             val booleanColor = colorScheme.error
             val nullColor = colorScheme.error
-            val punctuationColor = colorScheme.onSurfaceVariant
+            val punctuationColor = colorScheme.onSurfaceVariantActions
 
             var i = 0
             while (i < jsonStr.length) {

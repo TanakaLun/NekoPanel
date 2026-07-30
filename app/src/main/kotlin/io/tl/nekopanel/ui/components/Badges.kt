@@ -3,20 +3,10 @@ package io.tl.nekopanel.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,10 +16,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.Surface
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun TypeBadge(text: String, style: String, cornerRadius: Int, isFixedSize: Boolean) {
-    val color = MaterialTheme.colorScheme.primary
+    val color = MiuixTheme.colorScheme.primary
     Surface(
         color = if (style == "填充") color else Color.Transparent,
         shape = RoundedCornerShape(cornerRadius.dp),
@@ -49,8 +42,8 @@ fun TypeBadge(text: String, style: String, cornerRadius: Int, isFixedSize: Boole
 @Composable
 fun DelayBadge(delay: Int, isTesting: Boolean, style: String, cornerRadius: Int, isFixedSize: Boolean, onClick: () -> Unit) {
     val color = when {
-        isTesting -> MaterialTheme.colorScheme.primary
-        delay <= 0 -> MaterialTheme.colorScheme.outline
+        isTesting -> MiuixTheme.colorScheme.primary
+        delay <= 0 -> MiuixTheme.colorScheme.outline
         delay < 200 -> Color(0xFF388E3C)
         delay < 500 -> Color(0xFFF57C00)
         else -> Color(0xFFD32F2F)
@@ -85,7 +78,7 @@ fun DurationBadge(startTimeMillis: Long) {
             kotlinx.coroutines.delay(1000)
         }
     }
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
-        Text(text = durationText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+    Surface(color = MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), shape = CircleShape) {
+        Text(text = durationText, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
     }
 }

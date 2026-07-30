@@ -6,39 +6,43 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun ProxiesScreen(
     settings: SettingsManager,
     refreshTick: Long,
     currentMode: String,
+    scaffoldPadding: PaddingValues = PaddingValues(),
     onRefresh: () -> Unit,
     onModeChange: (String) -> Unit
 ) {
+    val layoutDirection = LocalLayoutDirection.current
     var allProxies by remember { mutableStateOf<JSONObject?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
-    // 延迟缓存：节点名 -> 延迟(ms)
     var delayCache by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
-    // 选中节点缓存：组名 -> 当前选中的节点名
     var groupSelections by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var isGlobalTesting by remember { mutableStateOf(false) }
 
     LaunchedEffect(refreshTick) {
         try {
             allProxies = ApiClient.getProxies()
-            // 初始化延迟缓存和选中状态
             val proxiesJson = allProxies ?: return@LaunchedEffect
             val proxiesObj = proxiesJson.getJSONObject("proxies")
             val newDelayCache = mutableMapOf<String, Int>()
@@ -52,17 +56,15 @@ fun ProxiesScreen(
                 if (now != null) {
                     newSelections[key] = now
                 }
-                // 从历史记录中提取延迟（如果有的话）
                 val historyArr = proxy.optJSONArray("history")
                 if (historyArr != null && historyArr.length() > 0) {
                     val lastDelay = historyArr.getJSONObject(0).optInt("delay", 0)
                     if (lastDelay > 0) {
-                        newDelayCache[key] = lastDelay   // 注意：历史记录可能只有组本身的延迟（不是节点），需要处理所有节点的延迟
+                        newDelayCache[key] = lastDelay
                     }
                 }
             }
 
-            // 更准确的方式：遍历所有代理项，包括节点
             val allKeysForDelay = proxiesObj.keys().asSequence().toList()
             for (proxyName in allKeysForDelay) {
                 val proxy = proxiesObj.getJSONObject(proxyName)
@@ -82,7 +84,7 @@ fun ProxiesScreen(
     }
 
     if (isLoading || allProxies == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize().padding(scaffoldPadding), Alignment.Center) { CircularProgressIndicator() }
         return
     }
 
@@ -97,7 +99,6 @@ fun ProxiesScreen(
         if (settings.showGlobal) filtered else filtered.filter { it != "GLOBAL" }
     }.sorted()
 
-    // 更新延迟缓存或选中节点的回调
     val updateDelay: (String, Int) -> Unit = { node, delay ->
         delayCache = delayCache.toMutableMap().apply { put(node, delay) }
     }
@@ -108,11 +109,23 @@ fun ProxiesScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
+    val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .scrollEndHaptic()
+            .verticalScroll(rememberScrollState())
+            .padding(
+                start = scaffoldPadding.calculateStartPadding(layoutDirection) + if (columns == 1) 16.dp else 12.dp,
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                end = scaffoldPadding.calculateEndPadding(layoutDirection) + if (columns == 1) 16.dp else 12.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
+        verticalArrangement = Arrangement.spacedBy(if (columns == 1) 12.dp else 8.dp),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -147,63 +160,42 @@ fun ProxiesScreen(
                     }
                 }
             }) {
-                Icon(Icons.Default.Speed, "全面测速", tint = if (isGlobalTesting) MaterialTheme.colorScheme.primary.copy(0.5f) else MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Speed, "全面测速", tint = if (isGlobalTesting) MiuixTheme.colorScheme.primary.copy(0.5f) else MiuixTheme.colorScheme.primary)
             }
         }
 
-        val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val scrollState = rememberScrollState()
-            val minH = maxHeight + 1.dp
-            if (columns == 1) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .heightIn(min = minH)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        if (columns == 1) {
+            displayKeys.forEach { key ->
+                val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                val currentNow = groupSelections[key] ?: group.optString("now", "-")
+                ProxyGroupCard(
+                    name = key, group = group, now = currentNow,
+                    delayCache = delayCache, settings = settings,
+                    onDelayUpdate = updateDelay,
+                    onNodeSelected = { node -> selectNode(key, node) },
+                )
+            }
+        } else {
+            displayKeys.chunked(2).forEach { chunk ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    displayKeys.forEach { key ->
+                    chunk.forEach { key ->
                         val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
                         val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                        ProxyGroupCard(
-                            name = key, group = group, now = currentNow,
-                            delayCache = delayCache, settings = settings,
-                            onDelayUpdate = updateDelay,
-                            onNodeSelected = { node -> selectNode(key, node) },
-                        )
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .heightIn(min = minH)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    displayKeys.chunked(2).forEach { chunk ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        chunk.forEach { key ->
-                            val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                            val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                            Box(Modifier.weight(1f)) {
-                                ProxyGroupCard(
-                                    name = key, group = group, now = currentNow,
-                                    delayCache = delayCache, settings = settings,
-                                    onDelayUpdate = updateDelay,
-                                    onNodeSelected = { node -> selectNode(key, node) },
-                                )
-                            }
+                        Box(Modifier.weight(1f)) {
+                            ProxyGroupCard(
+                                name = key, group = group, now = currentNow,
+                                delayCache = delayCache, settings = settings,
+                                onDelayUpdate = updateDelay,
+                                onNodeSelected = { node -> selectNode(key, node) },
+                            )
                         }
                     }
+                    if (chunk.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
     }
-}}
+}

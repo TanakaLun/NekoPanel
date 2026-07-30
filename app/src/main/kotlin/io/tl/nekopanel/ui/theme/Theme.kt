@@ -2,82 +2,40 @@ package io.tl.nekopanel.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
-
-fun resolveThemeScheme(customKey: String, dark: Boolean, pureBlack: Boolean) =
-    JapaneseThemeSchemes.firstOrNull { it.key == customKey }?.let { scheme ->
-        val base = if (dark) scheme.darkScheme() else scheme.lightScheme()
-        if (dark && pureBlack) base.copy(
-            background = Color.Black, surface = Color.Black,
-            surfaceVariant = Color(0xFF121212),
-            surfaceContainer = Color.Black, surfaceContainerLow = Color.Black, surfaceContainerLowest = Color.Black,
-        ) else base
-    }
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeColorSpec
+import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 
 @Composable
-fun ComposeEmptyActivityTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+fun NekoPanelTheme(
+    themeMode: String = "follow_system",
     dynamicColor: Boolean = true,
-    pureBlackMode: Boolean = false,
-    customPrimaryKey: String = "",
-    content: @Composable () -> Unit
+    customSeedColor: Color? = null,
+    content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
-    
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val dynamicScheme = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            if (darkTheme && pureBlackMode) {
-                dynamicScheme.copy(
-                    background = Color.Black,
-                    surface = Color.Black,
-                    surfaceVariant = Color(0xFF121212),
-                    surfaceContainer = Color.Black,
-                    surfaceContainerLow = Color.Black,
-                    surfaceContainerLowest = Color.Black
-                )
-            } else {
-                dynamicScheme
-            }
-        }
-        customPrimaryKey.isNotBlank() ->
-            resolveThemeScheme(customPrimaryKey, darkTheme, pureBlackMode) ?: if (darkTheme) DarkColorScheme else LightColorScheme
-        darkTheme -> {
-            if (pureBlackMode) {
-                DarkColorScheme.copy(
-                    background = Color.Black,
-                    surface = Color.Black,
-                    surfaceVariant = Color(0xFF121212)
-                )
-            } else {
-                DarkColorScheme
-            }
-        }
-        else -> LightColorScheme
+    val isDark = themeMode == "dark" || (themeMode == "follow_system" && isSystemInDarkTheme())
+
+    val colorSchemeMode = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (isDark) ColorSchemeMode.MonetDark else ColorSchemeMode.MonetLight
+    } else if (customSeedColor != null) {
+        if (isDark) ColorSchemeMode.MonetDark else ColorSchemeMode.MonetLight
+    } else if (isDark) ColorSchemeMode.Dark else ColorSchemeMode.Light
+
+    val controller = remember(colorSchemeMode, customSeedColor) {
+        ThemeController(
+            colorSchemeMode = colorSchemeMode,
+            keyColor = customSeedColor,
+            paletteStyle = ThemePaletteStyle.TonalSpot,
+            colorSpec = ThemeColorSpec.Spec2021,
+        )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    MiuixTheme(controller = controller) {
+        content()
+    }
 }

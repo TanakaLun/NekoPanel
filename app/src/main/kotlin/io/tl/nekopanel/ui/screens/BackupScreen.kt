@@ -2,31 +2,34 @@ package io.tl.nekopanel.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.data.local.AppDatabase
 import io.tl.nekopanel.data.repository.SettingsManager
-import io.tl.nekopanel.ui.components.BasePreference
-import io.tl.nekopanel.ui.components.ConfigToggle
-import io.tl.nekopanel.ui.components.SectionTitle
-import io.tl.nekopanel.ui.components.SettingsDropdownMenuInline
-import io.tl.nekopanel.ui.components.SplicedColumnGroup
+import io.tl.nekopanel.navigation.LocalAppState
+import io.tl.nekopanel.ui.BlurredBar
+import io.tl.nekopanel.ui.rememberBlurBackdrop
+import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,6 +40,20 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
@@ -222,92 +239,106 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
 
     if (showAutoBackupDialog) {
         var intervalText by remember { mutableStateOf(autoBackupInterval.toString()) }
-        AlertDialog(
-            onDismissRequest = { showAutoBackupDialog = false },
-            title = { Text("定时自动备份") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("设置自动备份间隔（分钟），设为 0 关闭自动备份", style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(
+        Dialog(onDismissRequest = { showAutoBackupDialog = false }) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("定时自动备份", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title3)
+                    Text("设置自动备份间隔（分钟），设为 0 关闭自动备份", style = MiuixTheme.textStyles.body2)
+                    TextField(
                         value = intervalText,
                         onValueChange = { intervalText = it.filter { c -> c.isDigit() } },
-                        label = { Text("间隔（分钟）") },
+                        label = "间隔（分钟）",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
                     )
+                    Row(Modifier.fillMaxWidth(), Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        Button(onClick = { showAutoBackupDialog = false }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("取消") }
+                        Spacer(Modifier.width(8.dp))
+                        Button(onClick = {
+                            val v = intervalText.toIntOrNull() ?: 0
+                            autoBackupInterval = v
+                            autoBackupEnabled = v > 0
+                            showAutoBackupDialog = false
+settings.backupAutoInterval = v
+                        }, colors = ButtonDefaults.buttonColorsPrimary()) { Text("确定") }
+                    }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val v = intervalText.toIntOrNull() ?: 0
-                    autoBackupInterval = v
-                    autoBackupEnabled = v > 0
-                    showAutoBackupDialog = false
-                    settings.backupAutoInterval = v
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAutoBackupDialog = false }) { Text("取消") }
             }
-        )
+        }
     }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 12.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.primary)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text("数据备份", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
-            }
+    val scrollBehavior = MiuixScrollBehavior()
+    val layoutDirection = LocalLayoutDirection.current
+    val appState = LocalAppState.current
+    val backdrop = rememberBlurBackdrop(appState.enableBlur)
+    val barColor = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surface
 
+    Scaffold(
+        topBar = {
+            BlurredBar(backdrop, appState.enableBlur, appState.blurStyle, scrollBehavior) {
+                TopAppBar(
+                    title = "数据备份",
+                    scrollBehavior = scrollBehavior,
+                    color = barColor,
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
+                        }
+                    },
+                )
+            }
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
             Column(
-                Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                Modifier.fillMaxSize()
+                    .scrollEndHaptic()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        start = padding.calculateStartPadding(layoutDirection) + 16.dp,
+                        top = padding.calculateTopPadding(),
+                        end = padding.calculateEndPadding(layoutDirection) + 16.dp,
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
 
                 if (status.isNotEmpty()) {
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(0.3f))) {
-                        Text(status, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                    Card(Modifier.fillMaxWidth()) {
+                        Text(status, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.SemiBold, style = MiuixTheme.textStyles.body2)
                     }
                 }
 
-                SplicedColumnGroup(title = "备份方式") {
-                    item {
-                        SettingsDropdownMenuInline(
-                            label = "选择备份方式",
-                            currentValue = if (provider == "webdav") "WebDAV" else "GitHub",
-                            options = listOf("WebDAV", "GitHub"),
-                            onSelected = { provider = if (it == "WebDAV") "webdav" else "github"; settings.backupProvider = provider }
-                        )
-                    }
+SectionTitle("备份方式")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    SettingsDropdownMenuInline(
+                        label = "选择备份方式",
+                        currentValue = if (provider == "webdav") "WebDAV" else "GitHub",
+                        options = listOf("WebDAV", "GitHub"),
+                        onSelected = { provider = if (it == "WebDAV") "webdav" else "github"; settings.backupProvider = provider }
+                    )
                 }
+            }
 
                 Column {
                     SectionTitle(if (provider == "webdav") "WebDAV 配置" else "GitHub 配置")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                    Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             if (provider == "webdav") {
-                                OutlinedTextField(value = webdavUrl, onValueChange = { webdavUrl = it; settings.backupWebdavUrl = it }, label = { Text("服务器地址") }, placeholder = { Text("https://example.com/dav") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = webdavUser, onValueChange = { webdavUser = it; settings.backupWebdavUser = it }, label = { Text("用户名") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = webdavPass, onValueChange = { webdavPass = it; settings.backupWebdavPass = it }, label = { Text("密码") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                TextField(value = webdavUrl, onValueChange = { webdavUrl = it; settings.backupWebdavUrl = it }, label = "服务器地址", singleLine = true, modifier = Modifier.fillMaxWidth())
+                                TextField(value = webdavUser, onValueChange = { webdavUser = it; settings.backupWebdavUser = it }, label = "用户名", singleLine = true, modifier = Modifier.fillMaxWidth())
+                                TextField(value = webdavPass, onValueChange = { webdavPass = it; settings.backupWebdavPass = it }, label = "密码", singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = if (showWebdavPass) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showWebdavPass = !showWebdavPass }) { Icon(if (showWebdavPass) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
                             } else {
-                                OutlinedTextField(value = ghRepo, onValueChange = { ghRepo = it; settings.backupGithubRepo = it }, label = { Text("仓库") }, placeholder = { Text("user/repo") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = ghToken, onValueChange = { ghToken = it; settings.backupGithubToken = it }, label = { Text("Token") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
+                                TextField(value = ghRepo, onValueChange = { ghRepo = it; settings.backupGithubRepo = it }, label = "仓库", singleLine = true, modifier = Modifier.fillMaxWidth())
+                                TextField(value = ghToken, onValueChange = { ghToken = it; settings.backupGithubToken = it }, label = "Token", singleLine = true, modifier = Modifier.fillMaxWidth(), visualTransformation = if (showGhToken) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
                                     IconButton(onClick = { showGhToken = !showGhToken }) { Icon(if (showGhToken) Icons.Default.VisibilityOff else Icons.Default.Visibility, null) }
                                 })
-                                OutlinedTextField(value = ghPath, onValueChange = { ghPath = it; settings.backupGithubPath = it }, label = { Text("文件路径") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                TextField(value = ghPath, onValueChange = { ghPath = it; settings.backupGithubPath = it }, label = "文件路径", singleLine = true, modifier = Modifier.fillMaxWidth())
                             }
                         }
                     }
@@ -315,54 +346,53 @@ fun BackupScreen(settings: SettingsManager, onBack: () -> Unit) {
 
                 Column {
                     SectionTitle("操作")
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(0.3f))) {
+                    Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Button(
                                     onClick = { doBackup() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
-                                    shape = RoundedCornerShape(24.dp)
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
-                                    if (isBackingUp) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                                    else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
+if (isBackingUp) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+else { Icon(Icons.Default.Upload, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("备份") }
                                 }
-                                OutlinedButton(
+                                Button(
                                     onClick = { doRestore() },
                                     modifier = Modifier.weight(1f),
                                     enabled = !isBackingUp && !isRestoring,
-                                    shape = RoundedCornerShape(24.dp)
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
-                                    if (isRestoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                                    else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
+if (isRestoring) CircularProgressIndicator(modifier = Modifier.size(18.dp))
+else { Icon(Icons.Default.Download, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("恢复") }
                                 }
                             }
                         }
                     }
                 }
 
-                SplicedColumnGroup(title = "自动备份") {
-                    item {
-                        ConfigToggle("定时自动备份", checked = autoBackupEnabled) {
-                            autoBackupEnabled = it
-                            if (!it) { autoBackupInterval = 0; settings.backupAutoInterval = 0 }
-                            else if (autoBackupInterval <= 0) { autoBackupInterval = 60 }
-                            settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
-                        }
+SectionTitle("自动备份")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    ConfigToggle("定时自动备份", checked = autoBackupEnabled) {
+                        autoBackupEnabled = it
+                        if (!it) { autoBackupInterval = 0; settings.backupAutoInterval = 0 }
+                        else if (autoBackupInterval <= 0) { autoBackupInterval = 60 }
+                        settings.backupAutoInterval = if (autoBackupEnabled) autoBackupInterval else 0
                     }
                     if (autoBackupEnabled) {
-                        item {
-                            BasePreference(
-                                title = "备份间隔",
-                                description = "每 ${autoBackupInterval} 分钟执行一次",
-                                onClick = { showAutoBackupDialog = true },
-                                trailing = {
-                                    Icon(Icons.Default.Schedule, null, tint = MaterialTheme.colorScheme.outline)
-                                }
-                            )
-                        }
+                        BasePreference(
+                            title = "备份间隔",
+                            description = "每 ${autoBackupInterval} 分钟执行一次",
+                            onClick = { showAutoBackupDialog = true },
+                            trailing = {
+                                Icon(Icons.Default.Schedule, null, tint = MiuixTheme.colorScheme.outline)
+                            }
+                        )
                     }
                 }
+            }
 
                 Spacer(Modifier.height(80.dp))
             }

@@ -11,51 +11,70 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.*
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.background
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
-import kotlinx.coroutines.CancellationException
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.data.repository.SettingsManager
-import io.tl.nekopanel.model.ConnectionItem
-import io.tl.nekopanel.model.LogItem
+import io.tl.nekopanel.navigation.AppState
+import io.tl.nekopanel.navigation.LocalAppState
+import io.tl.nekopanel.navigation.LocalNavigator
+import io.tl.nekopanel.navigation.LocalUpdateAppState
+import io.tl.nekopanel.navigation.Navigator
+import io.tl.nekopanel.navigation.Route
+import io.tl.nekopanel.navigation.WebSocketState
+import io.tl.nekopanel.navigation.rememberWebSocketState
+import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
+import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.components.*
-import io.tl.nekopanel.ui.screens.BackupScreen
-import io.tl.nekopanel.ui.screens.FullSettingsScreen
-import io.tl.nekopanel.ui.screens.UiSettingsScreen
-import io.tl.nekopanel.ui.screens.ProxiesScreen
-import io.tl.nekopanel.ui.screens.RulesScreen
-import io.tl.nekopanel.ui.screens.TrafficScreen
-import io.tl.nekopanel.ui.theme.ComposeEmptyActivityTheme
-import kotlinx.coroutines.*
+import io.tl.nekopanel.ui.screens.*
+import io.tl.nekopanel.ui.theme.AllThemeSchemes
+import io.tl.nekopanel.ui.theme.NekoPanelTheme
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.TabRowWithContour
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.textureBlur
+import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
+import top.yukonga.miuix.kmp.nav.core.NavDisplay
+import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
+import top.yukonga.miuix.kmp.nav.core.NavKey
+import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
+import top.yukonga.miuix.kmp.nav.core.rememberNavSystemCornerRadius
+import top.yukonga.miuix.kmp.nav.transition.NavSwipeDirection
+import top.yukonga.miuix.kmp.nav.transition.NavTransitions
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermission = registerForActivityResult(
@@ -65,46 +84,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
-
         val settings = SettingsManager(this)
-
-        setContent {
-            var pureBlackMode by remember { mutableStateOf(settings.pureBlackMode) }
-            var themeModeState by remember { mutableStateOf(settings.themeMode) }
-            var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
-    var customColorState by remember { mutableStateOf(settings.customThemeColorKey) }
-    val isDark = themeModeState == "dark" || (themeModeState == "follow_system" && isSystemInDarkTheme())
-    ComposeEmptyActivityTheme(
-        darkTheme = isDark,
-        dynamicColor = dynColorState,
-        pureBlackMode = pureBlackMode,
-        customPrimaryKey = customColorState
-    ) {
-        ApiClient.baseUrl = settings.apiBaseUrl
-        ApiClient.secret = settings.apiSecret
-
-        if (settings.apiBaseUrl.isBlank()) {
-            InitialSetupDialog(settings) {
-                ApiClient.baseUrl = settings.apiBaseUrl
-                ApiClient.secret = settings.apiSecret
-            }
-        } else {
-            ClashManagerApp(
-                settings = settings,
-                onPureBlackToggle = { pureBlackMode = it },
-                onThemeModeChange = { themeModeState = it; settings.themeMode = it },
-                onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
-                onCustomColorChange = { customColorState = it; settings.customThemeColorKey = it }
-            )
-        }
-    }
-        }
+        setContent { NekoPanelApp(settings = settings) }
     }
 
     companion object {
@@ -123,270 +109,331 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun InitialSetupDialog(settings: SettingsManager, onConfigured: () -> Unit) {
+fun NekoPanelApp(settings: SettingsManager) {
+    var themeModeState by remember { mutableStateOf(settings.themeMode) }
+    var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
+    var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
+    var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
+
+    val effectiveSeedColor = remember(customColorKey, dynColorState) {
+        if (dynColorState) null
+        else AllThemeSchemes.firstOrNull { it.key == customColorKey }?.seedColor
+    }
+
+    NekoPanelTheme(
+        themeMode = themeModeState,
+        dynamicColor = dynColorState,
+        customSeedColor = effectiveSeedColor,
+    ) {
+        ApiClient.baseUrl = settings.apiBaseUrl
+        ApiClient.secret = settings.apiSecret
+
+        if (!isConfigured) {
+            Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
+                InitialSetupPage(settings) {
+                    isConfigured = true
+                    ApiClient.baseUrl = settings.apiBaseUrl
+                    ApiClient.secret = settings.apiSecret
+                }
+            }
+        } else {
+            NekoPanelMain(
+                settings = settings,
+                onThemeModeChange = { themeModeState = it; settings.themeMode = it },
+                onDynamicColorChange = { dynColorState = it; settings.dynamicColorEnabled = it },
+                onCustomColorChange = { customColorKey = it; settings.customThemeColorKey = it },
+            )
+        }
+    }
+}
+
+@Composable
+fun InitialSetupPage(settings: SettingsManager, onConfigured: () -> Unit) {
     var url by remember { mutableStateOf("http://127.0.0.1:9090") }
     var secret by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    Dialog(onDismissRequest = {}) {
-        Card(shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineSmall)
-                OutlinedTextField(value = url, onValueChange = { url = it }, label = { Text("API 地址") }, singleLine = true)
-                OutlinedTextField(value = secret, onValueChange = { secret = it }, label = { Text("密钥 (可选)") }, singleLine = true)
-                Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                    Button(onClick = {
-                        if (url.isNotBlank()) {
-                            settings.apiBaseUrl = url.trimEnd('/')
-                            settings.apiSecret = secret
-                            onConfigured()
-                        } else Toast.makeText(context, "地址不能为空", Toast.LENGTH_SHORT).show()
-                    }) { Text("连接") }
-                }
+                Text("欢迎使用 NekoPanel", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title2)
+                Text("请配置 Clash API 地址以开始使用", style = MiuixTheme.textStyles.body2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                TextField(value = url, onValueChange = { url = it }, label = "API 地址", singleLine = true, modifier = Modifier.fillMaxWidth())
+                TextField(value = secret, onValueChange = { secret = it }, label = "密钥 (可选)", singleLine = true, modifier = Modifier.fillMaxWidth())
+                Button(onClick = {
+                    if (url.isNotBlank()) {
+                        settings.apiBaseUrl = url.trimEnd('/')
+                        settings.apiSecret = secret
+                        onConfigured()
+                    } else Toast.makeText(context, "地址不能为空", Toast.LENGTH_SHORT).show()
+                }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) { Text("连接") }
             }
         }
     }
 }
 
-enum class Page { MAIN, UI_SETTINGS, BACKUP }
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClashManagerApp(settings: SettingsManager, onPureBlackToggle: (Boolean) -> Unit, onThemeModeChange: (String) -> Unit = {}, onDynamicColorChange: (Boolean) -> Unit = {}, onCustomColorChange: (String) -> Unit = {}) {
+fun NekoPanelMain(
+    settings: SettingsManager,
+    onThemeModeChange: (String) -> Unit,
+    onDynamicColorChange: (Boolean) -> Unit,
+    onCustomColorChange: (String) -> Unit,
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var trafficTab by remember { mutableIntStateOf(0) }
-    var globalRefreshTick by remember { mutableLongStateOf(0L) }
-    var configUpdateTrigger by remember { mutableIntStateOf(0) }
-    var currentPage by remember { mutableStateOf(Page.MAIN) }
-    var backAnimState by remember { mutableStateOf(settings.backAnimStyle) }
-    val context = LocalContext.current
-
-    val logs = remember { mutableStateListOf<LogItem>() }
-    var connections by remember { mutableStateOf<List<ConnectionItem>>(emptyList()) }
+    var refreshTick by remember { mutableLongStateOf(0L) }
     var currentMode by remember { mutableStateOf("rule") }
-
-    LaunchedEffect(Unit) {
-        try {
-            val cfg = ApiClient.getConfigs()
-            val mode = cfg.optString("mode", "rule")
-            if (mode.isNotBlank()) currentMode = mode
-        } catch (_: Exception) {}
-    }
-
-    var globalInUse by remember { mutableLongStateOf(0L) }
-    var globalDown by remember { mutableLongStateOf(0L) }
-    var globalUp by remember { mutableLongStateOf(0L) }
-    var totalDown by remember { mutableLongStateOf(0L) }
-    var totalUp by remember { mutableLongStateOf(0L) }
     var currentLogLevel by remember { mutableStateOf(settings.logLevel) }
-
-    val memHistory = rememberChartHistory(globalInUse)
-    val downHistory = rememberChartHistory(globalDown)
-
-    LaunchedEffect(Unit) {
-        if (settings.backgroundWebSocket || settings.autoStartService) {
-            DataDaemonService.start(context)
-        }
-    }
-
-    val removeConnection: (String) -> Unit = { id ->
-        connections = connections.filter { it.id != id }
-    }
-    val clearConnections: () -> Unit = {
-        connections = emptyList()
-    }
+    var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
+    var enableBlur by remember { mutableStateOf(settings.enableBlur) }
+    var transitionStyle by remember { mutableIntStateOf(settings.transitionStyle) }
 
     LaunchedEffect(Unit) {
-        if (settings.apiBaseUrl.isBlank()) return@LaunchedEffect
-
-        launch {
-            while (isActive) {
-                val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/memory", onText = { text ->
-                    try { globalInUse = JSONObject(text).optLong("inuse", 0L) } catch (_: Exception) {}
-                }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
-            }
-        }
-        launch {
-            while (isActive) {
-                val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/traffic", onText = { text ->
-                    try {
-                        val obj = JSONObject(text)
-                        val d = obj.optLong("down", 0L)
-                        val u = obj.optLong("up", 0L)
-                        val dt = obj.optLong("downTotal", 0L)
-                        val ut = obj.optLong("upTotal", 0L)
-                        val dc = obj.optLong("downCumulative", -1L)
-                        val uc = obj.optLong("upCumulative", -1L)
-                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                        settings.setTrafficSnapshot(d, u, dt, ut, dc, uc)
-                    } catch (_: Exception) {}
-                }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
-            }
-        }
-        launch {
-            while (isActive) {
-                val fail = CompletableDeferred<Unit>()
-                val ws = ApiClient.buildWebSocket("/logs?level=$currentLogLevel", onText = { text ->
-                    try {
-                        val obj = JSONObject(text)
-                        logs.add(LogItem(obj.optString("type", ""), obj.optString("payload", "")))
-                        if (logs.size > 1000) logs.removeAt(0)
-                    } catch (_: Exception) {}
-                }, onError = { fail.complete(Unit) })
-                try { fail.await() } catch (_: CancellationException) { ws.cancel(); break } finally { ws.cancel() }
-                delay(3000)
-            }
-        }
-
-        delay(Long.MAX_VALUE)
+        try { currentMode = ApiClient.getConfigs().optString("mode", "rule") } catch (_: Exception) {}
     }
 
-    LaunchedEffect(selectedTab) {
-        if (settings.apiBaseUrl.isNotBlank() && selectedTab == 2) {
-            val connWs = ApiClient.buildWebSocket(
-                "/connections?interval=1000",
-                onText = { text ->
-                    try {
-                        val arr = JSONObject(text).getJSONArray("connections")
-                        val list = mutableListOf<ConnectionItem>()
-                        for (i in 0 until arr.length()) {
-                            val obj = arr.getJSONObject(i)
-                            val meta = obj.getJSONObject("metadata")
-                            val chains = obj.getJSONArray("chains")
-                            val proxy = if (chains.length() > 0) chains.getString(chains.length() - 1) else "Direct"
-                            list.add(ConnectionItem(
-                                id = obj.getString("id"),
-                                host = meta.optString("host").ifBlank { meta.optString("destinationIP") },
-                                network = meta.optString("network"),
-                                proxy = proxy,
-                                upload = obj.optLong("upload", 0L),
-                                download = obj.optLong("download", 0L),
-                                rawJson = obj.toString()
-                            ))
-                        }
-                        connections = list
-                    } catch (_: Exception) {}
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        if (settings.backgroundWebSocket || settings.autoStartService) DataDaemonService.start(context)
+    }
+
+    val wsState = rememberWebSocketState(
+        settings = settings,
+        apiBaseUrl = ApiClient.baseUrl,
+        apiSecret = ApiClient.secret,
+        logLevel = currentLogLevel,
+        selectedTab = selectedTab,
+    )
+
+    val memHistory = rememberChartHistory(wsState.globalInUse)
+    val downHistory = rememberChartHistory(wsState.globalDown)
+
+    val appState = remember(enableBlur, transitionStyle, selectedTab, trafficTab, currentMode, currentLogLevel, blurStyle) {
+        AppState(
+            enableBlur = enableBlur,
+            transitionStyle = transitionStyle,
+            selectedTab = selectedTab,
+            trafficTab = trafficTab,
+            currentMode = currentMode,
+            currentLogLevel = currentLogLevel,
+            blurStyle = blurStyle,
+        )
+    }
+    val updateAppState: ((AppState) -> AppState) -> Unit = { /* state updated via individual vars */ }
+
+    val backStack = rememberNavBackStack<Route>(Route.Main)
+    val navigator = remember { Navigator(backStack) }
+
+    val navCornerRadius = rememberNavSystemCornerRadius()
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val effects = remember(navCornerRadius, surfaceColor) {
+        NavDisplayEffects(
+            enableCornerClip = true,
+            cornerClipRadius = navCornerRadius,
+            cornerClipMode = NavCornerClipMode.Leading,
+            dimAmount = 0.5f,
+            backdropColor = surfaceColor,
+        )
+    }
+    val isCrossActivityStyle = transitionStyle == 1
+    val navTransition = if (isCrossActivityStyle) CrossActivityTransition else NavTransitions.MiuixDefault
+    val swipeBackDirection = when {
+        isCrossActivityStyle -> NavSwipeDirection.None
+        LocalLayoutDirection.current == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft
+        else -> NavSwipeDirection.LeftToRight
+    }
+
+    CompositionLocalProvider(
+        LocalNavigator provides navigator,
+        LocalAppState provides appState,
+        LocalUpdateAppState provides updateAppState,
+    ) {
+        NavDisplay(
+            backStack = backStack,
+            onBack = { if (backStack.size > 1) navigator.pop() },
+            transition = navTransition,
+            effects = effects,
+        ) {
+            entry<Route.Main>(swipeDismiss = swipeBackDirection) {
+                MainScreenContent(
+                    settings = settings,
+                    selectedTab = selectedTab,
+                    trafficTab = trafficTab,
+                    refreshTick = refreshTick,
+                    currentMode = currentMode,
+                    currentLogLevel = currentLogLevel,
+                    wsState = wsState,
+                    memHistory = memHistory,
+                    downHistory = downHistory,
+                    onTabSelected = { selectedTab = it },
+                    onTrafficTabSelected = { trafficTab = it },
+                    onModeChange = { currentMode = it },
+                    onLevelChange = { currentLogLevel = it; settings.logLevel = it },
+                    onRefresh = { refreshTick = System.currentTimeMillis() },
+                    onNavi = { navigator.push(it) },
+                )
+            }
+            entry<Route.UiSettings>(swipeDismiss = swipeBackDirection) {
+                UiSettingsScreen(
+                    settings,
+                    onThemeModeChange = onThemeModeChange,
+                    onDynamicColorChange = onDynamicColorChange,
+                    onCustomColorChange = onCustomColorChange,
+                    onBlurStyleChange = { blurStyle = it; settings.topBarBlurStyle = it },
+                    onTransitionStyleChange = { transitionStyle = it; settings.transitionStyle = it },
+                    onEnableBlurChange = { enableBlur = it; settings.enableBlur = it },
+                    onBack = { navigator.pop() },
+                )
+            }
+            entry<Route.Backup>(swipeDismiss = swipeBackDirection) {
+                BackupScreen(settings, onBack = { navigator.pop() })
+            }
+        }
+    }
+}
+
+@Composable
+internal fun MainScreenContent(
+    settings: SettingsManager,
+    selectedTab: Int,
+    trafficTab: Int,
+    refreshTick: Long,
+    currentMode: String,
+    currentLogLevel: String,
+    wsState: WebSocketState,
+    memHistory: List<Long>,
+    downHistory: List<Long>,
+    onTabSelected: (Int) -> Unit,
+    onTrafficTabSelected: (Int) -> Unit,
+    onModeChange: (String) -> Unit,
+    onLevelChange: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onNavi: (NavKey) -> Unit,
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    val isTrafficTab = selectedTab == 2
+    val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
+    val appState = LocalAppState.current
+    val enableBlur = appState.enableBlur
+    val blurStyle = appState.blurStyle
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val backdrop = rememberLayerBackdrop {
+        drawRect(surfaceColor)
+        drawContent()
+    }
+    val blurActive = enableBlur && backdrop != null
+    val barColor = if (blurActive) Color.Transparent else surfaceColor
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            if (!isTrafficTab) {
+                BlurredBar(
+                    backdrop = backdrop,
+                    blurEnabled = enableBlur,
+                    blurStyle = blurStyle,
+                    scrollBehavior = effectiveScrollBehavior,
+                ) {
+                    TopAppBar(
+                        title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
+                        scrollBehavior = effectiveScrollBehavior,
+                        color = barColor,
+                    )
                 }
-            )
-            try { delay(Long.MAX_VALUE) } finally {
-                connWs.cancel()
             }
-        }
-    }
-
-    var currentPredictiveProgress by remember { mutableFloatStateOf(0f) }
-    var isPredictingBack by remember { mutableStateOf(false) }
-    val isOnSubPage = currentPage != Page.MAIN
-    var predictiveTouchYPx by remember { mutableFloatStateOf(-1f) }
-
-    if (isOnSubPage && backAnimState != "none") {
-        PredictiveBackHandler(enabled = true) { progressFlow ->
-            isPredictingBack = true
-            try {
-                progressFlow.collect { backEvent ->
-                    currentPredictiveProgress = backEvent.progress
-                    if (Build.VERSION.SDK_INT >= 35) predictiveTouchYPx = backEvent.touchY
-                }
-                currentPage = Page.MAIN
-            } catch (_: CancellationException) {
-            } finally {
-                isPredictingBack = false
-                currentPredictiveProgress = 0f
-            }
-        }
-    }
-
-    BackHandler(currentPage == Page.UI_SETTINGS || currentPage == Page.BACKUP) {
-        currentPage = Page.MAIN
-    }
-
-    BackHandler(currentPage == Page.MAIN) {
-        (context as? Activity)?.moveTaskToBack(true)
-    }
-    BackHandler(currentPage == Page.MAIN) {
-        (context as? Activity)?.moveTaskToBack(true)
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        // Main page bottom layer — scaled/dimmed when sub-page is above
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                CenterAlignedTopAppBar(title = {
-                    if (selectedTab == 2) CapsuleTabRow(trafficTab, { trafficTab = it }, listOf("概览", "连接", "日志"))
-                    else Text(when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "NekoPanel" }, fontWeight = FontWeight.Black)
-                })
-            },
-            bottomBar = {
-                NavigationBar {
-                    listOf("代理" to Icons.AutoMirrored.Filled.List, "规则" to Icons.Default.CheckCircle, "监控" to Icons.Default.SwapCalls, "设置" to Icons.Default.Settings).forEachIndexed { index, (label, icon) ->
-                        NavigationBarItem(selected = selectedTab == index, onClick = { selectedTab = index }, icon = { Icon(icon, null) }, label = { Text(label) })
-                    }
-                }
-            }
-        ) { padding ->
-            Box(Modifier.padding(padding)) {
-                when (selectedTab) {
-                    0 -> ProxiesScreen(settings, globalRefreshTick, currentMode, onRefresh = { globalRefreshTick = System.currentTimeMillis() }, onModeChange = { newMode -> currentMode = newMode; configUpdateTrigger++ })
-                    1 -> RulesScreen(globalRefreshTick, settings)
-                    2 -> TrafficScreen(trafficTab, logs, connections, settings, currentLogLevel, globalInUse, globalDown, totalDown, totalUp, memHistory, downHistory, onLevelChange = { currentLogLevel = it; settings.logLevel = it }, onRemoveConnection = removeConnection, onClearConnections = clearConnections)
-                    3 -> FullSettingsScreen(settings, onPureBlackToggle, onNavigateToUiSettings = { currentPage = Page.UI_SETTINGS }, onNavigateToBackup = { currentPage = Page.BACKUP })
-                }
-            }
-        }
-
-        // Sub-page overlay — transforms expose the main page underneath
-        if (isOnSubPage) {
-            val eased = CubicBezierEasing(0.2f, 0f, 0f, 1f).transform(currentPredictiveProgress)
-            val slideXDp = 300.dp * eased
-            val sc = 1f - 0.25f * eased
+        },
+        bottomBar = {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
                     .then(
-                        if (backAnimState == "scale") {
-                            val roundShape = RoundedCornerShape(if (sc < 0.98f) 16.dp else 0.dp)
-                            Modifier
-                                .graphicsLayer {
-                                    scaleX = sc; scaleY = sc
-                                    val ty = if (predictiveTouchYPx >= 0f) (predictiveTouchYPx / size.height).coerceIn(0.1f, 0.9f) else 0.5f
-                                    transformOrigin = TransformOrigin(0.5f, ty)
-                                }
-                                .clip(roundShape)
-                                .background(MaterialTheme.colorScheme.background)
-                        } else {
-                            val sideClip = RoundedCornerShape(
-                                topStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp,
-                                bottomStart = if (currentPredictiveProgress > 0f) 16.dp else 0.dp
+                        if (blurActive) {
+                            Modifier.textureBlur(
+                                backdrop = backdrop,
+                                shape = RectangleShape,
+                                blurRadius = 25f,
+                                colors = BlurDefaults.blurColors(
+                                    blendColors = listOf(
+                                        BlendColorEntry(color = surfaceColor.copy(0.8f)),
+                                    ),
+                                ),
                             )
+                        } else {
                             Modifier
-                                .graphicsLayer { translationX = size.width * 0.4f * eased }
-                                .clip(sideClip)
-                                .background(MaterialTheme.colorScheme.background)
-                        }
+                        },
                     )
+                    .background(barColor)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    ),
             ) {
-                when (currentPage) {
-                    Page.UI_SETTINGS -> Surface(Modifier.fillMaxSize()) {
-                        UiSettingsScreen(
-                            settings, onPureBlackToggle,
-                            onThemeModeChange = onThemeModeChange,
-                            onDynamicColorChange = onDynamicColorChange,
-                            onCustomColorChange = onCustomColorChange,
-                            onBackAnimChange = { backAnimState = it; settings.backAnimStyle = it },
-                            onBack = { currentPage = Page.MAIN }
+                NavigationBar(color = barColor) {
+                    listOf(
+                        "代理" to Icons.AutoMirrored.Filled.List,
+                        "规则" to Icons.Default.CheckCircle,
+                        "监控" to Icons.Default.SwapCalls,
+                        "设置" to Icons.Default.Settings,
+                    ).forEachIndexed { index, (label, icon) ->
+                        NavigationBarItem(
+                            selected = selectedTab == index,
+                            onClick = { onTabSelected(index) },
+                            icon = icon,
+                            label = label,
                         )
                     }
-                    Page.BACKUP -> Surface(Modifier.fillMaxSize()) {
-                        BackupScreen(settings, onBack = { currentPage = Page.MAIN })
+                }
+            }
+        },
+    ) { padding ->
+        val layoutDirection = LocalLayoutDirection.current
+        val screenPadding = PaddingValues(
+            start = padding.calculateStartPadding(layoutDirection),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(layoutDirection),
+            bottom = padding.calculateBottomPadding(),
+        )
+        Box(modifier = Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+            Column(
+                Modifier.fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+            ) {
+                if (isTrafficTab) {
+                    Box(
+                        Modifier.padding(
+                            start = 12.dp,
+                            top = screenPadding.calculateTopPadding() + 4.dp,
+                            end = 12.dp,
+                            bottom = 4.dp,
+                        ),
+                    ) {
+                        TabRowWithContour(
+                            tabs = listOf("概览", "连接", "日志"),
+                            selectedTabIndex = trafficTab,
+                            onTabSelected = { onTrafficTabSelected(it) },
+                        )
                     }
-                    else -> {}
+                }
+                Box(Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
+                        1 -> RulesScreen(refreshTick, settings, screenPadding)
+                        2 -> TrafficScreen(
+                            trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
+                            wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
+                            memHistory, downHistory,
+                            scaffoldPadding = screenPadding,
+                            onLevelChange = onLevelChange,
+                            onRemoveConnection = { wsState.removeConnection(it) },
+                            onClearConnections = { wsState.clearConnections() },
+                        )
+                        3 -> FullSettingsScreen(
+                            settings,
+                            contentPadding = screenPadding,
+                            onNavigateToUiSettings = { onNavi(Route.UiSettings) },
+                            onNavigateToBackup = { onNavi(Route.Backup) },
+                        )
+                    }
                 }
             }
         }
