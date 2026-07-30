@@ -20,6 +20,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun ProxiesScreen(
@@ -112,6 +113,7 @@ fun ProxiesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .scrollEndHaptic()
             .verticalScroll(rememberScrollState())
             .padding(
                 start = scaffoldPadding.calculateStartPadding(layoutDirection) + if (columns == 1) 16.dp else 12.dp,

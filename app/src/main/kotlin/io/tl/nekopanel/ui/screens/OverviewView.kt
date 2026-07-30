@@ -25,6 +25,7 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun OverviewView(
@@ -58,6 +59,7 @@ fun OverviewView(
     }
 
     LazyColumn(
+        modifier = Modifier.scrollEndHaptic(),
         contentPadding = PaddingValues(
             start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
             top = 16.dp,

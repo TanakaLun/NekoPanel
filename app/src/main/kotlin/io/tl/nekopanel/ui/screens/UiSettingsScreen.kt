@@ -35,6 +35,7 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun UiSettingsScreen(
@@ -98,7 +99,10 @@ fun UiSettingsScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
             LazyColumn(
-                Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+                Modifier
+                    .fillMaxSize()
+                    .scrollEndHaptic()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(
                     start = padding.calculateStartPadding(layoutDirection) + 16.dp,

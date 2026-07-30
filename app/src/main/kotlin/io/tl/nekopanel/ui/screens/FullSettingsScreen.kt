@@ -36,6 +36,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun FullSettingsScreen(
@@ -114,7 +115,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
     val cfg = config!!
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().scrollEndHaptic(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(
             start = contentPadding.calculateStartPadding(layoutDirection) + 16.dp,

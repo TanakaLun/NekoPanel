@@ -25,6 +25,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun LogsView(
@@ -53,7 +54,7 @@ fun LogsView(
         Surface(modifier = Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MiuixTheme.colorScheme.surfaceVariant)) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().scrollEndHaptic(),
                 contentPadding = PaddingValues(top = 8.dp, bottom = scaffoldPadding.calculateBottomPadding() + 8.dp),
             ) {
                 itemsIndexed(logs) { index, log ->

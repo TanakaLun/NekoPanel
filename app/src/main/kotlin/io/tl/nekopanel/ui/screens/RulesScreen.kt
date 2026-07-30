@@ -23,6 +23,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun RulesScreen(
@@ -57,6 +58,7 @@ fun RulesScreen(
         Box(Modifier.fillMaxSize().padding(scaffoldPadding), Alignment.Center) { CircularProgressIndicator() }
     } else {
         LazyColumn(
+            modifier = Modifier.scrollEndHaptic(),
             contentPadding = PaddingValues(
                 start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
                 top = scaffoldPadding.calculateTopPadding() + 16.dp,
