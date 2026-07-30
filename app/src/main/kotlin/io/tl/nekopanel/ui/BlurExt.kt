@@ -1,8 +1,10 @@
 package io.tl.nekopanel.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,7 @@ fun BlurredBar(
 ) {
     val blurActive = blurEnabled && backdrop != null
     val isProgressive = blurActive && blurStyle == 1
+    val barBackgroundColor = MiuixTheme.colorScheme.surface
     Box(
         modifier = if (blurActive && !isProgressive) {
             Modifier.textureBlur(
@@ -44,10 +47,11 @@ fun BlurredBar(
                 blurRadius = 25f,
                 colors = BlurDefaults.blurColors(
                     blendColors = listOf(
-                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.8f)),
+                        BlendColorEntry(color = barBackgroundColor.copy(0.5f)),
                     ),
                 ),
             )
+                .background(Color.Transparent)
         } else {
             Modifier
         },
@@ -68,10 +72,11 @@ fun BlurredBar(
                         blurRadius = 10f,
                         colors = BlurDefaults.blurColors(
                             blendColors = listOf(
-                                BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.3f)),
+                                BlendColorEntry(color = barBackgroundColor.copy(0.3f)),
                             ),
                         ),
-                    ),
+                    )
+                    .background(Color.Transparent),
             )
         }
         content()

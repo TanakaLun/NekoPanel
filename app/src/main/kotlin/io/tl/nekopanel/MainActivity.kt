@@ -342,7 +342,7 @@ internal fun MainScreenContent(
                                 blurRadius = 25f,
                                 colors = BlurDefaults.blurColors(
                                     blendColors = listOf(
-                                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.8f)),
+                                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.5f)),
                                     ),
                                 ),
                             )
