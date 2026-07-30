@@ -307,6 +307,7 @@ internal fun MainScreenContent(
     val isTrafficTab = selectedTab == 2
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
     val enableBlur = LocalAppState.current.enableBlur
+    val blurStyle = LocalAppState.current.blurStyle
     val backdrop = rememberBlurBackdrop(enableBlur)
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
@@ -315,7 +316,7 @@ internal fun MainScreenContent(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!isTrafficTab) {
-                BlurredBar(backdrop, blurActive) {
+                BlurredBar(backdrop, blurActive, blurStyle, effectiveScrollBehavior) {
                     TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                         scrollBehavior = effectiveScrollBehavior,
@@ -325,7 +326,7 @@ internal fun MainScreenContent(
             }
         },
         bottomBar = {
-            BlurredBar(backdrop, blurActive) {
+            BlurredBar(backdrop, blurActive, blurStyle = 0) {
                 NavigationBar(color = barColor) {
                     listOf(
                         "代理" to Icons.AutoMirrored.Filled.List,
