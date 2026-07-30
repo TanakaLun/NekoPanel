@@ -14,9 +14,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun rememberBlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
     // Blur temporarily disabled — code preserved for future improvement.
-    // Change to `if (!enableBlur) return null` to re-enable.
-    @Suppress("UNUSED_PARAMETER")
-    if (true) return null
+    // Re-enable by replacing the body below with:
+    //   if (!enableBlur) return null
+    //   val surfaceColor = MiuixTheme.colorScheme.surface
+    //   return rememberLayerBackdrop { drawRect(surfaceColor); drawContent() }
+    return null
 }
 
 @Composable
