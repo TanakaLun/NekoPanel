@@ -336,7 +336,7 @@ internal fun MainScreenContent(
                                     blurRadius = 25f,
                                     colors = BlurDefaults.blurColors(
                                         blendColors = listOf(
-                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.5f)),
+                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.2f)),
                                         ),
                                     ),
                                 )
@@ -361,7 +361,7 @@ internal fun MainScreenContent(
                                     blurRadius = 10f,
                                     colors = BlurDefaults.blurColors(
                                         blendColors = listOf(
-                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.3f)),
+                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.15f)),
                                         ),
                                     ),
                                 ),
@@ -386,7 +386,7 @@ internal fun MainScreenContent(
                                 blurRadius = 25f,
                                 colors = BlurDefaults.blurColors(
                                     blendColors = listOf(
-                                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.5f)),
+                                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.2f)),
                                     ),
                                 ),
                             )
