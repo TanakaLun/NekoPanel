@@ -21,8 +21,11 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -65,23 +68,28 @@ fun UiSettingsScreen(
         AllThemeSchemes.indexOfFirst { it.key == customColorKey }.coerceAtLeast(0)
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 12.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text("界面设置", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title3)
-            }
+    val scrollBehavior = MiuixScrollBehavior()
 
-            LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = "界面设置",
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        LazyColumn(
+            Modifier.fillMaxSize()
+                .padding(padding)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
                 item {
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp)) {
@@ -104,11 +112,11 @@ fun UiSettingsScreen(
                                         Text("规则", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                                         Spacer(Modifier.height(4.dp))
                                         TypeBadge("FINAL", rBadgeStyle, radiusState, false)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                }
+            }
+        }
+    }
+}
                 }
 
                 item {
@@ -200,5 +208,4 @@ fun UiSettingsScreen(
                 }
             }
         }
-    }
 }

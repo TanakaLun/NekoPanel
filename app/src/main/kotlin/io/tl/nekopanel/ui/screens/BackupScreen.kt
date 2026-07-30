@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -40,8 +41,11 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -256,27 +260,30 @@ settings.backupAutoInterval = v
         }
     }
 
-    Box(Modifier.fillMaxSize().background(MiuixTheme.colorScheme.background)) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(top = 12.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text("数据备份", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.title3)
-            }
+    val scrollBehavior = MiuixScrollBehavior()
 
-            Column(
-                Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Spacer(Modifier.height(4.dp))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = "数据备份",
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier.fillMaxSize()
+                .padding(padding)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(Modifier.height(4.dp))
 
                 if (status.isNotEmpty()) {
                     Card(Modifier.fillMaxWidth()) {
@@ -369,6 +376,5 @@ SectionTitle("自动备份")
 
                 Spacer(Modifier.height(80.dp))
             }
-        }
     }
 }
