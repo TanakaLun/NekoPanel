@@ -1,6 +1,7 @@
 package io.tl.nekopanel.privileged
 
 import android.net.LocalServerSocket
+import android.os.Looper
 import android.system.Os
 import java.io.DataInputStream
 import kotlin.system.exitProcess
@@ -9,6 +10,7 @@ object ShellNotificationMain {
     @JvmStatic
     fun main(args: Array<String>) {
         if (Os.getuid() != SHELL_UID) Os.setuid(SHELL_UID)
+        Looper.prepare()
         val publisher = ShellNotificationPublisher()
         try {
             LocalServerSocket(RootNotificationBridge.SOCKET_NAME).use { server ->
