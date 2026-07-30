@@ -5,7 +5,7 @@ import androidx.annotation.Keep
 import kotlin.system.exitProcess
 
 @Keep
-class ShizukuTrafficService : IPrivilegedTrafficService.Stub() {
+class ShizukuTrafficService() : IPrivilegedTrafficService.Stub() {
     private val publisher = ShellNotificationPublisher()
     private val engine = TrafficMonitorEngine(
         object : TrafficMonitorEngine.NotificationSink {
@@ -14,10 +14,8 @@ class ShizukuTrafficService : IPrivilegedTrafficService.Stub() {
         },
     )
 
-    constructor()
-
     @Keep
-    constructor(@Suppress("UNUSED_PARAMETER") context: Context)
+    constructor(@Suppress("UNUSED_PARAMETER") context: Context) : this()
 
     override fun configure(baseUrl: String, secret: String, notificationPriority: String) {
         engine.configure(baseUrl, secret, notificationPriority)
