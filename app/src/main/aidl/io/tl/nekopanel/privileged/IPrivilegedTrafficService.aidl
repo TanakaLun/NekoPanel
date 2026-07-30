@@ -6,5 +6,5 @@ interface IPrivilegedTrafficService {
     void updateNotificationPriority(String notificationPriority);
     void stopMonitoring();
     int getUid();
-    void destroy() = 16777114;
+    void destroy();
 }
