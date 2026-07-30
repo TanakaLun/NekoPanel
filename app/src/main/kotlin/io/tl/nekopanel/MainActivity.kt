@@ -42,7 +42,6 @@ import io.tl.nekopanel.navigation.rememberWebSocketState
 import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
-import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.rememberBlurBackdrop
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
@@ -63,6 +62,8 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
@@ -318,11 +319,54 @@ internal fun MainScreenContent(
     val blurActive = backdrop != null
     val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
 
+    val isProgressiveBlur = blurActive && blurStyle == 1
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!isTrafficTab) {
-                BlurredBar(backdrop, blurActive, blurStyle, effectiveScrollBehavior) {
+                Box(
+                    modifier = Modifier
+                        .then(
+                            when {
+                                isProgressiveBlur -> Modifier
+                                blurActive -> Modifier.textureBlur(
+                                    backdrop = backdrop,
+                                    shape = RectangleShape,
+                                    blurRadius = 25f,
+                                    colors = BlurDefaults.blurColors(
+                                        blendColors = listOf(
+                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.5f)),
+                                        ),
+                                    ),
+                                )
+                                else -> Modifier
+                            },
+                        )
+                        .background(barColor),
+                ) {
+                    if (isProgressiveBlur) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .graphicsLayer {
+                                    alpha = effectiveScrollBehavior?.state
+                                        ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
+                                        ?: 1f
+                                }
+                                .progressiveTextureBlur(
+                                    backdrop = backdrop,
+                                    shape = RectangleShape,
+                                    gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
+                                    blurRadius = 10f,
+                                    colors = BlurDefaults.blurColors(
+                                        blendColors = listOf(
+                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.3f)),
+                                        ),
+                                    ),
+                                ),
+                        )
+                    }
                     TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                         scrollBehavior = effectiveScrollBehavior,
