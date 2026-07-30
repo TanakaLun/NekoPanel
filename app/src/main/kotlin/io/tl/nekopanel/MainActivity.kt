@@ -43,7 +43,6 @@ import io.tl.nekopanel.navigation.rememberWebSocketState
 import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
-import io.tl.nekopanel.ui.rememberBlurBackdrop
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
 import io.tl.nekopanel.ui.theme.AllThemeSchemes
@@ -66,6 +65,7 @@ import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
@@ -314,30 +314,34 @@ internal fun MainScreenContent(
     val scrollBehavior = MiuixScrollBehavior()
     val isTrafficTab = selectedTab == 2
     val effectiveScrollBehavior = if (isTrafficTab) null else scrollBehavior
-    val enableBlur = LocalAppState.current.enableBlur
-    val blurStyle = LocalAppState.current.blurStyle
-    val backdrop = rememberBlurBackdrop(enableBlur)
-    val blurActive = backdrop != null
-    val barColor = if (blurActive) Color.Transparent else MiuixTheme.colorScheme.surface
-
-    val isProgressiveBlur = blurActive && blurStyle == 1
+    val appState = LocalAppState.current
+    val enableBlur = appState.enableBlur
+    val blurStyle = appState.blurStyle
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val backdrop = rememberLayerBackdrop {
+        drawRect(surfaceColor)
+        drawContent()
+    }
+    val blurActive = enableBlur && backdrop != null
+    val barColor = if (blurActive) Color.Transparent else surfaceColor
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!isTrafficTab) {
+                val isProgressive = blurActive && blurStyle == 1
                 Box(
                     modifier = Modifier
                         .then(
                             when {
-                                isProgressiveBlur -> Modifier
+                                isProgressive -> Modifier
                                 blurActive -> Modifier.textureBlur(
                                     backdrop = backdrop,
                                     shape = RectangleShape,
                                     blurRadius = 25f,
                                     colors = BlurDefaults.blurColors(
                                         blendColors = listOf(
-                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.2f)),
+                                            BlendColorEntry(color = surfaceColor.copy(0.8f)),
                                         ),
                                     ),
                                 )
@@ -346,7 +350,7 @@ internal fun MainScreenContent(
                         )
                         .background(barColor),
                 ) {
-                    if (isProgressiveBlur) {
+                    if (isProgressive) {
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
@@ -362,7 +366,7 @@ internal fun MainScreenContent(
                                     blurRadius = 10f,
                                     colors = BlurDefaults.blurColors(
                                         blendColors = listOf(
-                                            BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.15f)),
+                                            BlendColorEntry(color = surfaceColor.copy(0.3f)),
                                         ),
                                     ),
                                 ),
@@ -387,7 +391,7 @@ internal fun MainScreenContent(
                                 blurRadius = 25f,
                                 colors = BlurDefaults.blurColors(
                                     blendColors = listOf(
-                                        BlendColorEntry(color = MiuixTheme.colorScheme.surface.copy(0.2f)),
+                                        BlendColorEntry(color = surfaceColor.copy(0.8f)),
                                     ),
                                 ),
                             )
@@ -420,7 +424,7 @@ internal fun MainScreenContent(
             }
         },
     ) { padding ->
-        Box(modifier = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier) {
+        Box(modifier = Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Column(
                 Modifier.fillMaxSize()
                     .padding(padding)
