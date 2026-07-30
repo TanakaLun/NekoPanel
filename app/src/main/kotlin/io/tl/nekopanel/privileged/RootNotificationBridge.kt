@@ -58,8 +58,11 @@ internal class RootNotificationBridge(
             .start()
         repeat(20) {
             if (closed || process?.isAlive != true) return false
-            val candidate = LocalSocket().apply { soTimeout = 2_000 }
-            if (runCatching { candidate.connect(LocalSocketAddress(SOCKET_NAME)) }.isSuccess) {
+            val candidate = LocalSocket()
+            if (runCatching {
+                    candidate.connect(LocalSocketAddress(SOCKET_NAME))
+                    candidate.soTimeout = 2_000
+                }.isSuccess) {
                 socket = candidate
                 output = DataOutputStream(candidate.outputStream)
                 return true
