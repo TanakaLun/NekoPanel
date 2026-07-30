@@ -92,9 +92,16 @@ internal class ShellNotificationPublisher {
         override fun getDeviceId(): Int = 0
 
         companion object {
-            private val systemContext: Context
-                get() = (ActivityThread.currentActivityThread() ?: ActivityThread.systemMain()).systemContext
-                    ?: error("system context unavailable")
+            private val systemContext: Context by lazy {
+                val activityThread = ActivityThread.currentActivityThread()
+                    ?: ActivityThread.systemMain()
+                val getContext = activityThread.javaClass.methods.firstOrNull { method ->
+                    method.name in listOf("getSystemContext", "getSystemUiContext") &&
+                        method.parameterCount == 0 &&
+                        Context::class.java.isAssignableFrom(method.returnType)
+                } ?: error("ActivityThread lacks getSystemContext/getSystemUiContext")
+                getContext.invoke(activityThread) as Context
+            }
         }
     }
 
