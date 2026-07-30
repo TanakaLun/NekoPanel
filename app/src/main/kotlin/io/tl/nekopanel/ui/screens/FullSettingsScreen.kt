@@ -2,7 +2,6 @@ package io.tl.nekopanel.ui.screens
 
 import android.os.Build
 import android.os.PowerManager
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +22,8 @@ import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
+import io.tl.nekopanel.privileged.PrivilegedBackendType
+import io.tl.nekopanel.privileged.PrivilegedTrafficManager
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -35,6 +36,9 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -42,6 +46,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 fun FullSettingsScreen(
     settings: SettingsManager,
     contentPadding: PaddingValues = PaddingValues(),
+    snackbarHostState: SnackbarHostState,
     onNavigateToUiSettings: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
 ) {
@@ -52,6 +57,27 @@ fun FullSettingsScreen(
     var coreVersion by remember { mutableStateOf("正在获取...") }
     var connectFailed by remember { mutableStateOf(false) }
     var reconfigDialog by remember { mutableStateOf(false) }
+    var showPrivilegeDialog by remember { mutableStateOf(false) }
+
+    fun showMessage(message: String) {
+        scope.launch { snackbarHostState.showSnackbar(message) }
+    }
+
+    fun startPrivileged(backend: PrivilegedBackendType, onFailure: () -> Unit = {}) {
+        PrivilegedTrafficManager.start(
+            context = context,
+            backend = backend,
+            baseUrl = settings.apiBaseUrl,
+            secret = settings.apiSecret,
+            notificationPriority = settings.notificationPriority,
+        ) { result ->
+            result.onSuccess { showMessage("特权流量服务已启动") }
+                .onFailure {
+                    showMessage(it.message ?: "特权服务启动失败")
+                    onFailure()
+                }
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -69,7 +95,7 @@ fun FullSettingsScreen(
                 ApiClient.updateConfigs(mapOf(key to value))
                 config = JSONObject(config.toString()).also { it.put(key, value) }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(context, "更新失败", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) { showMessage("更新失败") }
             }
         }
     }
@@ -108,6 +134,20 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
         }
     }
 
+    OverlayDialog(
+        show = showPrivilegeDialog,
+        title = "需要特权授权",
+        summary = "未检测到可用的 Shizuku Shell 或 Root 权限。请启动 Shizuku 并授予 NekoPanel 权限，或在 Root 管理器中允许 Root 访问。Sui 或 Shizuku 的 Root 模式不能用于发布 Shell 通知。",
+        onDismissRequest = { showPrivilegeDialog = false },
+    ) {
+        TextButton(
+            text = "知道了",
+            onClick = { showPrivilegeDialog = false },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.textButtonColorsPrimary(),
+        )
+    }
+
     if (config == null) {
         Box(Modifier.fillMaxSize().padding(contentPadding), Alignment.Center) { CircularProgressIndicator() }
         return
@@ -142,23 +182,23 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); Toast.makeText(context, "配置已重载", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
+                        Button(onClick = { scope.launch { ApiClient.reloadConfigs(); showMessage("配置已重载") } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
                             Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重载配置")
                         }
-                        Button(onClick = { scope.launch { ApiClient.restartCore(); Toast.makeText(context, "核心已重启", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
+                        Button(onClick = { scope.launch { ApiClient.restartCore(); showMessage("核心已重启") } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
                             Icon(Icons.Default.PowerSettingsNew, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("重启核心")
                         }
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); Toast.makeText(context, "DNS 缓存已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
+                    Button(onClick = { scope.launch { ApiClient.flushDnsCache(); showMessage("DNS 缓存已清除") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 DNS 缓存")
                     }
-                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); Toast.makeText(context, "FakeIP 池已清除", Toast.LENGTH_SHORT).show() } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
+                    Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); showMessage("FakeIP 池已清除") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text("清除 FakeIP 池")
@@ -253,21 +293,125 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
             var autoStart by remember { mutableStateOf(settings.autoStartService) }
             var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
+            var privilegedEnabled by remember { mutableStateOf(settings.privilegedServiceEnabled) }
+            var privilegedType by remember { mutableStateOf(settings.privilegedServiceType) }
             SectionTitle("流量监控")
             Card(Modifier.fillMaxWidth()) {
                 Column {
-ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
+                    ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                         bgWs = enabled; settings.backgroundWebSocket = enabled
                         if (enabled) {
-                            DataDaemonService.start(context)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            if (privilegedEnabled) {
+                                PrivilegedTrafficManager.start(
+                                    context = context,
+                                    backend = PrivilegedBackendType.from(privilegedType),
+                                    baseUrl = settings.apiBaseUrl,
+                                    secret = settings.apiSecret,
+                                    notificationPriority = notifPriority,
+                                ) { result ->
+                                    result.exceptionOrNull()?.let {
+                                        showMessage(it.message ?: "特权服务启动失败")
+                                        bgWs = false
+                                        settings.backgroundWebSocket = false
+                                    }
+                                }
+                            } else {
+                                DataDaemonService.start(context)
+                            }
+                            if (!privilegedEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
                                 if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
                                     MainActivity.requestBatteryExemption(context as android.app.Activity)
                                 }
                             }
                         } else {
-                            DataDaemonService.stop(context)
+                            if (privilegedEnabled) {
+                                PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                            } else {
+                                DataDaemonService.stop(context)
+                            }
+                        }
+                    }
+                    ConfigToggle("启用特权服务", checked = privilegedEnabled) { enabled ->
+                        if (!enabled) {
+                            if (bgWs) {
+                                PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                                DataDaemonService.start(context)
+                            }
+                            privilegedEnabled = false
+                            settings.privilegedServiceEnabled = false
+                            return@ConfigToggle
+                        }
+
+                        PrivilegedTrafficManager.probeCapabilities { capabilities ->
+                            val preferred = PrivilegedBackendType.from(privilegedType)
+                            val available = when {
+                                capabilities.supports(preferred) -> preferred
+                                capabilities.shizuku -> PrivilegedBackendType.Shizuku
+                                capabilities.root -> PrivilegedBackendType.Root
+                                else -> null
+                            }
+                            if (available != null) {
+                                if (bgWs) DataDaemonService.stop(context)
+                                privilegedType = available.value
+                                settings.privilegedServiceType = available.value
+                                privilegedEnabled = true
+                                settings.privilegedServiceEnabled = true
+                                if (bgWs) startPrivileged(available) {
+                                    privilegedEnabled = false
+                                    settings.privilegedServiceEnabled = false
+                                    DataDaemonService.start(context)
+                                }
+                            } else {
+                                PrivilegedTrafficManager.requestShizukuPermission { granted ->
+                                    if (granted) {
+                                        if (bgWs) DataDaemonService.stop(context)
+                                        privilegedType = PrivilegedBackendType.Shizuku.value
+                                        settings.privilegedServiceType = privilegedType
+                                        privilegedEnabled = true
+                                        settings.privilegedServiceEnabled = true
+                                        if (bgWs) startPrivileged(PrivilegedBackendType.Shizuku) {
+                                            privilegedEnabled = false
+                                            settings.privilegedServiceEnabled = false
+                                            DataDaemonService.start(context)
+                                        }
+                                    } else {
+                                        showPrivilegeDialog = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (privilegedEnabled) {
+                        val typeOptions = listOf("Shizuku", "Root")
+                        val currentType = if (privilegedType == PrivilegedBackendType.Root.value) typeOptions[1] else typeOptions[0]
+                        SettingsDropdownMenuInline("特权类型", currentType, typeOptions) { selected ->
+                            val oldType = PrivilegedBackendType.from(privilegedType)
+                            val target = if (selected == typeOptions[1]) PrivilegedBackendType.Root else PrivilegedBackendType.Shizuku
+                            if (target == oldType) return@SettingsDropdownMenuInline
+
+                            fun switchBackend() {
+                                if (bgWs) PrivilegedTrafficManager.stop(context, oldType)
+                                privilegedType = target.value
+                                settings.privilegedServiceType = target.value
+                                if (bgWs) startPrivileged(target) {
+                                    privilegedType = oldType.value
+                                    settings.privilegedServiceType = oldType.value
+                                    startPrivileged(oldType)
+                                }
+                            }
+
+                            if (PrivilegedTrafficManager.capabilities().supports(target)) {
+                                switchBackend()
+                            } else if (target == PrivilegedBackendType.Shizuku) {
+                                PrivilegedTrafficManager.requestShizukuPermission { granted ->
+                                    if (granted) switchBackend() else showPrivilegeDialog = true
+                                }
+                            } else {
+                                PrivilegedTrafficManager.requestRootAccess { granted ->
+                                    if (granted) switchBackend() else showMessage("Root 权限不可用，已保留当前特权类型")
+                                }
+                            }
                         }
                     }
                     ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
@@ -276,13 +420,19 @@ ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                     SettingsDropdownMenuInline("通知显示内容", curNotif, notifOpts) { s ->
                         notifPriority = if (s == "优先总流量") "total" else "speed"
                         settings.notificationPriority = notifPriority
-                        DataDaemonService.refreshNotification(context)
+                        if (!bgWs) {
+                            showMessage("通知显示偏好已保存")
+                        } else if (privilegedEnabled) {
+                            PrivilegedTrafficManager.updateNotificationPriority(notifPriority)
+                        } else {
+                            DataDaemonService.refreshNotification(context, notifPriority)
+                        }
                     }
                 }
             }
         }
 
-        if (settings.backgroundWebSocket && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (settings.backgroundWebSocket && !settings.privilegedServiceEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             item {
                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
                 val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
@@ -310,7 +460,7 @@ ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                             settings.apiSecret = secret
                             ApiClient.baseUrl = settings.apiBaseUrl
                             ApiClient.secret = settings.apiSecret
-                            Toast.makeText(context, "已保存，重启应用后生效", Toast.LENGTH_SHORT).show()
+                            showMessage("连接设置已保存，重启应用后生效")
                         }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) { Text("保存并应用") }
                     }
                 }

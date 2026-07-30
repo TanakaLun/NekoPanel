@@ -44,6 +44,8 @@ import io.tl.nekopanel.navigation.rememberWebSocketState
 import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
+import io.tl.nekopanel.privileged.PrivilegedBackendType
+import io.tl.nekopanel.privileged.PrivilegedTrafficManager
 import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
@@ -57,6 +59,8 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SnackbarHost
+import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
@@ -194,7 +198,21 @@ fun NekoPanelMain(
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        if (settings.backgroundWebSocket || settings.autoStartService) DataDaemonService.start(context)
+        if (settings.backgroundWebSocket || settings.autoStartService) {
+            if (settings.privilegedServiceEnabled) {
+                PrivilegedTrafficManager.start(
+                    context = context,
+                    backend = PrivilegedBackendType.from(settings.privilegedServiceType),
+                    baseUrl = settings.apiBaseUrl,
+                    secret = settings.apiSecret,
+                    notificationPriority = settings.notificationPriority,
+                ) { result ->
+                    if (result.isFailure) DataDaemonService.start(context)
+                }
+            } else {
+                DataDaemonService.start(context)
+            }
+        }
     }
 
     val wsState = rememberWebSocketState(
@@ -323,6 +341,7 @@ internal fun MainScreenContent(
     }
     val blurActive = enableBlur && backdrop != null
     val barColor = if (blurActive) Color.Transparent else surfaceColor
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -385,6 +404,7 @@ internal fun MainScreenContent(
                 }
             }
         },
+        snackbarHost = { SnackbarHost(state = snackbarHostState) },
     ) { padding ->
         val layoutDirection = LocalLayoutDirection.current
         val screenPadding = PaddingValues(
@@ -430,6 +450,7 @@ internal fun MainScreenContent(
                         3 -> FullSettingsScreen(
                             settings,
                             contentPadding = screenPadding,
+                            snackbarHostState = snackbarHostState,
                             onNavigateToUiSettings = { onNavi(Route.UiSettings) },
                             onNavigateToBackup = { onNavi(Route.Backup) },
                         )
