@@ -3,6 +3,16 @@ name: Android CI/CD
 on:
   push:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+          - both
 
 jobs:
   build:
@@ -41,10 +51,17 @@ jobs:
         sed -i -E "s/versionName[[:space:]]*=[[:space:]]*['\"][^'\"]*['\"]/versionName = \"${{ steps.version_info.outputs.version_name }}\"/g" "$GRADLE_FILE"
           
     - name: Build with Gradle
-      run: ./gradlew assembleRelease
+      run: |
+        if [ "${{ github.event.inputs.build_type }}" == "both" ]; then
+          ./gradlew assembleDebug assembleRelease
+        elif [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+          ./gradlew assembleRelease
+        else
+          ./gradlew assembleDebug
+        fi
 
-    - name: Upload apk
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: release
+        name: apk-${{ github.event.inputs.build_type || 'debug' }}
         path: ${{ github.workspace }}/app/build/outputs/apk/**/*.apk
