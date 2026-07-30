@@ -91,122 +91,114 @@ fun UiSettingsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-                item {
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp)) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(60.dp),
-                                color = MiuixTheme.colorScheme.surfaceVariant.copy(0.3f),
-                            ) {
-                                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("代理组", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
-                                        Spacer(Modifier.height(4.dp))
-                                        TypeBadge("URL-TEST", gBadgeStyle, radiusState, false)
-                                    }
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("延迟", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
-                                        Spacer(Modifier.height(4.dp))
-                                        DelayBadge(120, false, dBadgeStyle, radiusState, false) {}
-                                    }
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text("规则", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
-                                        Spacer(Modifier.height(4.dp))
-                                        TypeBadge("FINAL", rBadgeStyle, radiusState, false)
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(60.dp),
+                            color = MiuixTheme.colorScheme.surfaceVariant.copy(0.3f),
+                        ) {
+                            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("代理组", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
+                                    Spacer(Modifier.height(4.dp))
+                                    TypeBadge("URL-TEST", gBadgeStyle, radiusState, false)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("延迟", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
+                                    Spacer(Modifier.height(4.dp))
+                                    DelayBadge(120, false, dBadgeStyle, radiusState, false) {}
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("规则", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
+                                    Spacer(Modifier.height(4.dp))
+                                    TypeBadge("FINAL", rBadgeStyle, radiusState, false)
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-                }
 
-                item {
-                    SectionTitle("徽章样式")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
-                            SettingsDropdownMenuInline("延迟类型风格", dBadgeStyle, listOf("填充", "描边")) { dBadgeStyle = it; settings.delayBadgeStyle = it }
-                            SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
-                            SliderPreference("圆角弧度", radiusState, onValueChange = { radiusState = it; settings.badgeCornerRadius = it })
+            item {
+                SectionTitle("徽章样式")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        SettingsDropdownMenuInline("代理类型风格", gBadgeStyle, listOf("填充", "描边")) { gBadgeStyle = it; settings.groupBadgeStyle = it }
+                        SettingsDropdownMenuInline("延迟类型风格", dBadgeStyle, listOf("填充", "描边")) { dBadgeStyle = it; settings.delayBadgeStyle = it }
+                        SettingsDropdownMenuInline("规则类型风格", rBadgeStyle, listOf("填充", "描边")) { rBadgeStyle = it; settings.ruleBadgeStyle = it }
+                        SliderPreference("圆角弧度", radiusState, onValueChange = { radiusState = it; settings.badgeCornerRadius = it })
+                    }
+                }
+            }
+
+            item {
+                SectionTitle("代理组显示")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
+                        SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
+                        ConfigToggle("显示 GLOBAL 代理组", checked = showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
+                        ConfigToggle("点击开启底部抽屉模式", checked = useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
+                        ConfigToggle("代理卡片扁平填充风格", checked = cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
+                    }
+                }
+            }
+
+            item {
+                SectionTitle("主题与行为")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        val modeNames = listOf("跟随系统", "浅色模式", "深色模式")
+                        val currentModeName = when (themeModeState) { "light" -> "浅色模式"; "dark" -> "深色模式"; else -> "跟随系统" }
+                        SettingsDropdownMenuInline("外观模式", currentModeName, modeNames) { s ->
+                            val newMode = when (s) { "浅色模式" -> "light"; "深色模式" -> "dark"; else -> "follow_system" }
+                            themeModeState = newMode; onThemeModeChange(newMode)
+                        }
+                        ConfigToggle("动态取色", checked = dynColorState) {
+                            dynColorState = it; onDynamicColorChange(it)
+                        }
+                        if (!dynColorState) {
+                            WindowSpinnerPreference(
+                                items = schemeItems,
+                                selectedIndex = selectedSchemeIndex,
+                                title = "主题色系",
+                                onSelectedIndexChange = { idx ->
+                                    val key = AllThemeSchemes[idx].key
+                                    customColorKey = key; onCustomColorChange(key)
+                                },
+                            )
                         }
                     }
                 }
+            }
 
-                item {
-                    SectionTitle("代理组显示")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            SettingsDropdownMenuInline("代理组布局", groupColBy, listOf("1 列", "2 列")) { groupColBy = it; settings.groupColumnCount = if(it == "1 列") 1 else 2 }
-                            SettingsDropdownMenuInline("节点网格列数", nodeColBy, listOf("1 列", "2 列")) { nodeColBy = it; settings.columnCount = if(it == "1 列") 1 else 2 }
+            item {
+                SectionTitle("导航与转场")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        SettingsDropdownMenuInline("Transition Style", if (transitionStyle == 1) "AOSP" else "Miuix", listOf("Miuix", "AOSP")) { s ->
+                            val newVal = if (s == "AOSP") 1 else 0
+                            transitionStyle = newVal; onTransitionStyleChange(newVal)
                         }
                     }
                 }
+            }
 
-                item {
-                    SectionTitle("主题与行为")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            val modeNames = listOf("跟随系统", "浅色模式", "深色模式")
-                            val currentModeName = when (themeModeState) { "light" -> "浅色模式"; "dark" -> "深色模式"; else -> "跟随系统" }
-                            SettingsDropdownMenuInline("外观模式", currentModeName, modeNames) { s ->
-                                val newMode = when (s) { "浅色模式" -> "light"; "深色模式" -> "dark"; else -> "follow_system" }
-                                themeModeState = newMode; onThemeModeChange(newMode)
-                            }
-                            ConfigToggle("动态取色", checked = dynColorState) {
-                                dynColorState = it; onDynamicColorChange(it)
-                            }
-                            if (!dynColorState) {
-                                WindowSpinnerPreference(
-                                    items = schemeItems,
-                                    selectedIndex = selectedSchemeIndex,
-                                    title = "主题色系",
-                                    onSelectedIndexChange = { idx ->
-                                        val key = AllThemeSchemes[idx].key
-                                        customColorKey = key; onCustomColorChange(key)
-                                    },
-                                )
-                            }
+            item {
+                SectionTitle("模糊效果")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        ConfigToggle("启用模糊效果", checked = enableBlur) {
+                            enableBlur = it; onEnableBlurChange(it)
                         }
-                    }
-                }
-
-                item {
-                    SectionTitle("导航与转场")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            SettingsDropdownMenuInline("Transition Style", if (transitionStyle == 1) "AOSP" else "Miuix", listOf("Miuix", "AOSP")) { s ->
-                                val newVal = if (s == "AOSP") 1 else 0
-                                transitionStyle = newVal; onTransitionStyleChange(newVal)
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    SectionTitle("模糊效果")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            ConfigToggle("启用模糊效果", checked = enableBlur) {
-                                enableBlur = it; onEnableBlurChange(it)
-                            }
-                            SettingsDropdownMenuInline("TopAppBar 模糊风格", if (blurStyle == 1) "Progressive" else "Gaussian", listOf("Gaussian", "Progressive")) { s ->
-                                val newVal = if (s == "Progressive") 1 else 0
-                                blurStyle = newVal; onBlurStyleChange(newVal)
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    SectionTitle("代理组显示")
-                    Card(Modifier.fillMaxWidth()) {
-                        Column {
-                            ConfigToggle("显示 GLOBAL 代理组", checked = showGlobalBy) { showGlobalBy = it; settings.showGlobal = it }
-                            ConfigToggle("点击开启底部抽屉模式", checked = useSheetBy) { useSheetBy = it; settings.useSheetMode = it }
-                            ConfigToggle("代理卡片扁平填充风格", checked = cardFillBy) { cardFillBy = it; settings.cardFillStyle = it }
+                        SettingsDropdownMenuInline("TopAppBar 模糊风格", if (blurStyle == 1) "Progressive" else "Gaussian", listOf("Gaussian", "Progressive")) { s ->
+                            val newVal = if (s == "Progressive") 1 else 0
+                            blurStyle = newVal; onBlurStyleChange(newVal)
                         }
                     }
                 }
             }
         }
+    }
 }
