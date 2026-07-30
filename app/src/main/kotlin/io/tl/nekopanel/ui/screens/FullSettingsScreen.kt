@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,9 +38,15 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun FullSettingsScreen(settings: SettingsManager, onNavigateToUiSettings: () -> Unit = {}, onNavigateToBackup: () -> Unit = {}) {
+fun FullSettingsScreen(
+    settings: SettingsManager,
+    contentPadding: PaddingValues = PaddingValues(),
+    onNavigateToUiSettings: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
     var coreVersion by remember { mutableStateOf("正在获取...") }
     var connectFailed by remember { mutableStateOf(false) }
@@ -101,12 +108,21 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
     }
 
     if (config == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize().padding(contentPadding), Alignment.Center) { CircularProgressIndicator() }
         return
     }
     val cfg = config!!
 
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(vertical = 16.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(
+            start = contentPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = contentPadding.calculateTopPadding() + 16.dp,
+            end = contentPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 16.dp,
+        ),
+    ) {
         item {
             Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

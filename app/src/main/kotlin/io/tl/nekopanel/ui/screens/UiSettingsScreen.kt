@@ -14,9 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.ui.BlurredBar
+import io.tl.nekopanel.ui.rememberBlurBackdrop
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.theme.AllThemeSchemes
 import top.yukonga.miuix.kmp.basic.Card
@@ -29,6 +33,7 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.preference.WindowSpinnerPreference
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -71,27 +76,37 @@ fun UiSettingsScreen(
     }
 
     val scrollBehavior = MiuixScrollBehavior()
+    val layoutDirection = LocalLayoutDirection.current
+    val backdrop = rememberBlurBackdrop(enableBlur)
+    val barColor = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = "界面设置",
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
-                    }
-                },
-            )
+            BlurredBar(backdrop, enableBlur, blurStyle, scrollBehavior) {
+                TopAppBar(
+                    title = "界面设置",
+                    scrollBehavior = scrollBehavior,
+                    color = barColor,
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
+                        }
+                    },
+                )
+            }
         },
     ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize()
-                .padding(padding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
+        Box(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
+            LazyColumn(
+                Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(
+                    start = padding.calculateStartPadding(layoutDirection) + 16.dp,
+                    top = padding.calculateTopPadding(),
+                    end = padding.calculateEndPadding(layoutDirection) + 16.dp,
+                    bottom = padding.calculateBottomPadding() + 16.dp,
+                ),
+            ) {
             item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
@@ -179,7 +194,7 @@ fun UiSettingsScreen(
                 SectionTitle("导航与转场")
                 Card(Modifier.fillMaxWidth()) {
                     Column {
-                        SettingsDropdownMenuInline("Transition Style", if (transitionStyle == 1) "AOSP" else "Miuix", listOf("Miuix", "AOSP")) { s ->
+                        SettingsDropdownMenuInline("返回动画类型", if (transitionStyle == 1) "AOSP" else "Miuix", listOf("Miuix", "AOSP")) { s ->
                             val newVal = if (s == "AOSP") 1 else 0
                             transitionStyle = newVal; onTransitionStyleChange(newVal)
                         }
@@ -200,6 +215,7 @@ fun UiSettingsScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,8 +35,10 @@ fun OverviewView(
     totalUp: Long,
     memHistory: List<Long>,
     downHistory: List<Long>,
-    settings: SettingsManager
+    settings: SettingsManager,
+    scaffoldPadding: PaddingValues = PaddingValues(),
 ) {
+    val layoutDirection = LocalLayoutDirection.current
     val cumulative = remember { settings.getCumulativeTraffic() }
     val topRules = remember { mutableStateListOf<JSONObject>() }
     LaunchedEffect(Unit) {
@@ -54,7 +57,15 @@ fun OverviewView(
         }
     }
 
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = 16.dp,
+            end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {

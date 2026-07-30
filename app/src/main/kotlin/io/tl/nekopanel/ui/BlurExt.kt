@@ -1,10 +1,8 @@
 package io.tl.nekopanel.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -13,6 +11,7 @@ import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
@@ -20,7 +19,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun rememberBlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
-    if (!enableBlur) return null
+    if (!enableBlur || !isRuntimeShaderSupported()) return null
     val surfaceColor = MiuixTheme.colorScheme.surface
     return rememberLayerBackdrop {
         drawRect(surfaceColor)
@@ -47,11 +46,10 @@ fun BlurredBar(
                 blurRadius = 25f,
                 colors = BlurDefaults.blurColors(
                     blendColors = listOf(
-                        BlendColorEntry(color = barBackgroundColor.copy(0.5f)),
+                        BlendColorEntry(color = barBackgroundColor.copy(0.8f)),
                     ),
                 ),
             )
-                .background(Color.Transparent)
         } else {
             Modifier
         },
@@ -75,8 +73,7 @@ fun BlurredBar(
                                 BlendColorEntry(color = barBackgroundColor.copy(0.3f)),
                             ),
                         ),
-                    )
-                    .background(Color.Transparent),
+                    ),
             )
         }
         content()

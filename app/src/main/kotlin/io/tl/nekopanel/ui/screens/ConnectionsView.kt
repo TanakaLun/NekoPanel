@@ -3,7 +3,6 @@ package io.tl.nekopanel.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +11,7 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,13 +33,20 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun ConnectionsView(
     connections: List<ConnectionItem>,
     onRemoveConnection: (String) -> Unit,
-    onClearConnections: () -> Unit
+    onClearConnections: () -> Unit,
+    scaffoldPadding: PaddingValues = PaddingValues(),
 ) {
+    val layoutDirection = LocalLayoutDirection.current
     var selectedJson by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(
+            start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = 16.dp,
+            end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {

@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,7 +25,12 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
+fun RulesScreen(
+    refreshTick: Long,
+    settings: SettingsManager,
+    scaffoldPadding: PaddingValues = PaddingValues(),
+) {
+    val layoutDirection = LocalLayoutDirection.current
     var rules by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var disabledState by rememberSaveable { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
@@ -48,9 +54,17 @@ fun RulesScreen(refreshTick: Long, settings: SettingsManager) {
     LaunchedEffect(refreshTick) { fetchRules() }
 
     if (isLoading) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize().padding(scaffoldPadding), Alignment.Center) { CircularProgressIndicator() }
     } else {
-        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+                top = scaffoldPadding.calculateTopPadding() + 16.dp,
+                end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             itemsIndexed(rules, key = { _, rule -> rule.optInt("index") }) { _, rule ->
                 val type = rule.optString("type", "")
                 val payload = rule.optString("payload", "")

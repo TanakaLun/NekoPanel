@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
@@ -25,9 +26,11 @@ fun ProxiesScreen(
     settings: SettingsManager,
     refreshTick: Long,
     currentMode: String,
+    scaffoldPadding: PaddingValues = PaddingValues(),
     onRefresh: () -> Unit,
     onModeChange: (String) -> Unit
 ) {
+    val layoutDirection = LocalLayoutDirection.current
     var allProxies by remember { mutableStateOf<JSONObject?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -80,7 +83,7 @@ fun ProxiesScreen(
     }
 
     if (isLoading || allProxies == null) {
-        Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize().padding(scaffoldPadding), Alignment.Center) { CircularProgressIndicator() }
         return
     }
 
@@ -105,11 +108,22 @@ fun ProxiesScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
+    val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(
+                start = scaffoldPadding.calculateStartPadding(layoutDirection) + if (columns == 1) 16.dp else 12.dp,
+                top = scaffoldPadding.calculateTopPadding() + 8.dp,
+                end = scaffoldPadding.calculateEndPadding(layoutDirection) + if (columns == 1) 16.dp else 12.dp,
+                bottom = scaffoldPadding.calculateBottomPadding() + 16.dp,
+            ),
+        verticalArrangement = Arrangement.spacedBy(if (columns == 1) 12.dp else 8.dp),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .height(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -148,59 +162,38 @@ fun ProxiesScreen(
             }
         }
 
-        val columns = if (settings.groupColumnCount == 1 || isGlobalMode) 1 else 2
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val scrollState = rememberScrollState()
-            val minH = maxHeight + 1.dp
-            if (columns == 1) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .heightIn(min = minH)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        if (columns == 1) {
+            displayKeys.forEach { key ->
+                val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
+                val currentNow = groupSelections[key] ?: group.optString("now", "-")
+                ProxyGroupCard(
+                    name = key, group = group, now = currentNow,
+                    delayCache = delayCache, settings = settings,
+                    onDelayUpdate = updateDelay,
+                    onNodeSelected = { node -> selectNode(key, node) },
+                )
+            }
+        } else {
+            displayKeys.chunked(2).forEach { chunk ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    displayKeys.forEach { key ->
+                    chunk.forEach { key ->
                         val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
                         val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                        ProxyGroupCard(
-                            name = key, group = group, now = currentNow,
-                            delayCache = delayCache, settings = settings,
-                            onDelayUpdate = updateDelay,
-                            onNodeSelected = { node -> selectNode(key, node) },
-                        )
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .heightIn(min = minH)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    displayKeys.chunked(2).forEach { chunk ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        chunk.forEach { key ->
-                            val group = proxiesJson.getJSONObject("proxies").getJSONObject(key)
-                            val currentNow = groupSelections[key] ?: group.optString("now", "-")
-                            Box(Modifier.weight(1f)) {
-                                ProxyGroupCard(
-                                    name = key, group = group, now = currentNow,
-                                    delayCache = delayCache, settings = settings,
-                                    onDelayUpdate = updateDelay,
-                                    onNodeSelected = { node -> selectNode(key, node) },
-                                )
-                            }
+                        Box(Modifier.weight(1f)) {
+                            ProxyGroupCard(
+                                name = key, group = group, now = currentNow,
+                                delayCache = delayCache, settings = settings,
+                                onDelayUpdate = updateDelay,
+                                onNodeSelected = { node -> selectNode(key, node) },
+                            )
                         }
                     }
+                    if (chunk.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
     }
-}}
+}

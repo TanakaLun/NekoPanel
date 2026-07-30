@@ -13,6 +13,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,10 +27,23 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
-fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelChange: (String) -> Unit) {
+fun LogsView(
+    logs: SnapshotStateList<LogItem>,
+    currentLogLevel: String,
+    onLevelChange: (String) -> Unit,
+    scaffoldPadding: PaddingValues = PaddingValues(),
+) {
+    val layoutDirection = LocalLayoutDirection.current
     val listState = rememberLazyListState()
     LaunchedEffect(logs.size) { if (logs.isNotEmpty()) listState.animateScrollToItem(logs.size - 1) }
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        Modifier.fillMaxSize().padding(
+            start = scaffoldPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = 16.dp,
+            end = scaffoldPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = 0.dp,
+        ),
+    ) {
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             LevelSpinner(currentLogLevel) { onLevelChange(it) }
             Spacer(Modifier.weight(1f))
@@ -37,7 +51,11 @@ fun LogsView(logs: SnapshotStateList<LogItem>, currentLogLevel: String, onLevelC
         }
         Spacer(Modifier.height(8.dp))
         Surface(modifier = Modifier.fillMaxSize(), color = MiuixTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MiuixTheme.colorScheme.surfaceVariant)) {
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 8.dp, bottom = scaffoldPadding.calculateBottomPadding() + 8.dp),
+            ) {
                 itemsIndexed(logs) { index, log ->
                     Column {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {

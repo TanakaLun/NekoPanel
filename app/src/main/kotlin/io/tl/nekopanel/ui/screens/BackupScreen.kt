@@ -15,7 +15,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -24,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import io.tl.nekopanel.data.local.AppDatabase
 import io.tl.nekopanel.data.repository.SettingsManager
+import io.tl.nekopanel.navigation.LocalAppState
+import io.tl.nekopanel.ui.BlurredBar
+import io.tl.nekopanel.ui.rememberBlurBackdrop
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +51,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -261,28 +267,40 @@ settings.backupAutoInterval = v
     }
 
     val scrollBehavior = MiuixScrollBehavior()
+    val layoutDirection = LocalLayoutDirection.current
+    val appState = LocalAppState.current
+    val backdrop = rememberBlurBackdrop(appState.enableBlur)
+    val barColor = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surface
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = "数据备份",
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
-                    }
-                },
-            )
+            BlurredBar(backdrop, appState.enableBlur, appState.blurStyle, scrollBehavior) {
+                TopAppBar(
+                    title = "数据备份",
+                    scrollBehavior = scrollBehavior,
+                    color = barColor,
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MiuixTheme.colorScheme.primary)
+                        }
+                    },
+                )
+            }
         },
     ) { padding ->
-        Column(
-            Modifier.fillMaxSize()
-                .padding(padding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(Modifier.fillMaxSize().then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)) {
+            Column(
+                Modifier.fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        start = padding.calculateStartPadding(layoutDirection) + 16.dp,
+                        top = padding.calculateTopPadding(),
+                        end = padding.calculateEndPadding(layoutDirection) + 16.dp,
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             Spacer(Modifier.height(4.dp))
 
                 if (status.isNotEmpty()) {
@@ -376,5 +394,6 @@ SectionTitle("自动备份")
 
                 Spacer(Modifier.height(80.dp))
             }
+        }
     }
 }

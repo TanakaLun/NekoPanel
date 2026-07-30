@@ -3,7 +3,6 @@ package io.tl.nekopanel.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Modifier
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
@@ -21,13 +20,14 @@ fun TrafficScreen(
     totalUp: Long,
     memHistory: List<Long>,
     downHistory: List<Long>,
+    scaffoldPadding: PaddingValues = PaddingValues(),
     onLevelChange: (String) -> Unit,
     onRemoveConnection: (String) -> Unit,
     onClearConnections: () -> Unit
 ) {
     when (trafficTab) {
-        0 -> OverviewView(connections, memoryInUse, trafficDown, totalDown, totalUp, memHistory, downHistory, settings)
-        1 -> ConnectionsView(connections, onRemoveConnection, onClearConnections)
-        2 -> LogsView(logs, currentLogLevel, onLevelChange)
+        0 -> OverviewView(connections, memoryInUse, trafficDown, totalDown, totalUp, memHistory, downHistory, settings, scaffoldPadding)
+        1 -> ConnectionsView(connections, onRemoveConnection, onClearConnections, scaffoldPadding)
+        2 -> LogsView(logs, currentLogLevel, onLevelChange, scaffoldPadding)
     }
 }

@@ -26,10 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.navigation.AppState
@@ -43,6 +44,7 @@ import io.tl.nekopanel.navigation.rememberWebSocketState
 import io.tl.nekopanel.navigation.CrossActivityTransition
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
+import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
 import io.tl.nekopanel.ui.theme.AllThemeSchemes
@@ -55,15 +57,12 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
-import top.yukonga.miuix.kmp.blur.ProgressiveBlur
-import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
@@ -238,7 +237,11 @@ fun NekoPanelMain(
     }
     val isCrossActivityStyle = transitionStyle == 1
     val navTransition = if (isCrossActivityStyle) CrossActivityTransition else NavTransitions.MiuixDefault
-    val swipeBackDirection = if (isCrossActivityStyle) NavSwipeDirection.None else NavSwipeDirection.LeftToRight
+    val swipeBackDirection = when {
+        isCrossActivityStyle -> NavSwipeDirection.None
+        LocalLayoutDirection.current == LayoutDirection.Rtl -> NavSwipeDirection.RightToLeft
+        else -> NavSwipeDirection.LeftToRight
+    }
 
     CompositionLocalProvider(
         LocalNavigator provides navigator,
@@ -271,23 +274,19 @@ fun NekoPanelMain(
                 )
             }
             entry<Route.UiSettings>(swipeDismiss = swipeBackDirection) {
-                Surface(Modifier.fillMaxSize()) {
-                    UiSettingsScreen(
-                        settings,
-                        onThemeModeChange = onThemeModeChange,
-                        onDynamicColorChange = onDynamicColorChange,
-                        onCustomColorChange = onCustomColorChange,
-                        onBlurStyleChange = { blurStyle = it; settings.topBarBlurStyle = it },
-                        onTransitionStyleChange = { transitionStyle = it; settings.transitionStyle = it },
-                        onEnableBlurChange = { enableBlur = it; settings.enableBlur = it },
-                        onBack = { navigator.pop() },
-                    )
-                }
+                UiSettingsScreen(
+                    settings,
+                    onThemeModeChange = onThemeModeChange,
+                    onDynamicColorChange = onDynamicColorChange,
+                    onCustomColorChange = onCustomColorChange,
+                    onBlurStyleChange = { blurStyle = it; settings.topBarBlurStyle = it },
+                    onTransitionStyleChange = { transitionStyle = it; settings.transitionStyle = it },
+                    onEnableBlurChange = { enableBlur = it; settings.enableBlur = it },
+                    onBack = { navigator.pop() },
+                )
             }
             entry<Route.Backup>(swipeDismiss = swipeBackDirection) {
-                Surface(Modifier.fillMaxSize()) {
-                    BackupScreen(settings, onBack = { navigator.pop() })
-                }
+                BackupScreen(settings, onBack = { navigator.pop() })
             }
         }
     }
@@ -329,49 +328,12 @@ internal fun MainScreenContent(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!isTrafficTab) {
-                val isProgressive = blurActive && blurStyle == 1
-                Box(
-                    modifier = Modifier
-                        .then(
-                            when {
-                                isProgressive -> Modifier
-                                blurActive -> Modifier.textureBlur(
-                                    backdrop = backdrop,
-                                    shape = RectangleShape,
-                                    blurRadius = 25f,
-                                    colors = BlurDefaults.blurColors(
-                                        blendColors = listOf(
-                                            BlendColorEntry(color = surfaceColor.copy(0.8f)),
-                                        ),
-                                    ),
-                                )
-                                else -> Modifier
-                            },
-                        )
-                        .background(barColor),
+                BlurredBar(
+                    backdrop = backdrop,
+                    blurEnabled = enableBlur,
+                    blurStyle = blurStyle,
+                    scrollBehavior = effectiveScrollBehavior,
                 ) {
-                    if (isProgressive) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .graphicsLayer {
-                                    alpha = effectiveScrollBehavior?.state
-                                        ?.let { (-it.contentOffset / 48.dp.toPx()).coerceIn(0f, 1f) }
-                                        ?: 1f
-                                }
-                                .progressiveTextureBlur(
-                                    backdrop = backdrop,
-                                    shape = RectangleShape,
-                                    gradient = ProgressiveBlur.Top.copy(curve = 2.2f),
-                                    blurRadius = 10f,
-                                    colors = BlurDefaults.blurColors(
-                                        blendColors = listOf(
-                                            BlendColorEntry(color = surfaceColor.copy(0.3f)),
-                                        ),
-                                    ),
-                                ),
-                        )
-                    }
                     TopAppBar(
                         title = when (selectedTab) { 0 -> "代理"; 1 -> "规则"; 3 -> "设置"; else -> "" },
                         scrollBehavior = effectiveScrollBehavior,
@@ -424,14 +386,27 @@ internal fun MainScreenContent(
             }
         },
     ) { padding ->
+        val layoutDirection = LocalLayoutDirection.current
+        val screenPadding = PaddingValues(
+            start = padding.calculateStartPadding(layoutDirection),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(layoutDirection),
+            bottom = padding.calculateBottomPadding(),
+        )
         Box(modifier = Modifier.fillMaxSize().layerBackdrop(backdrop)) {
             Column(
                 Modifier.fillMaxSize()
-                    .padding(padding)
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
                 if (isTrafficTab) {
-                    Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    Box(
+                        Modifier.padding(
+                            start = 12.dp,
+                            top = screenPadding.calculateTopPadding() + 4.dp,
+                            end = 12.dp,
+                            bottom = 4.dp,
+                        ),
+                    ) {
                         TabRowWithContour(
                             tabs = listOf("概览", "连接", "日志"),
                             selectedTabIndex = trafficTab,
@@ -441,18 +416,20 @@ internal fun MainScreenContent(
                 }
                 Box(Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> ProxiesScreen(settings, refreshTick, currentMode, onRefresh = onRefresh, onModeChange = onModeChange)
-                        1 -> RulesScreen(refreshTick, settings)
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
+                        1 -> RulesScreen(refreshTick, settings, screenPadding)
                         2 -> TrafficScreen(
                             trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
                             wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
                             memHistory, downHistory,
+                            scaffoldPadding = screenPadding,
                             onLevelChange = onLevelChange,
                             onRemoveConnection = { wsState.removeConnection(it) },
                             onClearConnections = { wsState.clearConnections() },
                         )
                         3 -> FullSettingsScreen(
                             settings,
+                            contentPadding = screenPadding,
                             onNavigateToUiSettings = { onNavi(Route.UiSettings) },
                             onNavigateToBackup = { onNavi(Route.Backup) },
                         )
