@@ -46,6 +46,7 @@ android {
     }
 
     buildFeatures {
+        aidl = true
         compose = true
     }
 
@@ -84,5 +85,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
+    implementation(libs.libsu.core)
+    implementation(libs.libsu.service)
+    compileOnly(project(":hiddenapi-stub"))
     ksp(libs.androidx.room.compiler)
 }

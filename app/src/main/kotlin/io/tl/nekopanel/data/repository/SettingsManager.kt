@@ -259,4 +259,12 @@ class SettingsManager(context: Context) {
     var notificationPriority: String
         get() = getString("notification_priority", "speed")
         set(value) = setString("notification_priority", value)
+
+    var privilegedServiceEnabled: Boolean
+        get() = getBoolean("privileged_service_enabled", false)
+        set(value) = setBoolean("privileged_service_enabled", value)
+
+    var privilegedServiceType: String
+        get() = getString("privileged_service_type", "shizuku")
+        set(value) = setString("privileged_service_type", value)
 }
