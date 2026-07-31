@@ -419,7 +419,14 @@ internal fun MainScreenContent(
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
             ) {
                 if (isTrafficTab) {
-                    Box(Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                    Box(
+                        Modifier.padding(
+                            start = 12.dp,
+                            top = screenPadding.calculateTopPadding() + 4.dp,
+                            end = 12.dp,
+                            bottom = 6.dp,
+                        ),
+                    ) {
                         TabRow(
                             tabs = listOf("概览", "连接", "日志"),
                             selectedTabIndex = trafficTab,
