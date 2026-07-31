@@ -135,6 +135,7 @@ object PrivilegedTrafficManager {
             PrivilegedBackendType.Root -> RootService.stop(rootIntent(context.applicationContext))
         }
         connection = null
+        PrivilegedNotification.cancelShellNotification()
     }
 
     private fun startShizuku(request: Request) {

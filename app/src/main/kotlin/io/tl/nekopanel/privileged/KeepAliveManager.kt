@@ -16,6 +16,7 @@ object KeepAliveManager {
     private const val SHELL_PACKAGE = "com.android.shell"
     private const val APP_PACKAGE = "io.tl.nekopanel"
     private const val CHANNEL_ID = "traffic_monitor"
+    private const val NOTIFICATION_ID = 114514
 
     private var generation = 0L
     private var service: IPrivilegedTrafficService? = null
@@ -75,6 +76,7 @@ object KeepAliveManager {
         runCatching { Shizuku.unbindUserService(shizukuArgs(), connection, true) }
         connection = null
         setNotificationDelegate(context.applicationContext, null)
+        context.getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
     }
 
     fun updateNotificationPriority(priority: String) {

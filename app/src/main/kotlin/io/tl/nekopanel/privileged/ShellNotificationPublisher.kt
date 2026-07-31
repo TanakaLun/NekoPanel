@@ -23,13 +23,13 @@ internal class ShellNotificationPublisher {
     ) ?: error("notification service unavailable")
 
     init {
-        check(Os.getuid() == SHELL_UID) { "Shell notification publisher requires UID $SHELL_UID" }
+        check(Os.getuid() == PrivilegedNotification.SHELL_UID) { "Shell notification publisher requires UID ${PrivilegedNotification.SHELL_UID}" }
         notificationManager.createNotificationChannelsForPackage(
-            SHELL_PACKAGE,
-            SHELL_UID,
+            PrivilegedNotification.SHELL_PACKAGE,
+            PrivilegedNotification.SHELL_UID,
             ParceledListSlice(
                 listOf(
-                    NotificationChannel(CHANNEL_ID, "NekoPanel", NotificationManager.IMPORTANCE_LOW).apply {
+                    NotificationChannel(PrivilegedNotification.CHANNEL_ID, "NekoPanel", NotificationManager.IMPORTANCE_LOW).apply {
                         description = "NekoPanel 实时流量"
                         enableLights(false)
                         enableVibration(false)
@@ -41,7 +41,7 @@ internal class ShellNotificationPublisher {
     }
 
     fun update(content: String) {
-        val notification = Notification.Builder(context, CHANNEL_ID)
+        val notification = Notification.Builder(context, PrivilegedNotification.CHANNEL_ID)
             .setSmallIcon(Icon.createWithResource("android", android.R.drawable.stat_notify_sync))
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
@@ -63,10 +63,10 @@ internal class ShellNotificationPublisher {
             )
             .build()
         notificationManager.enqueueNotificationWithTag(
-            SHELL_PACKAGE,
-            SHELL_PACKAGE,
-            NOTIFICATION_TAG,
-            NOTIFICATION_ID,
+            PrivilegedNotification.SHELL_PACKAGE,
+            PrivilegedNotification.SHELL_PACKAGE,
+            PrivilegedNotification.TAG,
+            PrivilegedNotification.NOTIFICATION_ID,
             notification,
             0,
         )
@@ -74,19 +74,19 @@ internal class ShellNotificationPublisher {
 
     fun cancel() {
         notificationManager.cancelNotificationWithTag(
-            SHELL_PACKAGE,
-            SHELL_PACKAGE,
-            NOTIFICATION_TAG,
-            NOTIFICATION_ID,
+            PrivilegedNotification.SHELL_PACKAGE,
+            PrivilegedNotification.SHELL_PACKAGE,
+            PrivilegedNotification.TAG,
+            PrivilegedNotification.NOTIFICATION_ID,
             0,
         )
     }
 
     private class ShellContext : ContextWrapper(systemContext) {
-        override fun getPackageName(): String = SHELL_PACKAGE
-        override fun getOpPackageName(): String = SHELL_PACKAGE
+        override fun getPackageName(): String = PrivilegedNotification.SHELL_PACKAGE
+        override fun getOpPackageName(): String = PrivilegedNotification.SHELL_PACKAGE
         override fun getAttributionSource(): AttributionSource = AttributionSource.Builder(Os.getuid())
-            .setPackageName(SHELL_PACKAGE)
+            .setPackageName(PrivilegedNotification.SHELL_PACKAGE)
             .build()
         override fun getApplicationContext(): Context = this
         override fun getDeviceId(): Int = 0
@@ -107,10 +107,5 @@ internal class ShellNotificationPublisher {
 
     private companion object {
         const val APP_PACKAGE = "io.tl.nekopanel"
-        const val SHELL_PACKAGE = "com.android.shell"
-        const val SHELL_UID = 2000
-        const val CHANNEL_ID = "nekopanel_privileged_traffic"
-        const val NOTIFICATION_TAG = "nekopanel_privileged_traffic"
-        const val NOTIFICATION_ID = 114515
     }
 }

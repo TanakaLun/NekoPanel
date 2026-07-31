@@ -259,13 +259,13 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                     channelSwitchTo = null
                     when (action) {
                         ChannelSwitchAction.ENABLE_PRIVILEGED -> {
-                            if (bgWs) KeepAliveManager.stop(context)
+                            KeepAliveManager.stop(context)
                             keepAliveEnabled = false
                             settings.keepAliveEnabled = false
                             requestEnablePrivileged()
                         }
                         ChannelSwitchAction.ENABLE_KEEPALIVE -> {
-                            if (bgWs) PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                            PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
                             privilegedEnabled = false
                             settings.privilegedServiceEnabled = false
                             requestKeepAlive()
@@ -469,10 +469,8 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                     }
                     ConfigToggle("启用特权服务", checked = privilegedEnabled) { enabled ->
                         if (!enabled) {
-                            if (bgWs) {
-                                PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
-                                DataDaemonService.start(context)
-                            }
+                            PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                            if (bgWs) DataDaemonService.start(context)
                             privilegedEnabled = false
                             settings.privilegedServiceEnabled = false
                             return@ConfigToggle
@@ -521,10 +519,8 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                         checked = keepAliveEnabled,
                     ) { enabled ->
                         if (!enabled) {
-                            if (bgWs) {
-                                KeepAliveManager.stop(context)
-                                DataDaemonService.start(context)
-                            }
+                            KeepAliveManager.stop(context)
+                            if (bgWs) DataDaemonService.start(context)
                             keepAliveEnabled = false
                             settings.keepAliveEnabled = false
                             return@ConfigToggle
