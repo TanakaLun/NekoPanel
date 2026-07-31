@@ -267,4 +267,8 @@ class SettingsManager(context: Context) {
     var privilegedServiceType: String
         get() = getString("privileged_service_type", "shizuku")
         set(value) = setString("privileged_service_type", value)
+
+    var keepAliveEnabled: Boolean
+        get() = getBoolean("keep_alive_enabled", false)
+        set(value) = setBoolean("keep_alive_enabled", value)
 }

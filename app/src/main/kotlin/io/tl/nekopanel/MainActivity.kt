@@ -46,6 +46,7 @@ import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.privileged.PrivilegedBackendType
 import io.tl.nekopanel.privileged.PrivilegedTrafficManager
+import io.tl.nekopanel.privileged.KeepAliveManager
 import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
@@ -199,7 +200,16 @@ fun NekoPanelMain(
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (settings.backgroundWebSocket || settings.autoStartService) {
-            if (settings.privilegedServiceEnabled) {
+            if (settings.keepAliveEnabled) {
+                KeepAliveManager.start(
+                    context = context,
+                    baseUrl = settings.apiBaseUrl,
+                    secret = settings.apiSecret,
+                    notificationPriority = settings.notificationPriority,
+                ) { result ->
+                    if (result.isFailure) DataDaemonService.start(context)
+                }
+            } else if (settings.privilegedServiceEnabled) {
                 PrivilegedTrafficManager.start(
                     context = context,
                     backend = PrivilegedBackendType.from(settings.privilegedServiceType),

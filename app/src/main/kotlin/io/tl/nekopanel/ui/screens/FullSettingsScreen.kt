@@ -24,6 +24,7 @@ import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.privileged.PrivilegedBackendType
 import io.tl.nekopanel.privileged.PrivilegedTrafficManager
+import io.tl.nekopanel.privileged.KeepAliveManager
 import io.tl.nekopanel.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,6 +43,8 @@ import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
+private enum class ChannelSwitchAction { ENABLE_PRIVILEGED, ENABLE_KEEPALIVE }
+
 @Composable
 fun FullSettingsScreen(
     settings: SettingsManager,
@@ -58,6 +61,13 @@ fun FullSettingsScreen(
     var connectFailed by remember { mutableStateOf(false) }
     var reconfigDialog by remember { mutableStateOf(false) }
     var showPrivilegeDialog by remember { mutableStateOf(false) }
+    var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
+    var autoStart by remember { mutableStateOf(settings.autoStartService) }
+    var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
+    var privilegedEnabled by remember { mutableStateOf(settings.privilegedServiceEnabled) }
+    var privilegedType by remember { mutableStateOf(settings.privilegedServiceType) }
+    var keepAliveEnabled by remember { mutableStateOf(settings.keepAliveEnabled) }
+    var channelSwitchTo by remember { mutableStateOf<ChannelSwitchAction?>(null) }
 
     fun showMessage(message: String) {
         scope.launch { snackbarHostState.showSnackbar(message) }
@@ -76,6 +86,79 @@ fun FullSettingsScreen(
                     showMessage(it.message ?: "特权服务启动失败")
                     onFailure()
                 }
+        }
+    }
+
+    fun requestEnablePrivileged() {
+        PrivilegedTrafficManager.probeCapabilities { capabilities ->
+            val preferred = PrivilegedBackendType.from(privilegedType)
+            val available = when {
+                capabilities.supports(preferred) -> preferred
+                capabilities.shizuku -> PrivilegedBackendType.Shizuku
+                capabilities.root -> PrivilegedBackendType.Root
+                else -> null
+            }
+            if (available != null) {
+                if (bgWs) DataDaemonService.stop(context)
+                privilegedType = available.value
+                settings.privilegedServiceType = available.value
+                privilegedEnabled = true
+                settings.privilegedServiceEnabled = true
+                if (bgWs) startPrivileged(available) {
+                    privilegedEnabled = false
+                    settings.privilegedServiceEnabled = false
+                    DataDaemonService.start(context)
+                }
+            } else {
+                PrivilegedTrafficManager.requestShizukuPermission { granted ->
+                    if (granted) {
+                        if (bgWs) DataDaemonService.stop(context)
+                        privilegedType = PrivilegedBackendType.Shizuku.value
+                        settings.privilegedServiceType = privilegedType
+                        privilegedEnabled = true
+                        settings.privilegedServiceEnabled = true
+                        if (bgWs) startPrivileged(PrivilegedBackendType.Shizuku) {
+                            privilegedEnabled = false
+                            settings.privilegedServiceEnabled = false
+                            DataDaemonService.start(context)
+                        }
+                    } else {
+                        showPrivilegeDialog = true
+                    }
+                }
+            }
+        }
+    }
+
+    fun requestKeepAlive() {
+        if (KeepAliveManager.isAvailable()) {
+            startKeepAlive()
+        } else {
+            PrivilegedTrafficManager.requestShizukuPermission { granted ->
+                if (granted) startKeepAlive() else showPrivilegeDialog = true
+            }
+        }
+    }
+
+    fun startKeepAlive() {
+        if (bgWs) DataDaemonService.stop(context)
+        keepAliveEnabled = true
+        settings.keepAliveEnabled = true
+        if (bgWs) {
+            KeepAliveManager.start(
+                context = context,
+                baseUrl = settings.apiBaseUrl,
+                secret = settings.apiSecret,
+                notificationPriority = notifPriority,
+            ) { result ->
+                result.onSuccess { showMessage("保活通知已启动") }
+                    .onFailure {
+                        showMessage(it.message ?: "保活通知启动失败")
+                        keepAliveEnabled = false
+                        settings.keepAliveEnabled = false
+                        DataDaemonService.start(context)
+                    }
+            }
         }
     }
 
@@ -137,7 +220,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
     OverlayDialog(
         show = showPrivilegeDialog,
         title = "需要特权授权",
-        summary = "未检测到可用的 Shizuku 或 Root 权限。请启动 Shizuku（ADB 或 Root 模式）并授予 NekoPanel 权限，或在 Root 管理器中允许 Root 访问。",
+        summary = "未检测到可用的 Shizuku 或 Root 权限。请启动 Shizuku 并授予 NekoPanel 权限，或在 Root 管理器中允许 Root 访问。",
         onDismissRequest = { showPrivilegeDialog = false },
     ) {
         TextButton(
@@ -146,6 +229,52 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.textButtonColorsPrimary(),
         )
+    }
+
+    OverlayDialog(
+        show = channelSwitchTo != null,
+        title = "切换通知渠道",
+        summary = when (channelSwitchTo) {
+            ChannelSwitchAction.ENABLE_PRIVILEGED -> "开启「启用特权服务」将关闭「Shizuku 保活通知」通知渠道，是否继续？"
+            ChannelSwitchAction.ENABLE_KEEPALIVE -> "开启「Shizuku 保活通知」将关闭「启用特权服务」通知渠道，是否继续？"
+            null -> ""
+        },
+        onDismissRequest = { channelSwitchTo = null },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = "取消",
+                modifier = Modifier.weight(1f),
+                onClick = { channelSwitchTo = null },
+            )
+            TextButton(
+                text = "确定",
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+                onClick = {
+                    val action = channelSwitchTo
+                    channelSwitchTo = null
+                    when (action) {
+                        ChannelSwitchAction.ENABLE_PRIVILEGED -> {
+                            if (bgWs) KeepAliveManager.stop(context)
+                            keepAliveEnabled = false
+                            settings.keepAliveEnabled = false
+                            requestEnablePrivileged()
+                        }
+                        ChannelSwitchAction.ENABLE_KEEPALIVE -> {
+                            if (bgWs) PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                            privilegedEnabled = false
+                            settings.privilegedServiceEnabled = false
+                            requestKeepAlive()
+                        }
+                        null -> {}
+                    }
+                },
+            )
+        }
     }
 
     if (config == null) {
@@ -290,19 +419,26 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
         }
 
         item {
-            var bgWs by remember { mutableStateOf(settings.backgroundWebSocket) }
-            var autoStart by remember { mutableStateOf(settings.autoStartService) }
-            var notifPriority by remember { mutableStateOf(settings.notificationPriority) }
-            var privilegedEnabled by remember { mutableStateOf(settings.privilegedServiceEnabled) }
-            var privilegedType by remember { mutableStateOf(settings.privilegedServiceType) }
             SectionTitle("流量监控")
             Card(Modifier.fillMaxWidth()) {
                 Column {
                     ConfigToggle("后台流量监控", checked = bgWs) { enabled ->
                         bgWs = enabled; settings.backgroundWebSocket = enabled
                         if (enabled) {
-                            if (privilegedEnabled) {
-                                PrivilegedTrafficManager.start(
+                            when {
+                                keepAliveEnabled -> KeepAliveManager.start(
+                                    context = context,
+                                    baseUrl = settings.apiBaseUrl,
+                                    secret = settings.apiSecret,
+                                    notificationPriority = notifPriority,
+                                ) { result ->
+                                    result.exceptionOrNull()?.let {
+                                        showMessage(it.message ?: "保活通知启动失败")
+                                        bgWs = false
+                                        settings.backgroundWebSocket = false
+                                    }
+                                }
+                                privilegedEnabled -> PrivilegedTrafficManager.start(
                                     context = context,
                                     backend = PrivilegedBackendType.from(privilegedType),
                                     baseUrl = settings.apiBaseUrl,
@@ -315,20 +451,19 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                                         settings.backgroundWebSocket = false
                                     }
                                 }
-                            } else {
-                                DataDaemonService.start(context)
+                                else -> DataDaemonService.start(context)
                             }
-                            if (!privilegedEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            if (!privilegedEnabled && !keepAliveEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
                                 if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
                                     MainActivity.requestBatteryExemption(context as android.app.Activity)
                                 }
                             }
                         } else {
-                            if (privilegedEnabled) {
-                                PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
-                            } else {
-                                DataDaemonService.stop(context)
+                            when {
+                                keepAliveEnabled -> KeepAliveManager.stop(context)
+                                privilegedEnabled -> PrivilegedTrafficManager.stop(context, PrivilegedBackendType.from(privilegedType))
+                                else -> DataDaemonService.stop(context)
                             }
                         }
                     }
@@ -342,44 +477,10 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                             settings.privilegedServiceEnabled = false
                             return@ConfigToggle
                         }
-
-                        PrivilegedTrafficManager.probeCapabilities { capabilities ->
-                            val preferred = PrivilegedBackendType.from(privilegedType)
-                            val available = when {
-                                capabilities.supports(preferred) -> preferred
-                                capabilities.shizuku -> PrivilegedBackendType.Shizuku
-                                capabilities.root -> PrivilegedBackendType.Root
-                                else -> null
-                            }
-                            if (available != null) {
-                                if (bgWs) DataDaemonService.stop(context)
-                                privilegedType = available.value
-                                settings.privilegedServiceType = available.value
-                                privilegedEnabled = true
-                                settings.privilegedServiceEnabled = true
-                                if (bgWs) startPrivileged(available) {
-                                    privilegedEnabled = false
-                                    settings.privilegedServiceEnabled = false
-                                    DataDaemonService.start(context)
-                                }
-                            } else {
-                                PrivilegedTrafficManager.requestShizukuPermission { granted ->
-                                    if (granted) {
-                                        if (bgWs) DataDaemonService.stop(context)
-                                        privilegedType = PrivilegedBackendType.Shizuku.value
-                                        settings.privilegedServiceType = privilegedType
-                                        privilegedEnabled = true
-                                        settings.privilegedServiceEnabled = true
-                                        if (bgWs) startPrivileged(PrivilegedBackendType.Shizuku) {
-                                            privilegedEnabled = false
-                                            settings.privilegedServiceEnabled = false
-                                            DataDaemonService.start(context)
-                                        }
-                                    } else {
-                                        showPrivilegeDialog = true
-                                    }
-                                }
-                            }
+                        if (keepAliveEnabled) {
+                            channelSwitchTo = ChannelSwitchAction.ENABLE_PRIVILEGED
+                        } else {
+                            requestEnablePrivileged()
                         }
                     }
                     if (privilegedEnabled) {
@@ -414,6 +515,26 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                             }
                         }
                     }
+                    ConfigToggle(
+                        label = "Shizuku 保活通知",
+                        description = "以应用自身名义发布通知，应用进程被杀后通知仍持续存活",
+                        checked = keepAliveEnabled,
+                    ) { enabled ->
+                        if (!enabled) {
+                            if (bgWs) {
+                                KeepAliveManager.stop(context)
+                                DataDaemonService.start(context)
+                            }
+                            keepAliveEnabled = false
+                            settings.keepAliveEnabled = false
+                            return@ConfigToggle
+                        }
+                        if (privilegedEnabled) {
+                            channelSwitchTo = ChannelSwitchAction.ENABLE_KEEPALIVE
+                        } else {
+                            requestKeepAlive()
+                        }
+                    }
                     ConfigToggle("自启动流量监控", checked = autoStart) { autoStart = it; settings.autoStartService = it }
                     val notifOpts = listOf("优先实时流量", "优先总流量")
                     val curNotif = if (notifPriority == "total") "优先总流量" else "优先实时流量"
@@ -422,6 +543,8 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                         settings.notificationPriority = notifPriority
                         if (!bgWs) {
                             showMessage("通知显示偏好已保存")
+                        } else if (keepAliveEnabled) {
+                            KeepAliveManager.updateNotificationPriority(notifPriority)
                         } else if (privilegedEnabled) {
                             PrivilegedTrafficManager.updateNotificationPriority(notifPriority)
                         } else {
@@ -432,7 +555,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             }
         }
 
-        if (settings.backgroundWebSocket && !settings.privilegedServiceEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (settings.backgroundWebSocket && !settings.privilegedServiceEnabled && !settings.keepAliveEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             item {
                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager
                 val isExempt = pm.isIgnoringBatteryOptimizations(context.packageName)
