@@ -16,7 +16,7 @@ fun highlightJson(jsonStr: String): AnnotatedString {
     return remember(jsonStr, colorScheme) {
         buildAnnotatedString {
             val keyColor = colorScheme.primary
-            val stringColor = colorScheme.secondaryVariant
+            val stringColor = colorScheme.tertiaryContainer
             val numberColor = colorScheme.secondary
             val booleanColor = colorScheme.error
             val nullColor = colorScheme.error
