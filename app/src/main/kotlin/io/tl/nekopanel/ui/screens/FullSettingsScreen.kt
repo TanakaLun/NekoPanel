@@ -130,16 +130,6 @@ fun FullSettingsScreen(
         }
     }
 
-    fun requestKeepAlive() {
-        if (KeepAliveManager.isAvailable()) {
-            startKeepAlive()
-        } else {
-            PrivilegedTrafficManager.requestShizukuPermission { granted ->
-                if (granted) startKeepAlive() else showPrivilegeDialog = true
-            }
-        }
-    }
-
     fun startKeepAlive() {
         if (bgWs) DataDaemonService.stop(context)
         keepAliveEnabled = true
@@ -158,6 +148,16 @@ fun FullSettingsScreen(
                         settings.keepAliveEnabled = false
                         DataDaemonService.start(context)
                     }
+            }
+        }
+    }
+
+    fun requestKeepAlive() {
+        if (KeepAliveManager.isAvailable()) {
+            startKeepAlive()
+        } else {
+            PrivilegedTrafficManager.requestShizukuPermission { granted ->
+                if (granted) startKeepAlive() else showPrivilegeDialog = true
             }
         }
     }
