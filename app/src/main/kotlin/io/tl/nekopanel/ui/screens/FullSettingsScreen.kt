@@ -137,7 +137,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
     OverlayDialog(
         show = showPrivilegeDialog,
         title = "需要特权授权",
-        summary = "未检测到可用的 Shizuku Shell 或 Root 权限。请启动 Shizuku 并授予 NekoPanel 权限，或在 Root 管理器中允许 Root 访问。Sui 或 Shizuku 的 Root 模式不能用于发布 Shell 通知。",
+        summary = "未检测到可用的 Shizuku 或 Root 权限。请启动 Shizuku（ADB 或 Root 模式）并授予 NekoPanel 权限，或在 Root 管理器中允许 Root 访问。",
         onDismissRequest = { showPrivilegeDialog = false },
     ) {
         TextButton(

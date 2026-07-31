@@ -14,6 +14,7 @@ object PrivilegedTrafficManager {
     private const val SHIZUKU_PERMISSION_REQUEST = 4101
     private const val SERVICE_VERSION = 2
     private const val SHELL_UID = 2000
+    private const val ROOT_UID = 0
 
     data class Capabilities(
         val shizuku: Boolean,
@@ -60,7 +61,7 @@ object PrivilegedTrafficManager {
     }
 
     fun requestShizukuPermission(onResult: (Boolean) -> Unit) {
-        if (!Shizuku.pingBinder() || runCatching { Shizuku.getUid() }.getOrNull() != SHELL_UID) {
+        if (!Shizuku.pingBinder() || runCatching { Shizuku.getUid() }.getOrNull() !in setOf(SHELL_UID, ROOT_UID)) {
             onResult(false)
             return
         }
@@ -142,8 +143,8 @@ object PrivilegedTrafficManager {
             fail(request, IllegalStateException("Shizuku 未运行或 Binder 尚未就绪"))
             return
         }
-        if (runCatching { Shizuku.getUid() }.getOrNull() != SHELL_UID) {
-            fail(request, IllegalStateException("当前 Shizuku 以 Root/Sui 模式运行，无法发布 Shell 通知"))
+        if (runCatching { Shizuku.getUid() }.getOrNull() !in setOf(SHELL_UID, ROOT_UID)) {
+            fail(request, IllegalStateException("Shizuku 必须以 ADB 或 Root 模式运行"))
             return
         }
         if (runCatching { Shizuku.checkSelfPermission() }.getOrNull() != PackageManager.PERMISSION_GRANTED) {
@@ -199,7 +200,7 @@ object PrivilegedTrafficManager {
     }
 
     private fun shizukuAvailable(): Boolean = Shizuku.pingBinder() && runCatching {
-        Shizuku.getUid() == SHELL_UID && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
+        Shizuku.getUid() in setOf(SHELL_UID, ROOT_UID) && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
     }.getOrDefault(false)
 
     private fun removeStaleConnection(backend: PrivilegedBackendType, stale: ServiceConnection) {

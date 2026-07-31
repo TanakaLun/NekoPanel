@@ -1,6 +1,7 @@
 package io.tl.nekopanel.privileged
 
 import android.content.Context
+import android.system.Os
 import androidx.annotation.Keep
 import kotlin.system.exitProcess
 
@@ -32,5 +33,13 @@ class ShizukuTrafficService() : IPrivilegedTrafficService.Stub() {
     override fun destroy() {
         engine.close()
         exitProcess(0)
+    }
+
+    companion object {
+        private const val SHELL_UID = 2000
+
+        init {
+            if (Os.getuid() == 0) Os.setuid(SHELL_UID)
+        }
     }
 }
