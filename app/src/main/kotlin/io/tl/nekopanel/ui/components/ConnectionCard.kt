@@ -35,6 +35,8 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private val BARE_UID = Regex("\\d+")
+
 @Composable
 fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current.applicationContext
@@ -57,7 +59,6 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 .substringAfterLast("\\")
                 .substringBefore(" (")
                 .trim()
-                .ifBlank { "Unknown" }
 
             val net = metadata.optString("network", "TCP").uppercase()
             val type = metadata.optString("type", "DIRECT").uppercase()
@@ -80,7 +81,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
 
             ConnectionDetail(target = targetStr, process = processName, networkInfo = "$net · $type", routeNode = node, rule = ruleStr, startTimeMillis = time)
         } catch (e: Exception) {
-            ConnectionDetail(conn.host, "Error", "TCP", "Unknown", "", System.currentTimeMillis())
+            ConnectionDetail(conn.host, "", "TCP", "Unknown", "", System.currentTimeMillis())
         }
     }
 
@@ -91,7 +92,10 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
             AppNameResolver.resolve(detail.process)
         }
     }
-    val displayProcess = appLabel ?: detail.process
+    // Show nothing when the process cannot be read (empty or a bare uid like "10237"),
+    // otherwise prefer the resolved app label and fall back to the raw process name.
+    val meaningfulProcess = detail.process.isNotBlank() && !BARE_UID.matches(detail.process)
+    val displayProcess = appLabel ?: if (meaningfulProcess) detail.process else ""
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),

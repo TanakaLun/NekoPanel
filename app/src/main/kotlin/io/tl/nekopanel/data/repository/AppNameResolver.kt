@@ -1,5 +1,6 @@
 package io.tl.nekopanel.data.repository
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -15,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap
  * to user-friendly app labels by querying the installed applications list.
  *
  * Requires android.permission.QUERY_ALL_PACKAGES to see all packages on API 30+.
- * The map is built once on [ensureLoaded] and cached; on failure it degrades to
- * returning null so callers fall back to showing the raw process/package name.
+ * [ensureLoaded] only builds the map while the permission is held; until then it
+ * returns so the next call retries once the user grants access. On failure it
+ * degrades to returning null so callers fall back to showing the raw process name.
  */
 object AppNameResolver {
 
@@ -30,7 +32,9 @@ object AppNameResolver {
         if (initialized) return
         loadMutex.withLock {
             if (initialized) return
-            withContext(Dispatchers.IO) { buildMap(context.applicationContext) }
+            val ctx = context.applicationContext
+            if (!hasPermission(ctx)) return
+            withContext(Dispatchers.IO) { buildMap(ctx) }
         }
     }
 
@@ -42,6 +46,14 @@ object AppNameResolver {
     fun reset() {
         cache.clear()
         initialized = false
+    }
+
+    private fun hasPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            context.checkSelfPermission(Manifest.permission.QUERY_ALL_PACKAGES) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
     }
 
     private fun buildMap(context: Context) {
