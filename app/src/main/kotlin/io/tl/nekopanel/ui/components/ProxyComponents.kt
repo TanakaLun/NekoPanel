@@ -57,11 +57,11 @@ fun NodeCard(
     settings: SettingsManager, onClick: () -> Unit, onRefreshDelay: () -> Unit
 ) {
     val containerColor = when {
-        isSelected -> MiuixTheme.colorScheme.primary
+        isSelected -> MiuixTheme.colorScheme.primaryContainer
         settings.cardFillStyle -> MiuixTheme.colorScheme.surfaceVariant.copy(0.4f)
         else -> MiuixTheme.colorScheme.surface
     }
-    val contentColor = if (isSelected) MiuixTheme.colorScheme.onPrimary else MiuixTheme.colorScheme.onSurface
+    val contentColor = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface
     val cardBorder = if (!isSelected && !settings.cardFillStyle) BorderStroke(0.5.dp, MiuixTheme.colorScheme.dividerLine.copy(0.5f)) else null
     Card(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).then(

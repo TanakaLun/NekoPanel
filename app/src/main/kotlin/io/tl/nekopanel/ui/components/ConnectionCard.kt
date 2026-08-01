@@ -7,18 +7,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.basicMarquee
+import io.tl.nekopanel.data.repository.AppNameResolver
 import io.tl.nekopanel.model.ConnectionDetail
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.util.formatSize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -29,6 +37,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Unit) {
+    val context = LocalContext.current.applicationContext
     val detail = remember(conn.rawJson) {
         try {
             val json = JSONObject(conn.rawJson)
@@ -39,9 +48,16 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
             val ip = metadata.optString("destinationIP", "")
             val targetStr = host.ifEmpty { sniff.ifEmpty { ip } }
 
-            val processName = metadata.optString("process", "Unknown")
+            // mihomo exposes the process name in "process"; sing-box only reports
+            // "processPath" (on Android: "com.package.name (uid)"), so handle both.
+            val processRaw = metadata.optString("process", "")
+                .ifBlank { metadata.optString("processPath", "") }
+            val processName = processRaw
                 .substringAfterLast("/")
                 .substringAfterLast("\\")
+                .substringBefore(" (")
+                .trim()
+                .ifBlank { "Unknown" }
 
             val net = metadata.optString("network", "TCP").uppercase()
             val type = metadata.optString("type", "DIRECT").uppercase()
@@ -68,6 +84,15 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
         }
     }
 
+    var appLabel by remember(conn.rawJson) { mutableStateOf<String?>(null) }
+    LaunchedEffect(conn.rawJson) {
+        appLabel = withContext(Dispatchers.IO) {
+            AppNameResolver.ensureLoaded(context)
+            AppNameResolver.resolve(detail.process)
+        }
+    }
+    val displayProcess = appLabel ?: detail.process
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),
     ) {
@@ -83,7 +108,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 Text(text = detail.networkInfo, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.primary,
                     modifier = Modifier.background(MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 1.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(text = detail.process, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                Text(text = displayProcess, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).basicMarquee(iterations = Int.MAX_VALUE))
                 Spacer(Modifier.width(6.dp))
                 Text(text = detail.routeNode, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.secondaryVariant,

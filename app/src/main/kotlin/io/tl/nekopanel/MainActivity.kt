@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.tl.nekopanel.data.repository.AppNameResolver
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.navigation.AppState
 import io.tl.nekopanel.navigation.LocalAppState
@@ -119,6 +120,9 @@ fun NekoPanelApp(settings: SettingsManager) {
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
     var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
+
+    val appContext = LocalContext.current.applicationContext
+    LaunchedEffect(Unit) { AppNameResolver.ensureLoaded(appContext) }
 
     val effectiveSeedColor = remember(customColorKey, dynColorState) {
         if (dynColorState) null
