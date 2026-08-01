@@ -264,7 +264,7 @@ fun NekoPanelMain(
         selectedTab = selectedTab,
     )
 
-    val memHistory = rememberChartHistory(wsState.globalInUse)
+    val upHistory = rememberChartHistory(wsState.globalUp)
     val downHistory = rememberChartHistory(wsState.globalDown)
 
     val appState = remember(enableBlur, transitionStyle, selectedTab, trafficTab, currentMode, currentLogLevel, blurStyle) {
@@ -323,7 +323,7 @@ fun NekoPanelMain(
                     modes = modes,
                     currentLogLevel = currentLogLevel,
                     wsState = wsState,
-                    memHistory = memHistory,
+                    upHistory = upHistory,
                     downHistory = downHistory,
                     onTabSelected = { selectedTab = it },
                     onTrafficTabSelected = { trafficTab = it },
@@ -362,7 +362,7 @@ internal fun MainScreenContent(
     modes: List<String>,
     currentLogLevel: String,
     wsState: WebSocketState,
-    memHistory: List<Long>,
+    upHistory: List<Long>,
     downHistory: List<Long>,
     onTabSelected: (Int) -> Unit,
     onTrafficTabSelected: (Int) -> Unit,
@@ -483,8 +483,8 @@ internal fun MainScreenContent(
                         1 -> RulesScreen(refreshTick, settings, screenPadding)
                         2 -> TrafficScreen(
                             trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
-                            wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
-                            memHistory, downHistory,
+                            wsState.globalInUse, wsState.globalUp, wsState.globalDown, wsState.totalDown, wsState.totalUp,
+                            upHistory, downHistory,
                             scaffoldPadding = screenPadding,
                             onLevelChange = onLevelChange,
                             onRemoveConnection = { wsState.removeConnection(it) },

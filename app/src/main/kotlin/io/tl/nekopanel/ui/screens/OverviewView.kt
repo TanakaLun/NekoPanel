@@ -17,6 +17,7 @@ import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.RuleInfo
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.MiniLineChart
+import io.tl.nekopanel.ui.components.SectionTitle
 import io.tl.nekopanel.ui.components.TypeBadge
 import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.delay
@@ -31,10 +32,11 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 fun OverviewView(
     connections: List<ConnectionItem>,
     memoryInUse: Long,
+    trafficUp: Long,
     trafficDown: Long,
     totalDown: Long,
     totalUp: Long,
-    memHistory: List<Long>,
+    upHistory: List<Long>,
     downHistory: List<Long>,
     settings: SettingsManager,
     scaffoldPadding: PaddingValues = PaddingValues(),
@@ -65,15 +67,22 @@ fun OverviewView(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
+            SectionTitle("系统概览")
+        }
+        item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("系统概览", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.subtitle)
+                    Text(
+                        "内存占用 : ${memoryInUse.formatSize()}",
+                        fontWeight = FontWeight.Bold,
+                        style = MiuixTheme.textStyles.title4,
+                    )
                     Spacer(Modifier.height(16.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("内存占用", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                            Text(memoryInUse.formatSize(), fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            MiniLineChart(memHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            Text("上传速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                            Text("${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
+                            MiniLineChart(upHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)

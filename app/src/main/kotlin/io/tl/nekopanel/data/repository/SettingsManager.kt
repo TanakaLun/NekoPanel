@@ -12,8 +12,13 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SettingsManager(context: Context) {
     private val dao = AppDatabase.getInstance(context).settingsDao()
-    private val cache = ConcurrentHashMap<String, String>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    companion object {
+        // Shared across instances (Activity + background service) so live reads
+        // reflect writes made by whichever instance is accumulating traffic.
+        private val cache = ConcurrentHashMap<String, String>()
+    }
 
     init {
         val preloaded = runBlocking {
