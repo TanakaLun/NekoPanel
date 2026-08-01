@@ -67,6 +67,7 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
 
     val data = remember { mutableStateListOf<Long>().apply { repeat(capacity) { add(0L) } } }
     var offset by remember { mutableFloatStateOf(0f) }
+    var displayValue by remember { mutableFloatStateOf(currentValue.toFloat()) }
     var yMax by remember { mutableFloatStateOf(1f) }
     val currentValueState by rememberUpdatedState(currentValue)
 
@@ -76,12 +77,15 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
             withFrameNanos { frame ->
                 val dtMs = (frame - lastFrame) / 1_000_000f
                 lastFrame = frame
+                // ease the live value so the leading edge never snaps
+                displayValue += (currentValueState - displayValue) * (dtMs / 200f).coerceAtMost(1f)
                 offset += dtMs / sampleIntervalMs
                 if (offset >= 1f) {
                     offset -= 1f
-                    data.add(currentValueState)
+                    data.add(displayValue.toLong())
                     data.removeAt(0)
-                    yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), 1f)
+                    // grow instantly for new peaks, decay slowly so spikes leaving don't rescale abruptly
+                    yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), displayValue, yMax * 0.97f, 1f)
                 }
             }
         }
@@ -99,14 +103,13 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
         fun getX(index: Int) = index * cellW - offset * cellW
         fun getY(value: Float) = height - (value / yMax).coerceIn(0f, 1f) * height
         fun valueAt(index: Int): Float =
-            if (index < n) data[index].toFloat() else currentValueState.toFloat()
+            if (index < n) data[index].toFloat() else displayValue
 
+        // straight segments: an exact, artifact-free rigid translation
         val strokePath = Path().apply {
             moveTo(getX(0), getY(valueAt(0)))
             for (i in 0..n) {
-                val x1 = getX(i); val y1 = getY(valueAt(i))
-                val x2 = getX(i + 1); val y2 = getY(valueAt(i + 1))
-                cubicTo(x1 + (x2 - x1) / 2f, y1, x1 + (x2 - x1) / 2f, y2, x2, y2)
+                lineTo(getX(i + 1), getY(valueAt(i + 1)))
             }
         }
         val fillPath = Path().apply {
