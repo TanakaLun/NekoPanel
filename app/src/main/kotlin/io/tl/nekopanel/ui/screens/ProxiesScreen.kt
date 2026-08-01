@@ -19,6 +19,7 @@ import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -29,6 +30,7 @@ fun ProxiesScreen(
     currentMode: String,
     modes: List<String>,
     scaffoldPadding: PaddingValues = PaddingValues(),
+    snackbarHostState: SnackbarHostState,
     onRefresh: () -> Unit,
     onModeChange: (String) -> Unit
 ) {
@@ -104,9 +106,17 @@ fun ProxiesScreen(
         delayCache = delayCache.toMutableMap().apply { put(node, delay) }
     }
     val selectNode: (String, String) -> Unit = { groupName, nodeName ->
+        val prev = groupSelections[groupName]
         groupSelections = groupSelections.toMutableMap().apply { put(groupName, nodeName) }
         scope.launch {
-            ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
+            try {
+                ApiClient.updateProxy(groupName, mapOf("name" to nodeName))
+            } catch (_: Exception) {
+                groupSelections = groupSelections.toMutableMap().apply {
+                    if (prev == null) remove(groupName) else put(groupName, prev)
+                }
+                snackbarHostState.showSnackbar("切换节点失败:该分组不支持修改或请求出错")
+            }
         }
     }
 
@@ -132,9 +142,13 @@ fun ProxiesScreen(
         ) {
             ModeSpinner(currentMode, modes) { newMode ->
                 scope.launch {
-                    ApiClient.updateConfigs(mapOf("mode" to newMode))
-                    onModeChange(newMode)
-                    onRefresh()
+                    try {
+                        ApiClient.updateConfigs(mapOf("mode" to newMode))
+                        onModeChange(newMode)
+                        onRefresh()
+                    } catch (_: Exception) {
+                        snackbarHostState.showSnackbar("切换模式失败")
+                    }
                 }
             }
             Spacer(Modifier.weight(1f))

@@ -454,7 +454,7 @@ internal fun MainScreenContent(
                 }
                 Box(Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> ProxiesScreen(settings, refreshTick, currentMode, modes, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, modes, screenPadding, snackbarHostState = snackbarHostState, onRefresh = onRefresh, onModeChange = onModeChange)
                         1 -> RulesScreen(refreshTick, settings, screenPadding)
                         2 -> TrafficScreen(
                             trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
