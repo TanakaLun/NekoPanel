@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import io.tl.nekopanel.MainActivity
+import io.tl.nekopanel.data.repository.SessionTraffic
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.network.ResponseParser
@@ -115,10 +116,10 @@ class DataDaemonService : Service() {
                         totalUp = sample.upTotal
                         settings.setTrafficSnapshot(sample.down, sample.up, sample.downTotal, sample.upTotal, sample.downCumulative, sample.upCumulative)
                     } else {
+                        SessionTraffic.accumulate(sample.down, sample.up)
                         settings.accumulateDeltaTraffic(sample.down, sample.up)
-                        val (cd, cu) = settings.getCumulativeTraffic()
-                        totalDown = cd
-                        totalUp = cu
+                        totalDown = SessionTraffic.downTotal
+                        totalUp = SessionTraffic.upTotal
                     }
                     updateNotification()
                 } catch (_: Exception) {}

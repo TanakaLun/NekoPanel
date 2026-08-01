@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import io.tl.nekopanel.data.repository.SessionTraffic
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
@@ -55,11 +56,11 @@ class WebSocketState(
                 )
             } else {
                 if (!settings.backgroundServiceRunning) {
+                    SessionTraffic.accumulate(sample.down, sample.up)
                     settings.accumulateDeltaTraffic(sample.down, sample.up)
                 }
-                val (cd, cu) = settings.getCumulativeTraffic()
-                totalDown = cd
-                totalUp = cu
+                totalDown = SessionTraffic.downTotal
+                totalUp = SessionTraffic.upTotal
             }
         } catch (_: Exception) {}
     })
