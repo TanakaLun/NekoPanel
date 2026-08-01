@@ -16,8 +16,8 @@ import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.RuleInfo
 import io.tl.nekopanel.network.ApiClient
-import io.tl.nekopanel.ui.components.MiniLineChart
 import io.tl.nekopanel.ui.components.SectionTitle
+import io.tl.nekopanel.ui.components.TrafficChart
 import io.tl.nekopanel.ui.components.TypeBadge
 import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.delay
@@ -36,8 +36,6 @@ fun OverviewView(
     trafficDown: Long,
     totalDown: Long,
     totalUp: Long,
-    upHistory: List<Long>,
-    downHistory: List<Long>,
     settings: SettingsManager,
     scaffoldPadding: PaddingValues = PaddingValues(),
 ) {
@@ -82,12 +80,12 @@ fun OverviewView(
                         Column(Modifier.weight(1f)) {
                             Text("上传速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            MiniLineChart(upHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            TrafficChart(trafficUp, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            MiniLineChart(downHistory, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            TrafficChart(trafficDown, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine)

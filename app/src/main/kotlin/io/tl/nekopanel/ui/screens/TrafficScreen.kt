@@ -19,15 +19,13 @@ fun TrafficScreen(
     trafficDown: Long,
     totalDown: Long,
     totalUp: Long,
-    upHistory: List<Long>,
-    downHistory: List<Long>,
     scaffoldPadding: PaddingValues = PaddingValues(),
     onLevelChange: (String) -> Unit,
     onRemoveConnection: (String) -> Unit,
     onClearConnections: () -> Unit
 ) {
     when (trafficTab) {
-        0 -> OverviewView(connections, memoryInUse, trafficUp, trafficDown, totalDown, totalUp, upHistory, downHistory, settings, scaffoldPadding)
+        0 -> OverviewView(connections, memoryInUse, trafficUp, trafficDown, totalDown, totalUp, settings, scaffoldPadding)
         1 -> ConnectionsView(connections, onRemoveConnection, onClearConnections, scaffoldPadding)
         2 -> LogsView(logs, currentLogLevel, onLevelChange, scaffoldPadding)
     }
