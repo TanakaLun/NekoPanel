@@ -287,4 +287,8 @@ class SettingsManager(context: Context) {
     var backgroundServiceRunning: Boolean
         get() = getBoolean("background_service_running", false)
         set(value) = setBoolean("background_service_running", value)
+
+    var hideFromRecents: Boolean
+        get() = getBoolean("hide_from_recents", false)
+        set(value) = setBoolean("hide_from_recents", value)
 }

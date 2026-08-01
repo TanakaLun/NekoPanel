@@ -68,6 +68,7 @@ fun FullSettingsScreen(
     var privilegedEnabled by remember { mutableStateOf(settings.privilegedServiceEnabled) }
     var privilegedType by remember { mutableStateOf(settings.privilegedServiceType) }
     var keepAliveEnabled by remember { mutableStateOf(settings.keepAliveEnabled) }
+    var hideFromRecents by remember { mutableStateOf(settings.hideFromRecents) }
     var channelSwitchTo by remember { mutableStateOf<ChannelSwitchAction?>(null) }
 
     fun showMessage(message: String) {
@@ -372,9 +373,15 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                             updateRemote("tun", newTun)
                         }
                         if (tunEnable) {
-                            SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
-                                tunStack = selected
-                                val newTun = tun.also { it.put("stack", selected) }
+                            val stackOptions = listOf("system" to "System", "gvisor" to "gVisor", "mixed" to "Mixed")
+                            SettingsDropdownMenuInline(
+                                label = "堆栈选择",
+                                currentValue = stackOptions.firstOrNull { it.first == tunStack }?.second ?: tunStack,
+                                options = stackOptions.map { it.second },
+                            ) { selected ->
+                                val raw = stackOptions.firstOrNull { it.second == selected }?.first ?: selected
+                                tunStack = raw
+                                val newTun = tun.also { it.put("stack", raw) }
                                 updateRemote("tun", newTun)
                             }
                         }
@@ -579,6 +586,23 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                         Icon(if (isExempt) Icons.Default.CheckCircle else Icons.Default.Warning, null, tint = if (isExempt) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(if (isExempt) "已免除电池优化限制" else "未获取后台运行权限，点击申请", style = MiuixTheme.textStyles.body2, fontWeight = FontWeight.Bold, color = if (isExempt) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.error, modifier = Modifier.clickable { if (!isExempt) MainActivity.requestBatteryExemption(context as android.app.Activity) })
+                    }
+                }
+            }
+        }
+
+        item {
+            SectionTitle("隐私设置")
+            Card(Modifier.fillMaxWidth()) {
+                Column {
+                    ConfigToggle(
+                        label = "从最近任务隐藏",
+                        description = "开启后在最近任务列表中不再显示本应用",
+                        checked = hideFromRecents,
+                    ) { enabled ->
+                        hideFromRecents = enabled
+                        settings.hideFromRecents = enabled
+                        MainActivity.applyHideFromRecents(context, enabled)
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package io.tl.nekopanel
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -107,6 +108,7 @@ class MainActivity : ComponentActivity() {
             requestQueryAllPackages.launch(android.Manifest.permission.QUERY_ALL_PACKAGES)
         }
         val settings = SettingsManager(this)
+        applyHideFromRecents(this, settings.hideFromRecents)
         setContent { NekoPanelApp(settings = settings) }
     }
 
@@ -120,6 +122,14 @@ class MainActivity : ComponentActivity() {
                     }
                     activity.startActivity(intent)
                 }
+            }
+        }
+
+        /** Toggles whether the app's tasks are excluded from the recents screen. */
+        fun applyHideFromRecents(context: Context, hide: Boolean) {
+            runCatching {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
+                am.appTasks.forEach { it.setExcludeFromRecents(hide) }
             }
         }
     }

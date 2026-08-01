@@ -1,7 +1,5 @@
 package io.tl.nekopanel.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,16 +8,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.DropdownDefaults
+import top.yukonga.miuix.kmp.basic.DropdownEntry
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun FilterChipDropdown(
@@ -28,9 +27,20 @@ fun FilterChipDropdown(
     selectedKey: String,
     onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    menuWidth: Dp = 150.dp
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    val entry = remember(options, selectedKey, onOptionSelected) {
+        DropdownEntry(
+            items = options.map { (key, displayLabel) ->
+                DropdownItem(
+                    text = displayLabel,
+                    selected = key == selectedKey,
+                    onClick = { onOptionSelected(key) },
+                )
+            },
+        )
+    }
 
     Box(modifier = modifier) {
         Surface(
@@ -45,59 +55,55 @@ fun FilterChipDropdown(
                 Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp), tint = MiuixTheme.colorScheme.onPrimaryContainer)
             }
         }
-        WindowListPopup(
+        WindowDropdownPopup(
+            entries = listOf(entry),
             show = expanded,
-            onDismissRequest = { expanded = false },
-            minWidth = menuWidth,
-        ) {
-            Surface(shape = RoundedCornerShape(12.dp), color = MiuixTheme.colorScheme.surface) {
-                Column(Modifier.width(menuWidth).padding(8.dp)) {
-                    options.forEach { (key, displayLabel) ->
-                        val isSelected = selectedKey == key
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) MiuixTheme.colorScheme.primaryContainer.copy(0.5f) else Color.Transparent)
-                                .clickable { onOptionSelected(key); expanded = false }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                        ) {
-                            Text(
-                                displayLabel,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-                }
-            }
-        }
+            onDismiss = { expanded = false },
+            onDismissFinished = {},
+            maxHeight = null,
+            dropdownColors = DropdownDefaults.dropdownColors(),
+        )
     }
+}
+
+private val modeLabels = mapOf(
+    "rule" to "规则模式",
+    "global" to "全局模式",
+    "direct" to "直连模式",
+)
+
+private val levelLabels = mapOf(
+    "info" to "信息",
+    "warning" to "警告",
+    "error" to "错误",
+    "debug" to "调试",
+    "silent" to "静默",
+)
+
+@Composable
+private fun LabeledSpinner(
+    labels: Map<String, String>,
+    current: String,
+    values: List<String> = emptyList(),
+    onOptionSelected: (String) -> Unit,
+) {
+    val keys = if (values.isNotEmpty()) values else labels.keys.toList()
+    val options = keys.map { key -> key to (labels[key.lowercase()] ?: key) }
+    val matched = options.firstOrNull { it.first.equals(current, ignoreCase = true) }
+    FilterChipDropdown(
+        label = matched?.second ?: current,
+        options = options,
+        selectedKey = matched?.first ?: current,
+        onOptionSelected = onOptionSelected,
+    )
 }
 
 @Composable
 fun ModeSpinner(currentMode: String, modes: List<String>, onModeSelected: (String) -> Unit) {
-    val fallback = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
-    val options = if (modes.isNotEmpty()) modes.map { it to it } else fallback
-    val matched = options.firstOrNull { it.first.equals(currentMode, ignoreCase = true) }
-    FilterChipDropdown(
-        label = matched?.second ?: currentMode,
-        options = options,
-        selectedKey = matched?.first ?: currentMode,
-        onOptionSelected = onModeSelected,
-        menuWidth = 150.dp
-    )
+    LabeledSpinner(labels = modeLabels, current = currentMode, values = modes, onOptionSelected = onModeSelected)
 }
 
 @Composable
 fun LevelSpinner(currentLevel: String, onLevelSelected: (String) -> Unit) {
-    val levels = listOf("info", "warning", "error", "debug", "silent")
-    FilterChipDropdown(
-        label = currentLevel.uppercase(),
-        options = levels.map { it to it.uppercase() },
-        selectedKey = currentLevel,
-        onOptionSelected = onLevelSelected,
-        menuWidth = 140.dp
-    )
+    LabeledSpinner(labels = levelLabels, current = currentLevel, onOptionSelected = onLevelSelected)
 }
