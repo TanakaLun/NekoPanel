@@ -300,12 +300,12 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
         ),
     ) {
         item {
+            SectionTitle("内核名称")
             Card(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Info, null, tint = MiuixTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Column {
-                        Text("内核版本", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                         Text(coreVersion, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
                     }
                 }
@@ -318,24 +318,16 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { scope.launch { ApiClient.reloadConfigs(); showMessage("配置已重载") } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
-                            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
                             Text("重载配置")
                         }
                         Button(onClick = { scope.launch { ApiClient.restartCore(); showMessage("核心已重启") } }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) {
-                            Icon(Icons.Default.PowerSettingsNew, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
                             Text("重启核心")
                         }
                     }
                     Button(onClick = { scope.launch { ApiClient.flushDnsCache(); showMessage("DNS 缓存已清除") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
-                        Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
                         Text("清除 DNS 缓存")
                     }
                     Button(onClick = { scope.launch { ApiClient.flushFakeipCache(); showMessage("FakeIP 池已清除") } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) {
-                        Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
                         Text("清除 FakeIP 池")
                     }
                 }
@@ -405,7 +397,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                 } else {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "当前后端为 ${backend.displayName},其 clash-api 仅支持切换 mode,端口、TUN、allow-lan 等配置项无法通过 API 修改。",
+                            "当前后端为 ${backend.displayName},其 Clash API 仅支持切换 mode，而端口、TUN、allow-lan 等配置项则无法通过 API 修改。",
                             style = MiuixTheme.textStyles.footnote2,
                             color = MiuixTheme.colorScheme.outline,
                         )
