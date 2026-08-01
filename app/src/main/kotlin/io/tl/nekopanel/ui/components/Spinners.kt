@@ -13,12 +13,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.DropdownEntry
+import top.yukonga.miuix.kmp.basic.DropdownImpl
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
+import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowListPopup
 
 @Composable
 fun FilterChipDropdown(
@@ -55,14 +58,30 @@ fun FilterChipDropdown(
                 Icon(Icons.Default.ArrowDropDown, null, Modifier.size(16.dp), tint = MiuixTheme.colorScheme.onPrimaryContainer)
             }
         }
-        WindowDropdownPopup(
-            entries = listOf(entry),
+        WindowListPopup(
             show = expanded,
-            onDismiss = { expanded = false },
+            onDismissRequest = { expanded = false },
             onDismissFinished = {},
-            maxHeight = null,
-            dropdownColors = DropdownDefaults.dropdownColors(),
-        )
+        ) {
+            val dismiss = LocalDismissState.current
+            ListPopupColumn {
+                entry.items.forEachIndexed { index, item ->
+                    DropdownImpl(
+                        item = item,
+                        optionSize = entry.items.size,
+                        isSelected = item.selected,
+                        index = index,
+                        dropdownColors = DropdownDefaults.dropdownColors(),
+                        isFirst = index == 0,
+                        isLast = index == entry.items.lastIndex,
+                        onSelectedIndexChange = {
+                            item.onClick?.invoke()
+                            dismiss?.invoke()
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
