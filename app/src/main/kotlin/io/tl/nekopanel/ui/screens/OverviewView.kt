@@ -79,16 +79,16 @@ fun OverviewView(
                     Spacer(Modifier.height(16.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text("上传速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                            Text("${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            ChartWindow(Modifier.fillMaxWidth().height(44.dp).padding(top = 4.dp)) {
+                            Text("上行 : ${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4, maxLines = 1)
+                            Spacer(Modifier.height(8.dp))
+                            ChartWindow(Modifier.fillMaxWidth().height(110.dp)) {
                                 TrafficChart(trafficUp, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
                             }
                         }
                         Column(Modifier.weight(1f)) {
-                            Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-                            Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            ChartWindow(Modifier.fillMaxWidth().height(44.dp).padding(top = 4.dp)) {
+                            Text("下行 : ${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4, maxLines = 1)
+                            Spacer(Modifier.height(8.dp))
+                            ChartWindow(Modifier.fillMaxWidth().height(110.dp)) {
                                 TrafficChart(trafficDown, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
                             }
                         }

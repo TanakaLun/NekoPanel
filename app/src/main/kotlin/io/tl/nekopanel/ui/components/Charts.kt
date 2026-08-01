@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -15,9 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -30,9 +27,8 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * A rounded, bordered window frame used to wrap a [TrafficChart]. Its clip keeps the
- * curve contained so the line always fills the box, and the border/background give
- * the chart a layered "viewing window" look.
+ * A rounded, bordered window frame used to wrap a [TrafficChart]. It gives the chart
+ * a layered "viewing window" look and clips the curve to the box.
  */
 @Composable
 fun ChartWindow(
@@ -51,44 +47,25 @@ fun ChartWindow(
 }
 
 /**
- * A windowed strip chart of an infinitely long signal. The curve is drawn past both
- * edges of the canvas and clipped by the enclosing [ChartWindow], so the line always
- * spans the full box width while the wave translates rigidly and smoothly through it.
+ * A fixed, static line chart of the last [capacity] samples. Samples sit at fixed
+ * grid positions spanning the full box width (both ends pinned at the edges), joined
+ * by straight segments. The line never translates or animates on its own: it only
+ * re-renders when a new [currentValue] arrives, so the chart stays smooth, stable and
+ * pinned while still reflecting live data.
  *
- * The buffer samples glide left with a frame-driven offset (values never morph), the
- * live value is drawn at the right edge as the newest sample entering the window, and
- * the vertical scale uses a fixed zero baseline whose top only updates when a sample
- * rolls in, so the waveform isn't deformed frame-by-frame.
+ * The vertical scale uses a fixed zero baseline; its top grows instantly for new peaks
+ * and decays slowly, so spikes leaving the window don't rescale the chart abruptly.
  */
 @Composable
 fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier) {
     val capacity = 60
-    val sampleIntervalMs = 500f
-
     val data = remember { mutableStateListOf<Long>().apply { repeat(capacity) { add(0L) } } }
-    var offset by remember { mutableFloatStateOf(0f) }
-    var displayValue by remember { mutableFloatStateOf(currentValue.toFloat()) }
     var yMax by remember { mutableFloatStateOf(1f) }
-    val currentValueState by rememberUpdatedState(currentValue)
 
-    LaunchedEffect(Unit) {
-        var lastFrame = withFrameNanos { it }
-        while (true) {
-            withFrameNanos { frame ->
-                val dtMs = (frame - lastFrame) / 1_000_000f
-                lastFrame = frame
-                // ease the live value so the leading edge never snaps
-                displayValue += (currentValueState - displayValue) * (dtMs / 200f).coerceAtMost(1f)
-                offset += dtMs / sampleIntervalMs
-                if (offset >= 1f) {
-                    offset -= 1f
-                    data.add(displayValue.toLong())
-                    data.removeAt(0)
-                    // grow instantly for new peaks, decay slowly so spikes leaving don't rescale abruptly
-                    yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), displayValue, yMax * 0.97f, 1f)
-                }
-            }
-        }
+    LaunchedEffect(currentValue) {
+        data.add(currentValue)
+        data.removeAt(0)
+        yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), yMax * 0.97f, 1f)
     }
 
     Canvas(modifier = modifier) {
@@ -96,25 +73,20 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
         if (n < 2) return@Canvas
         val width = size.width
         val height = size.height
-        val cellW = width / n
+        val spacing = width / (n - 1)
 
-        // points 0..n-1 are the rolled samples; n and n+1 are the live value, with the
-        // extra copy extending past the right edge so the box is always fully covered
-        fun getX(index: Int) = index * cellW - offset * cellW
+        fun getX(index: Int) = index * spacing
         fun getY(value: Float) = height - (value / yMax).coerceIn(0f, 1f) * height
-        fun valueAt(index: Int): Float =
-            if (index < n) data[index].toFloat() else displayValue
 
-        // straight segments: an exact, artifact-free rigid translation
         val strokePath = Path().apply {
-            moveTo(getX(0), getY(valueAt(0)))
-            for (i in 0..n) {
-                lineTo(getX(i + 1), getY(valueAt(i + 1)))
+            moveTo(getX(0), getY(data[0].toFloat()))
+            for (i in 0 until n - 1) {
+                lineTo(getX(i + 1), getY(data[i + 1].toFloat()))
             }
         }
         val fillPath = Path().apply {
             addPath(strokePath)
-            lineTo(getX(n + 1), height)
+            lineTo(getX(n - 1), height)
             lineTo(getX(0), height)
             close()
         }
