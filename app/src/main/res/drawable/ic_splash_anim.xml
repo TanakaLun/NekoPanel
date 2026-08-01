@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/ic_splash_icon">
+
+    <target android:name="cat">
+        <aapt:attr name="android:scaleX">
+            <objectAnimator
+                android:propertyName="scaleX"
+                android:duration="500"
+                android:valueFrom="0.85"
+                android:valueTo="1.0"
+                android:interpolator="@android:interpolator/decelerate_quad" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="cat">
+        <aapt:attr name="android:scaleY">
+            <objectAnimator
+                android:propertyName="scaleY"
+                android:duration="500"
+                android:valueFrom="0.85"
+                android:valueTo="1.0"
+                android:interpolator="@android:interpolator/decelerate_quad" />
+        </aapt:attr>
+    </target>
+</animated-vector>

@@ -26,3 +26,7 @@
 }
 -keep class io.tl.nekopanel.privileged.RootTrafficService { public <init>(); }
 -keep class io.tl.nekopanel.privileged.ShellNotificationMain { public static void main(java.lang.String[]); }
+-keep class io.tl.nekopanel.privileged.KeepAliveTrafficService {
+    public <init>();
+    public <init>(android.content.Context);
+}

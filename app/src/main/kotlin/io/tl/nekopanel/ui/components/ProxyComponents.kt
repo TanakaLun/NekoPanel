@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import androidx.compose.animation.AnimatedVisibility
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -60,19 +61,22 @@ fun NodeCard(
         settings.cardFillStyle -> MiuixTheme.colorScheme.surfaceVariant.copy(0.4f)
         else -> MiuixTheme.colorScheme.surface
     }
+    val contentColor = if (isSelected) MiuixTheme.colorScheme.onPrimaryContainer else MiuixTheme.colorScheme.onSurface
     val cardBorder = if (!isSelected && !settings.cardFillStyle) BorderStroke(0.5.dp, MiuixTheme.colorScheme.dividerLine.copy(0.5f)) else null
     Card(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).then(
             if (cardBorder != null) Modifier.border(cardBorder, RoundedCornerShape(14.dp)) else Modifier
         ),
+        colors = CardDefaults.defaultColors(color = containerColor, contentColor = contentColor),
     ) {
         Box(Modifier.padding(10.dp).fillMaxWidth().height(54.dp)) {
             Text(
                 name, Modifier.align(Alignment.TopStart).fillMaxWidth().basicMarquee(),
-                style = MiuixTheme.textStyles.footnote1, fontWeight = FontWeight.Bold, maxLines = 1
+                style = MiuixTheme.textStyles.footnote1, fontWeight = FontWeight.Bold, maxLines = 1,
+                color = contentColor
             )
             Row(Modifier.align(Alignment.BottomStart).fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Bottom) {
-                Text(type, fontSize = 9.sp, color = MiuixTheme.colorScheme.outline)
+                Text(type, fontSize = 9.sp, color = contentColor.copy(alpha = 0.7f))
                 DelayBadge(lastDelay, isTesting, settings.delayBadgeStyle, settings.badgeCornerRadius, false, onRefreshDelay)
             }
         }

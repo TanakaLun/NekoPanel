@@ -1,13 +1,13 @@
 package io.tl.nekopanel.privileged
 
 import android.content.Context
-import android.system.Os
+import android.os.Process
 import androidx.annotation.Keep
 import kotlin.system.exitProcess
 
 @Keep
-class ShizukuTrafficService() : IPrivilegedTrafficService.Stub() {
-    private val publisher = ShellNotificationPublisher()
+class KeepAliveTrafficService() : IPrivilegedTrafficService.Stub() {
+    private val publisher = AppNotificationPublisher()
     private val engine = TrafficMonitorEngine(
         object : TrafficMonitorEngine.NotificationSink {
             override fun update(content: String) = publisher.update(content)
@@ -28,18 +28,10 @@ class ShizukuTrafficService() : IPrivilegedTrafficService.Stub() {
 
     override fun stopMonitoring() = engine.stop()
 
-    override fun getUid(): Int = android.os.Process.myUid()
+    override fun getUid(): Int = Process.myUid()
 
     override fun destroy() {
         engine.close()
         exitProcess(0)
-    }
-
-    companion object {
-        private const val SHELL_UID = 2000
-
-        init {
-            if (Os.getuid() == 0) Os.setuid(SHELL_UID)
-        }
     }
 }

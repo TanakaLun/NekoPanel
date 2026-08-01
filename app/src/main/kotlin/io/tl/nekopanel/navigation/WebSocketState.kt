@@ -13,6 +13,7 @@ import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.LogItem
 import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.network.ResponseParser
 import org.json.JSONObject
 
 @Stable
@@ -41,16 +42,25 @@ class WebSocketState(
     })
     private val trafficWs = ApiClient.buildWebSocket("/traffic", onText = { text ->
         try {
-            val obj = JSONObject(text)
-            globalDown = obj.optLong("down", 0L)
-            globalUp = obj.optLong("up", 0L)
-            totalDown = obj.optLong("downTotal", 0L)
-            totalUp = obj.optLong("upTotal", 0L)
-            settings.setTrafficSnapshot(
-                obj.optLong("down", 0L), obj.optLong("up", 0L),
-                obj.optLong("downTotal", 0L), obj.optLong("upTotal", 0L),
-                obj.optLong("downCumulative", -1L), obj.optLong("upCumulative", -1L),
-            )
+            val sample = ResponseParser.parseTraffic(text)
+            globalDown = sample.down
+            globalUp = sample.up
+            if (sample.hasTotals) {
+                totalDown = sample.downTotal
+                totalUp = sample.upTotal
+                settings.setTrafficSnapshot(
+                    sample.down, sample.up,
+                    sample.downTotal, sample.upTotal,
+                    sample.downCumulative, sample.upCumulative,
+                )
+            } else {
+                if (!settings.backgroundServiceRunning) {
+                    settings.accumulateDeltaTraffic(sample.down, sample.up)
+                }
+                val (cd, cu) = settings.getCumulativeTraffic()
+                totalDown = cd
+                totalUp = cu
+            }
         } catch (_: Exception) {}
     })
     private val logsWs = ApiClient.buildWebSocket("/logs?level=$logLevel", onText = { text ->

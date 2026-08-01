@@ -1,6 +1,7 @@
 package io.tl.nekopanel
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import io.tl.nekopanel.data.repository.AppNameResolver
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.navigation.AppState
 import io.tl.nekopanel.navigation.LocalAppState
@@ -46,6 +48,7 @@ import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.service.DataDaemonService
 import io.tl.nekopanel.privileged.PrivilegedBackendType
 import io.tl.nekopanel.privileged.PrivilegedTrafficManager
+import io.tl.nekopanel.privileged.KeepAliveManager
 import io.tl.nekopanel.ui.BlurredBar
 import io.tl.nekopanel.ui.components.*
 import io.tl.nekopanel.ui.screens.*
@@ -85,6 +88,14 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { _ -> }
 
+    private val requestQueryAllPackages = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            AppNameResolver.reset()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -93,7 +104,11 @@ class MainActivity : ComponentActivity() {
                 requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+        if (checkSelfPermission(android.Manifest.permission.QUERY_ALL_PACKAGES) != PackageManager.PERMISSION_GRANTED) {
+            requestQueryAllPackages.launch(android.Manifest.permission.QUERY_ALL_PACKAGES)
+        }
         val settings = SettingsManager(this)
+        applyHideFromRecents(this, settings.hideFromRecents)
         setContent { NekoPanelApp(settings = settings) }
     }
 
@@ -109,6 +124,14 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        /** Toggles whether the app's tasks are excluded from the recents screen. */
+        fun applyHideFromRecents(context: Context, hide: Boolean) {
+            runCatching {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return
+                am.appTasks.forEach { it.setExcludeFromRecents(hide) }
+            }
+        }
     }
 }
 
@@ -118,6 +141,9 @@ fun NekoPanelApp(settings: SettingsManager) {
     var dynColorState by remember { mutableStateOf(settings.dynamicColorEnabled) }
     var customColorKey by remember { mutableStateOf(settings.customThemeColorKey) }
     var isConfigured by remember { mutableStateOf(settings.apiBaseUrl.isNotBlank()) }
+
+    val appContext = LocalContext.current.applicationContext
+    LaunchedEffect(Unit) { AppNameResolver.ensureLoaded(appContext) }
 
     val effectiveSeedColor = remember(customColorKey, dynColorState) {
         if (dynColorState) null
@@ -187,19 +213,34 @@ fun NekoPanelMain(
     var trafficTab by remember { mutableIntStateOf(0) }
     var refreshTick by remember { mutableLongStateOf(0L) }
     var currentMode by remember { mutableStateOf("rule") }
+    var modes by remember { mutableStateOf<List<String>>(emptyList()) }
     var currentLogLevel by remember { mutableStateOf(settings.logLevel) }
     var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
     var enableBlur by remember { mutableStateOf(settings.enableBlur) }
     var transitionStyle by remember { mutableIntStateOf(settings.transitionStyle) }
 
     LaunchedEffect(Unit) {
-        try { currentMode = ApiClient.getConfigs().optString("mode", "rule") } catch (_: Exception) {}
+        try {
+            ApiClient.detectBackend()
+            val info = ApiClient.getConfigInfo()
+            currentMode = info.mode
+            modes = info.modes
+        } catch (_: Exception) {}
     }
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         if (settings.backgroundWebSocket || settings.autoStartService) {
-            if (settings.privilegedServiceEnabled) {
+            if (settings.keepAliveEnabled) {
+                KeepAliveManager.start(
+                    context = context,
+                    baseUrl = settings.apiBaseUrl,
+                    secret = settings.apiSecret,
+                    notificationPriority = settings.notificationPriority,
+                ) { result ->
+                    if (result.isFailure) DataDaemonService.start(context)
+                }
+            } else if (settings.privilegedServiceEnabled) {
                 PrivilegedTrafficManager.start(
                     context = context,
                     backend = PrivilegedBackendType.from(settings.privilegedServiceType),
@@ -223,7 +264,7 @@ fun NekoPanelMain(
         selectedTab = selectedTab,
     )
 
-    val memHistory = rememberChartHistory(wsState.globalInUse)
+    val upHistory = rememberChartHistory(wsState.globalUp)
     val downHistory = rememberChartHistory(wsState.globalDown)
 
     val appState = remember(enableBlur, transitionStyle, selectedTab, trafficTab, currentMode, currentLogLevel, blurStyle) {
@@ -279,9 +320,10 @@ fun NekoPanelMain(
                     trafficTab = trafficTab,
                     refreshTick = refreshTick,
                     currentMode = currentMode,
+                    modes = modes,
                     currentLogLevel = currentLogLevel,
                     wsState = wsState,
-                    memHistory = memHistory,
+                    upHistory = upHistory,
                     downHistory = downHistory,
                     onTabSelected = { selectedTab = it },
                     onTrafficTabSelected = { trafficTab = it },
@@ -317,9 +359,10 @@ internal fun MainScreenContent(
     trafficTab: Int,
     refreshTick: Long,
     currentMode: String,
+    modes: List<String>,
     currentLogLevel: String,
     wsState: WebSocketState,
-    memHistory: List<Long>,
+    upHistory: List<Long>,
     downHistory: List<Long>,
     onTabSelected: (Int) -> Unit,
     onTrafficTabSelected: (Int) -> Unit,
@@ -436,12 +479,12 @@ internal fun MainScreenContent(
                 }
                 Box(Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> ProxiesScreen(settings, refreshTick, currentMode, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, modes, screenPadding, snackbarHostState = snackbarHostState, onRefresh = onRefresh, onModeChange = onModeChange)
                         1 -> RulesScreen(refreshTick, settings, screenPadding)
                         2 -> TrafficScreen(
                             trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,
-                            wsState.globalInUse, wsState.globalDown, wsState.totalDown, wsState.totalUp,
-                            memHistory, downHistory,
+                            wsState.globalInUse, wsState.globalUp, wsState.globalDown, wsState.totalDown, wsState.totalUp,
+                            upHistory, downHistory,
                             scaffoldPadding = screenPadding,
                             onLevelChange = onLevelChange,
                             onRemoveConnection = { wsState.removeConnection(it) },

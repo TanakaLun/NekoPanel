@@ -3,46 +3,38 @@ package io.tl.nekopanel.privileged
 import android.app.ActivityThread
 import android.app.INotificationManager
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.AttributionSource
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.content.pm.ParceledListSlice
 import android.graphics.drawable.Icon
 import android.os.ServiceManager
 import android.system.Os
 
-internal class ShellNotificationPublisher {
-    private val context = ShellContext()
+internal class AppNotificationPublisher {
+    private val context = AppContext()
     private val notificationManager = INotificationManager.Stub.asInterface(
         ServiceManager.getService(Context.NOTIFICATION_SERVICE),
     ) ?: error("notification service unavailable")
 
+    private val opPackageName: String
+        get() = when (Os.getuid()) {
+            SHELL_UID -> SHELL_PACKAGE
+            ROOT_UID -> "android"
+            else -> error("App notification publisher requires UID $SHELL_UID or $ROOT_UID")
+        }
+
     init {
-        check(Os.getuid() == PrivilegedNotification.SHELL_UID) { "Shell notification publisher requires UID ${PrivilegedNotification.SHELL_UID}" }
-        notificationManager.createNotificationChannelsForPackage(
-            PrivilegedNotification.SHELL_PACKAGE,
-            PrivilegedNotification.SHELL_UID,
-            ParceledListSlice(
-                listOf(
-                    NotificationChannel(PrivilegedNotification.CHANNEL_ID, "NekoPanel", NotificationManager.IMPORTANCE_LOW).apply {
-                        description = "NekoPanel 实时流量"
-                        enableLights(false)
-                        enableVibration(false)
-                        setShowBadge(false)
-                    },
-                ),
-            ),
-        )
+        check(Os.getuid() == SHELL_UID || Os.getuid() == ROOT_UID) {
+            "App notification publisher requires UID $SHELL_UID or $ROOT_UID"
+        }
     }
 
     fun update(content: String) {
-        val notification = Notification.Builder(context, PrivilegedNotification.CHANNEL_ID)
-            .setSmallIcon(Icon.createWithResource("android", android.R.drawable.stat_notify_sync))
+        val notification = Notification.Builder(context, CHANNEL_ID)
+            .setSmallIcon(Icon.createWithResource(APP_PACKAGE, io.tl.nekopanel.R.drawable.ic_traffic_mono))
             .setContentTitle("NekoPanel 流量监控")
             .setContentText(content)
             .setCategory(Notification.CATEGORY_SERVICE)
@@ -63,10 +55,10 @@ internal class ShellNotificationPublisher {
             )
             .build()
         notificationManager.enqueueNotificationWithTag(
-            PrivilegedNotification.SHELL_PACKAGE,
-            PrivilegedNotification.SHELL_PACKAGE,
-            PrivilegedNotification.TAG,
-            PrivilegedNotification.NOTIFICATION_ID,
+            APP_PACKAGE,
+            opPackageName,
+            null,
+            NOTIFICATION_ID,
             notification,
             0,
         )
@@ -74,19 +66,19 @@ internal class ShellNotificationPublisher {
 
     fun cancel() {
         notificationManager.cancelNotificationWithTag(
-            PrivilegedNotification.SHELL_PACKAGE,
-            PrivilegedNotification.SHELL_PACKAGE,
-            PrivilegedNotification.TAG,
-            PrivilegedNotification.NOTIFICATION_ID,
+            APP_PACKAGE,
+            opPackageName,
+            null,
+            NOTIFICATION_ID,
             0,
         )
     }
 
-    private class ShellContext : ContextWrapper(systemContext) {
-        override fun getPackageName(): String = PrivilegedNotification.SHELL_PACKAGE
-        override fun getOpPackageName(): String = PrivilegedNotification.SHELL_PACKAGE
+    private class AppContext : ContextWrapper(systemContext) {
+        override fun getPackageName(): String = APP_PACKAGE
+        override fun getOpPackageName(): String = APP_PACKAGE
         override fun getAttributionSource(): AttributionSource = AttributionSource.Builder(Os.getuid())
-            .setPackageName(PrivilegedNotification.SHELL_PACKAGE)
+            .setPackageName(APP_PACKAGE)
             .build()
         override fun getApplicationContext(): Context = this
         override fun getDeviceId(): Int = 0
@@ -107,5 +99,10 @@ internal class ShellNotificationPublisher {
 
     private companion object {
         const val APP_PACKAGE = "io.tl.nekopanel"
+        const val SHELL_PACKAGE = "com.android.shell"
+        const val SHELL_UID = 2000
+        const val ROOT_UID = 0
+        const val CHANNEL_ID = "traffic_monitor"
+        const val NOTIFICATION_ID = 114514
     }
 }

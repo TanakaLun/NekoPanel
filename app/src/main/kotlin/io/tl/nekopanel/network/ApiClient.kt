@@ -1,5 +1,7 @@
 package io.tl.nekopanel.network
 
+import io.tl.nekopanel.model.ConfigInfo
+import io.tl.nekopanel.model.RuleInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -11,6 +13,34 @@ import java.io.IOException
 object ApiClient {
     var baseUrl: String = ""
     var secret: String = ""
+    var backend: BackendType = BackendType.UNKNOWN
+
+    suspend fun detectBackend(): BackendType {
+        if (backend != BackendType.UNKNOWN) return backend
+        val detected = try {
+            val versionText = JSONObject(get("/version")).optString("version", "").lowercase()
+            when {
+                versionText.contains("sing-box") -> BackendType.SING_BOX
+                versionText.contains("mihomo") || versionText.contains("clash.meta") || versionText.contains("clash-verge") -> BackendType.MIHOMO
+                else -> {
+                    val hello = JSONObject(get("/")).optString("hello", "")
+                    when (hello) {
+                        "mihomo" -> BackendType.MIHOMO
+                        "clash" -> BackendType.SING_BOX
+                        else -> BackendType.UNKNOWN
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            BackendType.UNKNOWN
+        }
+        backend = detected
+        return detected
+    }
+
+    fun resetConnection() {
+        backend = BackendType.UNKNOWN
+    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
@@ -65,15 +95,20 @@ object ApiClient {
     suspend fun resetCumulativeTraffic() { request("DELETE", "/traffic/cumulative") }
 
     suspend fun getConfigs(): JSONObject = JSONObject(get("/configs"))
+    suspend fun getConfigInfo(): ConfigInfo = ResponseParser.parseConfigs(get("/configs"))
     suspend fun updateConfigs(body: Map<String, Any>) {
         request("PATCH", "/configs", JSONObject(body).toString())
     }
     suspend fun reloadConfigs(path: String = "") {
         request("PUT", "/configs", JSONObject(mapOf("path" to path)).toString())
     }
-    suspend fun getRules(): JSONObject = JSONObject(get("/rules"))
-    suspend fun updateRulesDisable(body: Map<String, Boolean>) {
-        request("PATCH", "/rules/disable", JSONObject(body).toString())
+    suspend fun getRules(): List<RuleInfo> = ResponseParser.parseRules(get("/rules"), backend)
+    suspend fun updateRuleDisabled(ruleId: String, currentlyDisabled: Boolean, targetDisabled: Boolean) {
+        if (backend == BackendType.SING_BOX) {
+            if (currentlyDisabled != targetDisabled) request("PUT", "/rules/$ruleId")
+        } else {
+            request("PATCH", "/rules/disable", JSONObject().put(ruleId, targetDisabled).toString())
+        }
     }
     suspend fun flushDnsCache() { request("POST", "/cache/dns/flush") }
     suspend fun flushFakeipCache() { request("POST", "/cache/fakeip/flush") }
