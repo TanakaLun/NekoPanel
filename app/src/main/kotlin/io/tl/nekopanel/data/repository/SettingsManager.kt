@@ -183,6 +183,18 @@ class SettingsManager(context: Context) {
         setLong("last_total_up", totalUp)
     }
 
+    /**
+     * Appends per-second deltas (sing-box style /traffic which has no totals).
+     * Only the single active accumulator (foreground WS or background service) should call this.
+     */
+    @Synchronized
+    fun accumulateDeltaTraffic(down: Long, up: Long) {
+        setLong("core_cum_down", -1L)
+        setLong("core_cum_up", -1L)
+        setLong("cumulative_down", getLong("cumulative_down", 0L) + down)
+        setLong("cumulative_up", getLong("cumulative_up", 0L) + up)
+    }
+
     fun resetCumulativeTraffic() {
         setLong("cumulative_down", 0L)
         setLong("cumulative_up", 0L)
@@ -271,4 +283,8 @@ class SettingsManager(context: Context) {
     var keepAliveEnabled: Boolean
         get() = getBoolean("keep_alive_enabled", false)
         set(value) = setBoolean("keep_alive_enabled", value)
+
+    var backgroundServiceRunning: Boolean
+        get() = getBoolean("background_service_running", false)
+        set(value) = setBoolean("background_service_running", value)
 }

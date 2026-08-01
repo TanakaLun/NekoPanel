@@ -27,6 +27,7 @@ fun ProxiesScreen(
     settings: SettingsManager,
     refreshTick: Long,
     currentMode: String,
+    modes: List<String>,
     scaffoldPadding: PaddingValues = PaddingValues(),
     onRefresh: () -> Unit,
     onModeChange: (String) -> Unit
@@ -129,7 +130,7 @@ fun ProxiesScreen(
                 .height(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ModeSpinner(currentMode) { newMode ->
+            ModeSpinner(currentMode, modes) { newMode ->
                 scope.launch {
                     ApiClient.updateConfigs(mapOf("mode" to newMode))
                     onModeChange(newMode)

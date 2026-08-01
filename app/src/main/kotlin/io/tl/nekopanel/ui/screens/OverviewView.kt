@@ -14,12 +14,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
+import io.tl.nekopanel.model.RuleInfo
 import io.tl.nekopanel.network.ApiClient
 import io.tl.nekopanel.ui.components.MiniLineChart
 import io.tl.nekopanel.ui.components.TypeBadge
 import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.delay
-import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Surface
@@ -41,18 +41,14 @@ fun OverviewView(
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val cumulative = remember { settings.getCumulativeTraffic() }
-    val topRules = remember { mutableStateListOf<JSONObject>() }
+    val topRules = remember { mutableStateListOf<RuleInfo>() }
     LaunchedEffect(Unit) {
         while (true) {
             try {
-                val rules = ApiClient.getRules().getJSONArray("rules")
-                val filtered = mutableListOf<JSONObject>()
-                for (i in 0 until rules.length()) {
-                    val r = rules.getJSONObject(i)
-                    if ((r.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0) > 0) filtered.add(r)
-                }
+                val rules = ApiClient.getRules()
+                val filtered = rules.filter { it.hasHitStats && it.hitCount > 0 }
                 topRules.clear()
-                topRules.addAll(filtered.sortedByDescending { it.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0 }.take(5))
+                topRules.addAll(filtered.sortedByDescending { it.hitCount }.take(5))
             } catch (_: Exception) {}
             delay(5000)
         }
@@ -107,7 +103,7 @@ fun OverviewView(
         }
         item {
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-                listOf("活跃连接" to "${connections.size}", "规则命中" to "${topRules.sumOf { it.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0 }}").forEach { (label, value) ->
+                listOf("活跃连接" to "${connections.size}", "规则命中" to "${topRules.sumOf { it.hitCount }}").forEach { (label, value) ->
                     Card(Modifier.weight(1f)) {
                         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(label, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
@@ -117,25 +113,27 @@ fun OverviewView(
                 }
             }
         }
-        item { Text("高频规则命中", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.subtitle, modifier = Modifier.padding(top = 8.dp)) }
-        items(topRules) { rule ->
-            val type = rule.optString("type", "")
-            val payload = rule.optString("payload", "")
-            val proxy = rule.optString("proxy", "")
-            val hitCount = rule.optJSONObject("extra")?.optInt("hitCount", 0) ?: 0
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-                    Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TypeBadge(type, settings.ruleBadgeStyle, settings.badgeCornerRadius, false)
-                            Spacer(Modifier.width(8.dp))
-                            Text(payload, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.body2, lineHeight = 18.sp)
+        if (topRules.isNotEmpty()) {
+            item { Text("高频规则命中", fontWeight = FontWeight.Black, style = MiuixTheme.textStyles.subtitle, modifier = Modifier.padding(top = 8.dp)) }
+            items(topRules) { rule ->
+                val type = rule.type
+                val payload = rule.payload
+                val proxy = rule.proxy
+                val hitCount = rule.hitCount
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                TypeBadge(type, settings.ruleBadgeStyle, settings.badgeCornerRadius, false)
+                                Spacer(Modifier.width(8.dp))
+                                Text(payload, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.body2, lineHeight = 18.sp)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text("➔ $proxy", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text("➔ $proxy", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.outline)
-                    }
-                    Surface(color = MiuixTheme.colorScheme.primaryContainer, shape = CircleShape) {
-                        Text("$hitCount", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MiuixTheme.textStyles.footnote1, fontWeight = FontWeight.Black, color = MiuixTheme.colorScheme.primary)
+                        Surface(color = MiuixTheme.colorScheme.primaryContainer, shape = CircleShape) {
+                            Text("$hitCount", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MiuixTheme.textStyles.footnote1, fontWeight = FontWeight.Black, color = MiuixTheme.colorScheme.primary)
+                        }
                     }
                 }
             }

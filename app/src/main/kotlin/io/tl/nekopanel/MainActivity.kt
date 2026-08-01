@@ -188,13 +188,19 @@ fun NekoPanelMain(
     var trafficTab by remember { mutableIntStateOf(0) }
     var refreshTick by remember { mutableLongStateOf(0L) }
     var currentMode by remember { mutableStateOf("rule") }
+    var modes by remember { mutableStateOf<List<String>>(emptyList()) }
     var currentLogLevel by remember { mutableStateOf(settings.logLevel) }
     var blurStyle by remember { mutableIntStateOf(settings.topBarBlurStyle) }
     var enableBlur by remember { mutableStateOf(settings.enableBlur) }
     var transitionStyle by remember { mutableIntStateOf(settings.transitionStyle) }
 
     LaunchedEffect(Unit) {
-        try { currentMode = ApiClient.getConfigs().optString("mode", "rule") } catch (_: Exception) {}
+        try {
+            ApiClient.detectBackend()
+            val info = ApiClient.getConfigInfo()
+            currentMode = info.mode
+            modes = info.modes
+        } catch (_: Exception) {}
     }
 
     val context = LocalContext.current
@@ -289,6 +295,7 @@ fun NekoPanelMain(
                     trafficTab = trafficTab,
                     refreshTick = refreshTick,
                     currentMode = currentMode,
+                    modes = modes,
                     currentLogLevel = currentLogLevel,
                     wsState = wsState,
                     memHistory = memHistory,
@@ -327,6 +334,7 @@ internal fun MainScreenContent(
     trafficTab: Int,
     refreshTick: Long,
     currentMode: String,
+    modes: List<String>,
     currentLogLevel: String,
     wsState: WebSocketState,
     memHistory: List<Long>,
@@ -446,7 +454,7 @@ internal fun MainScreenContent(
                 }
                 Box(Modifier.weight(1f)) {
                     when (selectedTab) {
-                        0 -> ProxiesScreen(settings, refreshTick, currentMode, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
+                        0 -> ProxiesScreen(settings, refreshTick, currentMode, modes, screenPadding, onRefresh = onRefresh, onModeChange = onModeChange)
                         1 -> RulesScreen(refreshTick, settings, screenPadding)
                         2 -> TrafficScreen(
                             trafficTab, wsState.logs, wsState.connections, settings, currentLogLevel,

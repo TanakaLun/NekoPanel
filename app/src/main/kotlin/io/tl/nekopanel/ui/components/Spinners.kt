@@ -77,12 +77,14 @@ fun FilterChipDropdown(
 }
 
 @Composable
-fun ModeSpinner(currentMode: String, onModeSelected: (String) -> Unit) {
-    val modes = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
+fun ModeSpinner(currentMode: String, modes: List<String>, onModeSelected: (String) -> Unit) {
+    val fallback = listOf("rule" to "规则模式", "global" to "全局模式", "direct" to "直连模式")
+    val options = if (modes.isNotEmpty()) modes.map { it to it } else fallback
+    val matched = options.firstOrNull { it.first.equals(currentMode, ignoreCase = true) }
     FilterChipDropdown(
-        label = modes.find { it.first == currentMode }?.second ?: currentMode,
-        options = modes,
-        selectedKey = currentMode,
+        label = matched?.second ?: currentMode,
+        options = options,
+        selectedKey = matched?.first ?: currentMode,
         onOptionSelected = onModeSelected,
         menuWidth = 150.dp
     )

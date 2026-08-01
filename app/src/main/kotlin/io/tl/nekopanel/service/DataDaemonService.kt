@@ -19,10 +19,10 @@ import android.os.PowerManager
 import io.tl.nekopanel.MainActivity
 import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.network.ResponseParser
 import io.tl.nekopanel.util.formatSize
 import kotlinx.coroutines.*
 import okhttp3.WebSocket
-import org.json.JSONObject
 
 class DataDaemonService : Service() {
 
@@ -71,6 +71,7 @@ class DataDaemonService : Service() {
 
         ApiClient.baseUrl = settings.apiBaseUrl
         ApiClient.secret = settings.apiSecret
+        settings.backgroundServiceRunning = true
 
         if (ApiClient.baseUrl.isNotBlank()) {
             startTrafficWebSocket()
@@ -106,18 +107,20 @@ class DataDaemonService : Service() {
                 acquireLocks()
                 scheduleWatchdog(generation)
                 try {
-                    val obj = JSONObject(text)
-                    val d = obj.optLong("down", -1L)
-                    val u = obj.optLong("up", -1L)
-                    val dt = obj.optLong("downTotal", -1L)
-                    val ut = obj.optLong("upTotal", -1L)
-                    val dc = obj.optLong("downCumulative", -1L)
-                    val uc = obj.optLong("upCumulative", -1L)
-                    if (d >= 0 && u >= 0 && dt >= 0 && ut >= 0) {
-                        globalDown = d; globalUp = u; totalDown = dt; totalUp = ut
-                        settings.setTrafficSnapshot(d, u, dt, ut, dc, uc)
-                        updateNotification()
+                    val sample = ResponseParser.parseTraffic(text)
+                    globalDown = sample.down
+                    globalUp = sample.up
+                    if (sample.hasTotals) {
+                        totalDown = sample.downTotal
+                        totalUp = sample.upTotal
+                        settings.setTrafficSnapshot(sample.down, sample.up, sample.downTotal, sample.upTotal, sample.downCumulative, sample.upCumulative)
+                    } else {
+                        settings.accumulateDeltaTraffic(sample.down, sample.up)
+                        val (cd, cu) = settings.getCumulativeTraffic()
+                        totalDown = cd
+                        totalUp = cu
                     }
+                    updateNotification()
                 } catch (_: Exception) {}
             },
             onError = {
@@ -240,6 +243,7 @@ class DataDaemonService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        settings.backgroundServiceRunning = false
         stopTrafficWebSocket()
         scope.cancel()
         try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}

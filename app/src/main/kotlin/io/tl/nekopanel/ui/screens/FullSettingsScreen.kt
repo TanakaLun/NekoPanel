@@ -57,6 +57,7 @@ fun FullSettingsScreen(
     val context = LocalContext.current
     val layoutDirection = LocalLayoutDirection.current
     var config by remember { mutableStateOf<JSONObject?>(null) }
+    var backend by remember { mutableStateOf(ApiClient.backend) }
     var coreVersion by remember { mutableStateOf("正在获取...") }
     var connectFailed by remember { mutableStateOf(false) }
     var reconfigDialog by remember { mutableStateOf(false) }
@@ -164,6 +165,7 @@ fun FullSettingsScreen(
 
     LaunchedEffect(Unit) {
         try {
+            backend = ApiClient.detectBackend()
             coreVersion = ApiClient.getVersion().optString("version", "Unknown")
             config = ApiClient.getConfigs()
         } catch (_: Exception) {
@@ -201,11 +203,13 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                             settings.apiSecret = tmpSecret
                             ApiClient.baseUrl = settings.apiBaseUrl
                             ApiClient.secret = settings.apiSecret
+                            ApiClient.resetConnection()
                             reconfigDialog = false
                             connectFailed = false
                             config = null; coreVersion = "正在获取..."
                             scope.launch {
                                 try {
+                                    backend = ApiClient.detectBackend()
                                     coreVersion = ApiClient.getVersion().optString("version", "Unknown")
                                     config = ApiClient.getConfigs()
                                 } catch (_: Exception) { coreVersion = "获取失败"; connectFailed = true }
@@ -282,6 +286,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
         return
     }
     val cfg = config!!
+    val isMihomo = backend.isMihomo
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().scrollEndHaptic(),
@@ -336,38 +341,42 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             }
         }
 
-        item {
-            SectionTitle("网络端口")
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val ports = listOf("mixed-port" to "混合端口", "port" to "HTTP 端口", "socks-port" to "Socks 端口", "redir-port" to "Redir 端口", "tproxy-port" to "Tproxy 端口")
-                    ports.forEach { (key, label) ->
-                        var txt by remember(cfg) { mutableStateOf(cfg.optInt(key, 0).toString()) }
-                        TextField(value = txt, onValueChange = { txt = it; it.toIntOrNull()?.let { v -> updateRemote(key, v) } }, label = label, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        if (isMihomo) {
+            item {
+                SectionTitle("网络端口")
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val ports = listOf("mixed-port" to "混合端口", "port" to "HTTP 端口", "socks-port" to "Socks 端口", "redir-port" to "Redir 端口", "tproxy-port" to "Tproxy 端口")
+                        ports.forEach { (key, label) ->
+                            var txt by remember(cfg) { mutableStateOf(cfg.optInt(key, 0).toString()) }
+                            TextField(value = txt, onValueChange = { txt = it; it.toIntOrNull()?.let { v -> updateRemote(key, v) } }, label = label, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+                        var bindAddr by remember(cfg) { mutableStateOf(cfg.optString("bind-address", "*")) }
+                        TextField(value = bindAddr, onValueChange = { bindAddr = it; updateRemote("bind-address", it) }, label = "绑定地址")
                     }
-                    var bindAddr by remember(cfg) { mutableStateOf(cfg.optString("bind-address", "*")) }
-                    TextField(value = bindAddr, onValueChange = { bindAddr = it; updateRemote("bind-address", it) }, label = "绑定地址")
                 }
             }
         }
 
-        item {
-            val tun = cfg.optJSONObject("tun") ?: JSONObject()
-            var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
-            var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system").lowercase()) }
-            SectionTitle("TUN 模式")
-            Card(Modifier.fillMaxWidth()) {
-                Column {
-                    ConfigToggle("启用 TUN", checked = tunEnable) { enabled ->
-                        tunEnable = enabled
-                        val newTun = tun.also { it.put("enable", enabled); it.put("stack", tunStack) }
-                        updateRemote("tun", newTun)
-                    }
-                    if (tunEnable) {
-                        SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
-                            tunStack = selected
-                            val newTun = tun.also { it.put("stack", selected) }
+        if (isMihomo) {
+            item {
+                val tun = cfg.optJSONObject("tun") ?: JSONObject()
+                var tunEnable by remember(cfg) { mutableStateOf(tun.optBoolean("enable", false)) }
+                var tunStack by remember(cfg) { mutableStateOf(tun.optString("stack", "system").lowercase()) }
+                SectionTitle("TUN 模式")
+                Card(Modifier.fillMaxWidth()) {
+                    Column {
+                        ConfigToggle("启用 TUN", checked = tunEnable) { enabled ->
+                            tunEnable = enabled
+                            val newTun = tun.also { it.put("enable", enabled); it.put("stack", tunStack) }
                             updateRemote("tun", newTun)
+                        }
+                        if (tunEnable) {
+                            SettingsDropdownMenuInline("堆栈选择", tunStack, listOf("system", "gvisor", "mixed")) { selected ->
+                                tunStack = selected
+                                val newTun = tun.also { it.put("stack", selected) }
+                                updateRemote("tun", newTun)
+                            }
                         }
                     }
                 }
@@ -377,13 +386,23 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
         item {
             SectionTitle("内核设置")
             Card(Modifier.fillMaxWidth()) {
-                Column {
-                    ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) }
-                    ConfigToggle("IPv6 支持", checked = cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) }
-                    ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) }
-                    ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) }
-                    ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) }
-                    ConfigToggle("记录总流量", checked = cfg.optBoolean("traffic-cumulative", false)) { updateRemote("traffic-cumulative", it) }
+                if (isMihomo) {
+                    Column {
+                        if (cfg.has("allow-lan")) ConfigToggle("允许局域网", checked = cfg.optBoolean("allow-lan", false)) { updateRemote("allow-lan", it) }
+                        if (cfg.has("ipv6")) ConfigToggle("IPv6 支持", checked = cfg.optBoolean("ipv6", false)) { updateRemote("ipv6", it) }
+                        if (cfg.has("sniffing")) ConfigToggle("流量嗅探", checked = cfg.optBoolean("sniffing", false)) { updateRemote("sniffing", it) }
+                        if (cfg.has("unified-delay")) ConfigToggle("统一延迟", checked = cfg.optBoolean("unified-delay", false)) { updateRemote("unified-delay", it) }
+                        if (cfg.has("tcp-concurrent")) ConfigToggle("TCP 并发", checked = cfg.optBoolean("tcp-concurrent", false)) { updateRemote("tcp-concurrent", it) }
+                        if (cfg.has("traffic-cumulative")) ConfigToggle("记录总流量", checked = cfg.optBoolean("traffic-cumulative", false)) { updateRemote("traffic-cumulative", it) }
+                    }
+                } else {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "当前后端为 ${backend.displayName},其 clash-api 仅支持切换 mode,端口、TUN、allow-lan 等配置项无法通过 API 修改。",
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.outline,
+                        )
+                    }
                 }
             }
         }
@@ -579,6 +598,7 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
                             settings.apiSecret = secret
                             ApiClient.baseUrl = settings.apiBaseUrl
                             ApiClient.secret = settings.apiSecret
+                            ApiClient.resetConnection()
                             showMessage("连接设置已保存，重启应用后生效")
                         }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColorsPrimary()) { Text("保存并应用") }
                     }
