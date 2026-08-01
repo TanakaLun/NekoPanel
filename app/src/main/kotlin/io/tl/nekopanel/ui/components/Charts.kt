@@ -1,8 +1,14 @@
 package io.tl.nekopanel.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,6 +19,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -20,16 +27,38 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
- * A windowed strip chart of an infinitely long signal. The curve always spans the
- * full window width — it is drawn past both edges and clipped — so the line's ends
- * stay pinned to the canvas edges while the wave glides through it.
+ * A rounded, bordered window frame used to wrap a [TrafficChart]. Its clip keeps the
+ * curve contained so the line always fills the box, and the border/background give
+ * the chart a layered "viewing window" look.
+ */
+@Composable
+fun ChartWindow(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f))
+            .border(1.dp, MiuixTheme.colorScheme.outline.copy(alpha = 0.4f), shape)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        content = content,
+    )
+}
+
+/**
+ * A windowed strip chart of an infinitely long signal. The curve is drawn past both
+ * edges of the canvas and clipped by the enclosing [ChartWindow], so the line always
+ * spans the full box width while the wave translates rigidly and smoothly through it.
  *
- * The buffer samples translate rigidly to the left with a frame-driven offset (values
- * never morph), and the live value is drawn at the right edge as the newest sample
- * entering the window. The vertical scale uses a fixed zero baseline; its top is only
- * recomputed when a sample rolls in, so the waveform isn't deformed frame-by-frame.
+ * The buffer samples glide left with a frame-driven offset (values never morph), the
+ * live value is drawn at the right edge as the newest sample entering the window, and
+ * the vertical scale uses a fixed zero baseline whose top only updates when a sample
+ * rolls in, so the waveform isn't deformed frame-by-frame.
  */
 @Composable
 fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier) {
@@ -66,7 +95,7 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
         val cellW = width / n
 
         // points 0..n-1 are the rolled samples; n and n+1 are the live value, with the
-        // extra copy extending past the right edge so the window is always fully covered
+        // extra copy extending past the right edge so the box is always fully covered
         fun getX(index: Int) = index * cellW - offset * cellW
         fun getY(value: Float) = height - (value / yMax).coerceIn(0f, 1f) * height
         fun valueAt(index: Int): Float =

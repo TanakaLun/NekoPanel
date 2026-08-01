@@ -16,6 +16,7 @@ import io.tl.nekopanel.data.repository.SettingsManager
 import io.tl.nekopanel.model.ConnectionItem
 import io.tl.nekopanel.model.RuleInfo
 import io.tl.nekopanel.network.ApiClient
+import io.tl.nekopanel.ui.components.ChartWindow
 import io.tl.nekopanel.ui.components.SectionTitle
 import io.tl.nekopanel.ui.components.TrafficChart
 import io.tl.nekopanel.ui.components.TypeBadge
@@ -80,12 +81,16 @@ fun OverviewView(
                         Column(Modifier.weight(1f)) {
                             Text("上传速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            TrafficChart(trafficUp, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            ChartWindow(Modifier.fillMaxWidth().height(44.dp).padding(top = 4.dp)) {
+                                TrafficChart(trafficUp, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
+                            }
                         }
                         Column(Modifier.weight(1f)) {
                             Text("下载速度", style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             Text("${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
-                            TrafficChart(trafficDown, MiuixTheme.colorScheme.primary, Modifier.fillMaxWidth().height(40.dp).padding(top = 4.dp))
+                            ChartWindow(Modifier.fillMaxWidth().height(44.dp).padding(top = 4.dp)) {
+                                TrafficChart(trafficDown, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
+                            }
                         }
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine)
