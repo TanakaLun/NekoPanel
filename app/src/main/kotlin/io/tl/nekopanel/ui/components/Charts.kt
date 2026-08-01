@@ -22,15 +22,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
 /**
- * A fixed-window strip chart: the line always spans the full width with both ends
- * pinned at the canvas edges. A continuous scroll phase interpolates each column's
- * value between the current sample and the next one, so the wave glides left
- * smoothly instead of jumping by whole columns when a sample rolls in. New data
- * enters at the right edge and travels across the window like viewing an infinite
- * signal through a finite viewport.
+ * A windowed strip chart that shows an infinitely long signal through a fixed
+ * viewport: the wave translates rigidly to the left (sample values never morph,
+ * only their x positions glide), so the shape stays stable and moves smoothly.
+ * The live value is drawn at the right edge as the newest sample entering the
+ * window, and older samples roll out on the left.
  *
- * The vertical scale is a fixed zero baseline with a slowly eased top so spikes
- * entering/leaving the window don't rescale the whole chart abruptly.
+ * The vertical scale uses a fixed zero baseline; its top is recomputed only when
+ * a sample rolls in, so the waveform is not deformed frame-by-frame.
  */
 @Composable
 fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier) {
@@ -53,34 +52,28 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
                     phase -= 1f
                     data.add(currentValueState)
                     data.removeAt(0)
+                    yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), 1f)
                 }
-                // ease the top of the scale toward the data max so rescaling is smooth
-                val dataMax = (data.maxOrNull() ?: 0L).toFloat()
-                yMax += (maxOf(dataMax, 1f) - yMax) * (dtMs / 400f).coerceAtMost(1f)
             }
         }
     }
 
     Canvas(modifier = modifier) {
-        if (data.size < 2) return@Canvas
+        val n = data.size
+        if (n < 2) return@Canvas
         val width = size.width
         val height = size.height
-        val spacing = width / (data.size - 1)
+        val spacing = width / n
 
-        fun getX(index: Int) = index * spacing
-        // continuous wave: each column morphs from its sample toward the next one by phase,
-        // so the whole pattern glides left; the rightmost column morphs toward the newest value
-        fun valueAt(index: Int): Float {
-            if (index < data.size - 1) {
-                return data[index] + (data[index + 1] - data[index]) * phase
-            }
-            return data[index] + (currentValueState - data[index]) * phase
-        }
+        // index 0..n-1 are the rolled samples, index n is the live value at the right edge
+        fun getX(index: Int) = width - (n - index + phase) * spacing
         fun getY(value: Float) = height - (value / yMax).coerceIn(0f, 1f) * height
+        fun valueAt(index: Int): Float =
+            if (index < n) data[index].toFloat() else currentValueState.toFloat()
 
         val strokePath = Path().apply {
             moveTo(getX(0), getY(valueAt(0)))
-            for (i in 0 until data.size - 1) {
+            for (i in 0 until n) {
                 val x1 = getX(i); val y1 = getY(valueAt(i))
                 val x2 = getX(i + 1); val y2 = getY(valueAt(i + 1))
                 cubicTo(x1 + (x2 - x1) / 2f, y1, x1 + (x2 - x1) / 2f, y2, x2, y2)
@@ -88,7 +81,7 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
         }
         val fillPath = Path().apply {
             addPath(strokePath)
-            lineTo(getX(data.size - 1), height)
+            lineTo(getX(n), height)
             lineTo(getX(0), height)
             close()
         }

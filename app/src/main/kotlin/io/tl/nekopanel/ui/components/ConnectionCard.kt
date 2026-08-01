@@ -115,7 +115,7 @@ fun ConnectionCard(conn: ConnectionItem, onClick: () -> Unit, onClose: () -> Uni
                 Text(text = displayProcess, style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.outline, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).basicMarquee(iterations = Int.MAX_VALUE))
                 Spacer(Modifier.width(6.dp))
-                Text(text = detail.routeNode, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.primaryContainer,
+                Text(text = detail.routeNode, style = MiuixTheme.textStyles.footnote2, color = MiuixTheme.colorScheme.tertiaryContainer,
                     modifier = Modifier.padding(start = 2.dp).widthIn(max = 100.dp).basicMarquee(iterations = Int.MAX_VALUE), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(10.dp))
