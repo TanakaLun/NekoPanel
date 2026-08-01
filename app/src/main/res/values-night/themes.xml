@@ -1,5 +1,5 @@
 <resources>
     <style name="Theme.NekoPanelSplash" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@android:color/system_neutral1_800</item>
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 </resources>
