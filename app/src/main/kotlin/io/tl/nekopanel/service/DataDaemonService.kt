@@ -114,7 +114,11 @@ class DataDaemonService : Service() {
                     if (sample.hasTotals) {
                         totalDown = sample.downTotal
                         totalUp = sample.upTotal
-                        settings.setTrafficSnapshot(sample.down, sample.up, sample.downTotal, sample.upTotal, sample.downCumulative, sample.upCumulative)
+                        if (ApiClient.hasPersistentCumulative) {
+                            settings.setTrafficSnapshot(sample.down, sample.up, sample.downTotal, sample.upTotal, sample.downCumulative, sample.upCumulative)
+                        } else {
+                            settings.accumulateDeltaTraffic(sample.down, sample.up)
+                        }
                     } else {
                         SessionTraffic.accumulate(sample.down, sample.up)
                         settings.accumulateDeltaTraffic(sample.down, sample.up)

@@ -162,7 +162,9 @@ class SettingsManager(context: Context) {
             setLong("last_total_down", totalDown)
             setLong("last_total_up", totalUp)
         } else if (deltaD in 0..10_000_000_000_000L && deltaU in 0..10_000_000_000_000L) {
-            // No core data — accumulate at app level
+            // No core data — accumulate at app level and drop any stale core values
+            setLong("core_cum_down", -1L)
+            setLong("core_cum_up", -1L)
             setLong("cumulative_down", appCumD + deltaD)
             setLong("cumulative_up", appCumU + deltaU)
             setLong("last_total_down", totalDown)

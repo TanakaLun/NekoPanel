@@ -49,11 +49,15 @@ class WebSocketState(
             if (sample.hasTotals) {
                 totalDown = sample.downTotal
                 totalUp = sample.upTotal
-                settings.setTrafficSnapshot(
-                    sample.down, sample.up,
-                    sample.downTotal, sample.upTotal,
-                    sample.downCumulative, sample.upCumulative,
-                )
+                if (ApiClient.hasPersistentCumulative) {
+                    settings.setTrafficSnapshot(
+                        sample.down, sample.up,
+                        sample.downTotal, sample.upTotal,
+                        sample.downCumulative, sample.upCumulative,
+                    )
+                } else if (!settings.backgroundServiceRunning) {
+                    settings.accumulateDeltaTraffic(sample.down, sample.up)
+                }
             } else {
                 if (!settings.backgroundServiceRunning) {
                     SessionTraffic.accumulate(sample.down, sample.up)

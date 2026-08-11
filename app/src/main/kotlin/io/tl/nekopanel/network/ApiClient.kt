@@ -15,8 +15,18 @@ object ApiClient {
     var secret: String = ""
     var backend: BackendType = BackendType.UNKNOWN
 
+    /**
+     * Whether the current core persists cumulative traffic across restarts
+     * (mihomo with `traffic-cumulative` enabled). When false, cumulative totals
+     * are accumulated app-side.
+     */
+    var hasPersistentCumulative: Boolean = false
+
     suspend fun detectBackend(): BackendType {
-        if (backend != BackendType.UNKNOWN) return backend
+        if (backend != BackendType.UNKNOWN) {
+            refreshCumulativeMode()
+            return backend
+        }
         val detected = try {
             val versionText = JSONObject(get("/version")).optString("version", "").lowercase()
             when {
@@ -35,11 +45,25 @@ object ApiClient {
             BackendType.UNKNOWN
         }
         backend = detected
+        refreshCumulativeMode()
         return detected
+    }
+
+    /** Re-reads whether the core persists cumulative traffic from /configs. */
+    suspend fun refreshCumulativeMode() {
+        hasPersistentCumulative = try {
+            when (backend) {
+                BackendType.MIHOMO -> JSONObject(get("/configs")).optBoolean("traffic-cumulative", false)
+                else -> false
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun resetConnection() {
         backend = BackendType.UNKNOWN
+        hasPersistentCumulative = false
     }
 
     private val client = OkHttpClient.Builder()

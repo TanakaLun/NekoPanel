@@ -180,6 +180,9 @@ fun FullSettingsScreen(
             try {
                 ApiClient.updateConfigs(mapOf(key to value))
                 config = JSONObject(config.toString()).also { it.put(key, value) }
+                if (key == "traffic-cumulative") {
+                    ApiClient.refreshCumulativeMode()
+                }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) { showMessage("更新失败") }
             }

@@ -47,29 +47,37 @@ fun ChartWindow(
 }
 
 /**
- * A fixed, static line chart of the last [capacity] samples. Samples sit at fixed
- * grid positions spanning the full box width (both ends pinned at the edges), joined
- * by straight segments. The line never translates or animates on its own: it only
- * re-renders when a new [currentValue] arrives, so the chart stays smooth, stable and
- * pinned while still reflecting live data.
+ * A fixed, static line chart of the last [capacity] samples for both the upload and
+ * download series. Samples sit at fixed grid positions spanning the full box width
+ * (both ends pinned at the edges), joined by straight segments. The lines never
+ * translate or animate on their own: they only re-render when a new value arrives, so
+ * the chart stays smooth, stable and pinned while still reflecting live data.
  *
- * The vertical scale uses a fixed zero baseline; its top grows instantly for new peaks
- * and decays slowly, so spikes leaving the window don't rescale the chart abruptly.
+ * Both series share one vertical scale (a fixed zero baseline whose top grows
+ * instantly for new peaks and decays slowly), so upload and download are comparable.
  */
 @Composable
-fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier) {
+fun TrafficChart(
+    upValue: Long,
+    downValue: Long,
+    upColor: Color,
+    downColor: Color,
+    modifier: Modifier = Modifier,
+) {
     val capacity = 60
-    val data = remember { mutableStateListOf<Long>().apply { repeat(capacity) { add(0L) } } }
+    val upData = remember { mutableStateListOf<Long>().apply { repeat(capacity) { add(0L) } } }
+    val downData = remember { mutableStateListOf<Long>().apply { repeat(capacity) { add(0L) } } }
     var yMax by remember { mutableFloatStateOf(1f) }
 
-    LaunchedEffect(currentValue) {
-        data.add(currentValue)
-        data.removeAt(0)
-        yMax = maxOf((data.maxOrNull() ?: 0L).toFloat(), yMax * 0.97f, 1f)
+    LaunchedEffect(upValue, downValue) {
+        upData.add(upValue); upData.removeAt(0)
+        downData.add(downValue); downData.removeAt(0)
+        val dataMax = maxOf(upData.maxOrNull() ?: 0L, downData.maxOrNull() ?: 0L)
+        yMax = maxOf(dataMax.toFloat(), yMax * 0.97f, 1f)
     }
 
     Canvas(modifier = modifier) {
-        val n = data.size
+        val n = upData.size
         if (n < 2) return@Canvas
         val width = size.width
         val height = size.height
@@ -78,19 +86,28 @@ fun TrafficChart(currentValue: Long, color: Color, modifier: Modifier = Modifier
         fun getX(index: Int) = index * spacing
         fun getY(value: Float) = height - (value / yMax).coerceIn(0f, 1f) * height
 
-        val strokePath = Path().apply {
-            moveTo(getX(0), getY(data[0].toFloat()))
-            for (i in 0 until n - 1) {
-                lineTo(getX(i + 1), getY(data[i + 1].toFloat()))
+        fun seriesPath(data: List<Long>): Pair<Path, Path> {
+            val stroke = Path().apply {
+                moveTo(getX(0), getY(data[0].toFloat()))
+                for (i in 0 until n - 1) {
+                    lineTo(getX(i + 1), getY(data[i + 1].toFloat()))
+                }
             }
+            val fill = Path().apply {
+                addPath(stroke)
+                lineTo(getX(n - 1), height)
+                lineTo(getX(0), height)
+                close()
+            }
+            return stroke to fill
         }
-        val fillPath = Path().apply {
-            addPath(strokePath)
-            lineTo(getX(n - 1), height)
-            lineTo(getX(0), height)
-            close()
-        }
-        drawPath(fillPath, Brush.verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
-        drawPath(strokePath, color = color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+
+        val (upStroke, upFill) = seriesPath(upData)
+        val (downStroke, downFill) = seriesPath(downData)
+
+        drawPath(upFill, Brush.verticalGradient(listOf(upColor.copy(alpha = 0.2f), Color.Transparent)))
+        drawPath(downFill, Brush.verticalGradient(listOf(downColor.copy(alpha = 0.25f), Color.Transparent)))
+        drawPath(upStroke, color = upColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(downStroke, color = downColor, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }

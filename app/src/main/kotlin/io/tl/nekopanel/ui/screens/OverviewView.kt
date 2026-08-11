@@ -77,21 +77,20 @@ fun OverviewView(
                         style = MiuixTheme.textStyles.title4,
                     )
                     Spacer(Modifier.height(16.dp))
-                    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            Text("上行 : ${trafficUp.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4, maxLines = 1)
-                            Spacer(Modifier.height(8.dp))
-                            ChartWindow(Modifier.fillMaxWidth().height(110.dp)) {
-                                TrafficChart(trafficUp, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
-                            }
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text("下行 : ${trafficDown.formatSize()}/s", fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4, maxLines = 1)
-                            Spacer(Modifier.height(8.dp))
-                            ChartWindow(Modifier.fillMaxWidth().height(110.dp)) {
-                                TrafficChart(trafficDown, MiuixTheme.colorScheme.primary, Modifier.fillMaxSize())
-                            }
-                        }
+                    val upColor = MiuixTheme.colorScheme.tertiary
+                    val downColor = MiuixTheme.colorScheme.primary
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("上行", color = upColor, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
+                        Spacer(Modifier.width(12.dp))
+                        Text("下行", color = downColor, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
+                        Spacer(Modifier.weight(1f))
+                        Text("${trafficUp.formatSize()}/s", color = upColor, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
+                        Spacer(Modifier.width(16.dp))
+                        Text("${trafficDown.formatSize()}/s", color = downColor, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    ChartWindow(Modifier.fillMaxWidth().height(120.dp)) {
+                        TrafficChart(trafficUp, trafficDown, upColor, downColor, Modifier.fillMaxSize())
                     }
                     HorizontalDivider(Modifier.padding(vertical = 12.dp), thickness = 0.5.dp, color = MiuixTheme.colorScheme.dividerLine)
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
