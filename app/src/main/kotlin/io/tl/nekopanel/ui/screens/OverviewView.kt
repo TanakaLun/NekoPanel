@@ -77,7 +77,7 @@ fun OverviewView(
                         style = MiuixTheme.textStyles.title4,
                     )
                     Spacer(Modifier.height(16.dp))
-                    val upColor = MiuixTheme.colorScheme.tertiary
+                    val upColor = MiuixTheme.colorScheme.secondary
                     val downColor = MiuixTheme.colorScheme.primary
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("上行", color = upColor, fontWeight = FontWeight.Bold, style = MiuixTheme.textStyles.title4)
