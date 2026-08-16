@@ -13,6 +13,7 @@ android {
         applicationId = "io.tl.nekopanel"
         minSdk = 33
         targetSdk = 37
+        
         versionCode = 147
         versionName = "Always"
 
@@ -72,8 +73,8 @@ dependencies {
     implementation(libs.miuix.ui)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
-    implementation(files("libs/miuix-blur-android-0.9.3-e1086564-20260729.101923-1.aar"))
-    implementation(files("libs/miuix-nav-android-0.9.3-9686db2b-20260728.164854-1.aar"))
+    implementation(libs.miuix.nav)
+    implementation(libs.miuix.blur)
     implementation(libs.navigationevent.compose)
     implementation(libs.navigationevent.compose.android)
     implementation(libs.androidx.material.icons.extended)

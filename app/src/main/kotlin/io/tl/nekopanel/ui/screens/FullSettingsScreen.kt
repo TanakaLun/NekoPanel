@@ -39,6 +39,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -413,13 +414,11 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             SectionTitle("界面设置")
             Card(Modifier.fillMaxWidth()) {
                 Column {
-                    BasePreference(
-                        title = "自定义主题、布局与显示偏好",
+                    ArrowPreference(
+                        title = "UI自定义",
+                        summary = "自定义主题、布局与显示偏好",
                         onClick = onNavigateToUiSettings,
-                        trailing = {
-                            Icon(Icons.Default.ChevronRight, null, tint = MiuixTheme.colorScheme.outline)
-                        }
-                    )
+                    )                
                 }
             }
         }
@@ -428,12 +427,10 @@ Row(Modifier.fillMaxWidth(), Arrangement.End) {
             SectionTitle("数据备份")
             Card(Modifier.fillMaxWidth()) {
                 Column {
-                    BasePreference(
-                        title = "WebDAV / GitHub 远程备份",
+                    ArrowPreference(
+                        title = "WebDAV/ GitHub 远程备份",
+                        summary = "让数据安全落盘",
                         onClick = onNavigateToBackup,
-                        trailing = {
-                            Icon(Icons.Default.ChevronRight, null, tint = MiuixTheme.colorScheme.outline)
-                        }
                     )
                 }
             }
